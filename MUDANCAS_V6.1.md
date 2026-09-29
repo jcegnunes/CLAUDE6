@@ -1,0 +1,116 @@
+# JVM Dielectric Lab — Mudanças da versão 6.1 (Supabase como banco único)
+
+## ⚠️ Passo obrigatório
+Execute `supabase/schema.sql` no SQL Editor do Supabase **antes** de abrir o app atualizado.
+Sem isso o app continua funcionando (envia no formato antigo), mas perde:
+cópia completa dos ensaios, exclusões entre aparelhos, Realtime e fotos no Storage.
+
+Na primeira abertura após a atualização, cada aparelho faz uma migração única:
+baixa tudo do Supabase, preserva edições locais mais recentes, recupera dados
+que só existiam no antigo IndexedDB e reenvia a base completa.
+
+## Bancos de dados removidos
+| Removido | Substituído por |
+|---|---|
+| Firebase / Firestore (`src/firebase.ts`, regras, config, dependência `firebase`) | Supabase (tabelas + Realtime) |
+| Hostinger MySQL/PHP (`hostingerSyncService`, `hostingerDatabaseService`, `HostingerDatabaseModal`) | Supabase. O domínio continua apenas como **endereço do portal de validação** (hospedagem do app) |
+| IndexedDB (`indexedDbService`) | Cache offline + fila de envio; fotos no Supabase Storage; PDFs salvos no aparelho via Cache Storage |
+| Normas, relatórios consolidados e dados do laboratório (antes só no Firebase) | Novas tabelas `norms`, `consolidated_reports` e coluna `companies.lab_info` |
+| Câmera remota via Firestore | Supabase Realtime (Broadcast) + foto no Storage |
+
+## Erros corrigidos
+**Perda de dados**
+- Varredura de sincronização regravava o armazenamento só com a empresa ativa → apagava ensaios/EPIs/OS/clientes das demais empresas.
+- Itens da fila eram descartados após 5 falhas → agora nunca são descartados (nova tentativa progressiva, erro visível).
+- Pull sem paginação parava em 1000 linhas → paginado.
+- Pull descartava campos sem coluna própria (escadas, detectores, mantas etc.) → coluna `payload` com o registro completo.
+- Restauração de backup substituía a lista inteira (apagava outras empresas) e não ia para a nuvem → mescla por ID e envia ao Supabase.
+- Excluir instrumento gravava direto no armazenamento (apagava instrumentos das outras empresas, sem sincronizar) → exclusão lógica sincronizada.
+- Atualizar o RT nas configurações sobrescrevia a lista de usuários de outras empresas.
+
+**Sincronização**
+- Exclusões não se propagavam e itens "ressuscitavam" → exclusão lógica com `deleted_at`.
+- Lote marcado como sincronizado mesmo com falhas individuais → marcação por item.
+- Edição feita durante o envio era marcada como sincronizada sem ter sido enviada → corrigido.
+- Erro de chave estrangeira trocava o `company_id` para `comp-jvm` (misturava empresas) → empresa nunca é alterada.
+- Instrumentos entravam na fila como `norm`.
+- `UNIQUE` em nº de ensaio/laudo/OS rejeitava ensaios de outro tablet com a mesma numeração offline.
+- Toda abertura reenviava a base inteira (com fotos base64) → envio incremental.
+- `updated_at` vinha do relógio do tablet → definido pelo servidor.
+- Fila duplicava o registro inteiro (fotos inclusive) no armazenamento → guarda só a referência.
+
+**Segurança / funcionais**
+- Senhas universais (`123456`, `admin`, `Jvm@141519`) entravam em qualquer conta → removidas.
+- Portal `/validar/CODIGO` só procurava no aparelho local (cliente sempre via "não encontrado") → consulta o Supabase.
+- Câmera remota podia disparar capturas repetidas (comando "shutter" ficava ativo) → comando entregue uma única vez.
+
+## Telas
+Layout mantido. Mudanças apenas de texto/ação:
+- **Central de Sincronização**: "Hostinger" → "Supabase"; removido o botão "Criar Banco Hostinger"; card da direita mostra o portal público de validação; fila mostra o erro de cada item.
+- **Configurações**: seção Hostinger virou "Portal Público de Validação & Sincronização" (sem campo de API key; o toggle de sincronização automática agora controla o Supabase).
+
+## Recomendações pendentes (não alteradas para não mudar o funcionamento)
+- As políticas RLS permitem leitura/escrita total com a chave pública. Para produção, migrar o login para **Supabase Auth** e restringir por `company_id`.
+- Senhas ficam em texto puro na tabela `users` e a tela de login preenche a senha ao escolher um usuário rápido.
+
+## Login pelo banco de dados (usuário + senha)
+- Removido o login automático (o app abria logado com um usuário de demonstração).
+- Removido o "Acesso Rápido" sem senha e a senha do administrador que estava no código do app.
+- Login por e-mail **ou** nome de usuário, conferido no servidor (`jvm_login`), com senhas bcrypt.
+- A coluna `password_hash` não pode mais ser lida nem gravada pela chave pública do app.
+- Senhas antigas em texto puro são criptografadas automaticamente pelo script SQL.
+- Acesso offline: somente para quem já entrou com internet no aparelho (validade 30 dias).
+- Senhas nunca ficam gravadas no aparelho nem em backups.
+
+## Tela de login simplificada
+- Exibe apenas: JVM Engenharia (CNPJ 29.894.500/0001-04), Usuário, Senha, Entrar e "Esqueci minha senha".
+- Removidos: seletor de empresas, cadastro de empresa/usuário, lista de usuários e card do Supabase.
+- "Esqueci minha senha" abre um pedido de redefinição por e-mail ao administrador
+  (as senhas são cadastradas no banco de dados).
+- CNPJ oficial da JVM aplicado nos dados padrão, no script SQL e nos aparelhos já instalados.
+
+## Versão sem dados (v6.2)
+- Removidos todos os dados de demonstração (empresas, usuários, clientes, EPIs, OS, ensaios,
+  instrumentos, auditoria). Mantidas apenas as normas técnicas.
+- Tela de login sem empresa: apenas Usuário, Senha e "Esqueci minha senha".
+- Nova tela **"Cadastre sua empresa"** no primeiro acesso (com busca de CNPJ e CEP).
+- `schema.sql` não insere mais empresa nem usuário; novo `limpar_dados.sql` zera o banco.
+- Laudos, certificados e etiquetas não usam mais nomes/CREA/razão social de demonstração
+  como padrão; o painel mostra gráficos com os ensaios reais (antes havia números fictícios).
+- Aparelhos com a versão anterior apagam uma única vez os dados de demonstração locais.
+- Corrigida permissão do banco que impediria o app de atualizar o cadastro do usuário.
+
+## Isolamento entre empresas (v6.3)
+- Download restrito à empresa do usuário logado; nenhuma sincronização antes do login.
+- Limpeza automática, no aparelho, de dados de outras empresas.
+- Bloqueio no banco dos dados de demonstração reenviados por versões antigas.
+- Marcador "Versão 6.3" no rodapé da tela de login.
+
+## Compatibilidade com tabelas de outros sistemas (v6.3.1)
+- Corrigido erro 23502 ("null value in column numero_os"): colunas extras obrigatórias
+  criadas por outros sistemas nas tabelas do app deixam de ser obrigatórias (sem apagar dados).
+- `numero_os` e `os_number` passam a ser mantidas iguais automaticamente.
+
+## Padronização das tabelas (v6.3.2)
+- Novo `supabase/padronizar_tabelas.sql`: remove colunas de outros sistemas das tabelas do app,
+  preservando antes número da OS e nome do cliente; lista (ou apaga, opcional) tabelas externas.
+- Removido do `schema.sql` o gatilho de compatibilidade com `numero_os`.
+
+## Recriação do banco (v6.3.3)
+- Novo `supabase/recriar_banco.sql`: apaga todas as tabelas/views/funções do schema public
+  e recria o banco inteiro no padrão do projeto, num único passo.
+
+## App instalável e offline (v6.4)
+- PWA com service worker (vite-plugin-pwa): o app inteiro fica no aparelho e abre sem internet.
+- Ícones do app criados (antes o manifesto apontava para ícones inexistentes e a instalação não era oferecida).
+- Botão "Instalar" passa a abrir a instalação nativa do Android; instruções para iPhone.
+- Pedido de armazenamento persistente (o navegador não apaga os ensaios pendentes).
+- Fotos do Supabase Storage ficam disponíveis offline depois de vistas.
+- `.htaccess`: index/service worker sem cache (atualizações chegam aos celulares).
+
+## Cliente da OS nos laudos (v6.5)
+- Corrigido: ao trocar o cliente de uma OS, o nome antigo era mantido na OS.
+- Corrigido: equipamentos e ensaios da OS continuavam com o cliente antigo, e o laudo/certificado
+  saía para o cliente anterior (online e offline). Agora são atualizados junto com a OS e sincronizados.
+- No assistente de ensaio, com uma OS selecionada, vale sempre o cliente atual da OS
+  (antes prevalecia o cliente gravado no equipamento).
