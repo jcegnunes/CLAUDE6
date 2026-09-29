@@ -167,6 +167,20 @@ UPDATE public.users SET active = false WHERE email = 'maria@empresa.com.br';
   instalado (Android e iPhone); exigiria converter o app em aplicativo nativo. Para ter as
   fotos em pasta, use o **Backup com Fotos (.ZIP)**.
 
+## Editor de fotos do laudo
+
+- No assistente de ensaio, cada foto tem o botão **Editar** (lápis na miniatura e no
+  detalhe da foto).
+- **Girar** 90° para a esquerda ou direita; **marcar** com seta, círculo, retângulo e texto;
+  6 cores; espessura fina/média/grossa (proporcional ao tamanho da foto); desfazer,
+  refazer e limpar marcações.
+- As marcações acompanham a foto ao girar. Funciona com toque (celular/tablet) e mouse.
+- Ao salvar, a foto editada substitui a anterior no ensaio (JPEG) e segue o fluxo normal:
+  guardada à parte no aparelho e enviada à nuvem na sincronização. A foto original não é
+  mantida.
+- O botão de download do detalhe da foto passou a funcionar com as fotos guardadas no
+  aparelho.
+
 ## Pendências recomendadas (não alteradas)
 
 - **Vínculo de ensaio sem cliente/equipamento no banco**: quando o cliente ou o

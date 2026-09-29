@@ -30,6 +30,7 @@ import {
   Image as ImageIcon,
   FolderOpen,
   Maximize2,
+  Pencil,
   Trash2,
   Sparkles,
   RefreshCw,
@@ -104,6 +105,7 @@ import { SignatureCanvas } from '../components/SignatureCanvas';
 import { StatusBadge } from '../components/StatusBadge';
 import { IsolatedToolsSelector } from '../components/IsolatedToolsSelector';
 import { PhotoDetailModal } from '../components/PhotoDetailModal';
+import { PhotoEditorModal } from '../components/PhotoEditorModal';
 import { LiveCameraModal } from '../components/LiveCameraModal';
 import { MobileCameraBridgeModal } from '../components/MobileCameraBridgeModal';
 import { compressImage, fileToDataUrl } from '../utils/imageCompressor';
@@ -290,6 +292,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
 
   // Photographic Evidence
   const [photos, setPhotos] = useState<TestPhoto[]>(editingTest?.photos || []);
+  // Foto aberta no editor (girar e marcar com seta, círculo, retângulo e texto)
+  const [photoBeingEdited, setPhotoBeingEdited] = useState<TestPhoto | null>(null);
   const [photoCategory, setPhotoCategory] = useState<TestPhoto['category']>('durante');
   const [photoCaption, setPhotoCaption] = useState<string>('');
   const [isProcessingPhotos, setIsProcessingPhotos] = useState<boolean>(false);
@@ -3175,6 +3179,19 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            setPhotoBeingEdited(p);
+                          }}
+                          className="absolute top-2 right-10 p-1.5 bg-blue-600/90 hover:bg-blue-600 text-white rounded-full opacity-80 hover:opacity-100 shadow-md transition-opacity cursor-pointer"
+                          title="Editar foto (girar e marcar)"
+                          aria-label="Editar foto"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleRemovePhoto(p.id);
                           }}
                           className="absolute top-2 right-2 p-1.5 bg-red-600/90 hover:bg-red-600 text-white rounded-full opacity-80 hover:opacity-100 shadow-md transition-opacity cursor-pointer"
@@ -3205,7 +3222,22 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
             photo={selectedPhotoForDetail}
             onClose={() => setSelectedPhotoForDetail(null)}
             onDelete={(id) => handleRemovePhoto(id)}
+            onEdit={(p) => { setSelectedPhotoForDetail(null); setPhotoBeingEdited(p); }}
           />
+
+          {/* Editor de fotos: girar e marcar */}
+          {photoBeingEdited && (
+            <PhotoEditorModal
+              src={photoBeingEdited.url}
+              title={`Editar foto — ${photoBeingEdited.caption || 'evidência do ensaio'}`}
+              onClose={() => setPhotoBeingEdited(null)}
+              onSave={(dataUrl) => {
+                const editedId = photoBeingEdited.id;
+                setPhotos(prev => prev.map(p => p.id === editedId ? { ...p, url: dataUrl, editedAt: new Date().toISOString() } : p));
+                setPhotoBeingEdited(null);
+              }}
+            />
+          )}
 
           {/* Live Camera Viewfinder Modal */}
           <LiveCameraModal
