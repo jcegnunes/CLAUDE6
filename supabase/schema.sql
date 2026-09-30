@@ -1289,6 +1289,9 @@ GRANT EXECUTE ON FUNCTION public.jvm_me() TO authenticated;
 -- Portal público /validar/CODIGO: devolve UM ensaio pelo código de validação
 -- (o código aleatório impresso no QR Code). Números de laudo/certificado são
 -- sequenciais e por isso NÃO são aceitos aqui.
+-- Só os campos do CERTIFICADO saem do banco (LGPD): fotos, dados do
+-- colaborador, assinaturas do técnico/cliente, medições detalhadas e
+-- observações internas ficam restritos a quem tem login na empresa.
 CREATE OR REPLACE FUNCTION public.jvm_validar_certificado(p_code TEXT)
 RETURNS JSON
 LANGUAGE plpgsql
@@ -1299,6 +1302,15 @@ DECLARE
   v_code TEXT := upper(trim(COALESCE(p_code, '')));
   t public.test_records%ROWTYPE;
   c public.companies%ROWTYPE;
+  v_public_keys TEXT[] := ARRAY[
+    'id', 'uuid', 'companyId', 'companyName', 'testNumber', 'reportNumber', 'certificateNumber',
+    'validationCode', 'clientName', 'equipmentTag', 'equipmentType', 'equipmentClass',
+    'equipmentSerial', 'equipmentCa', 'testDate', 'normCode', 'appliedClass', 'appliedVoltage_kV',
+    'voltageType', 'applicationDurationSeconds', 'result', 'retestDueDate', 'techResponsibleId',
+    'techResponsibleName', 'techResponsibleCrea', 'gloveLength_mm', 'blanketType', 'blanketStyle',
+    'blanketDimensions', 'mattingSurface', 'mattingThickness_mm', 'isolatedTools'
+  ];
+  v_payload JSONB;
 BEGIN
   IF length(v_code) < 6 THEN
     RETURN NULL;
@@ -1312,8 +1324,35 @@ BEGIN
     RETURN NULL;
   END IF;
   SELECT * INTO c FROM public.companies WHERE id = t.company_id;
+
+  SELECT COALESCE(jsonb_object_agg(e.key, e.value), '{}'::jsonb) INTO v_payload
+    FROM jsonb_each(COALESCE(t.payload, '{}'::jsonb)) e
+   WHERE e.key = ANY (v_public_keys);
+  IF v_payload = '{}'::jsonb THEN
+    -- registro antigo sem cópia completa: monta pelos campos da tabela
+    v_payload := jsonb_strip_nulls(jsonb_build_object(
+      'id', t.id, 'companyId', t.company_id, 'testNumber', t.test_number, 'reportNumber', t.report_number,
+      'certificateNumber', t.certificate_number, 'validationCode', t.validation_code,
+      'clientName', t.client_name, 'equipmentTag', t.equipment_tag, 'equipmentType', t.equipment_type,
+      'equipmentClass', t.equipment_class, 'equipmentSerial', t.equipment_serial, 'equipmentCa', t.equipment_ca,
+      'testDate', t.test_date, 'normCode', t.norm_code, 'appliedClass', t.applied_class,
+      'appliedVoltage_kV', t.applied_voltage_kv, 'voltageType', t.voltage_type, 'result', t.result,
+      'retestDueDate', t.retest_due_date, 'techResponsibleId', t.tech_responsible_id,
+      'techResponsibleName', t.tech_responsible_name, 'techResponsibleCrea', t.tech_responsible_crea,
+      'gloveLength_mm', t.glove_length_mm, 'mattingSurface', t.matting_surface,
+      'mattingThickness_mm', t.matting_thickness_mm, 'isolatedTools', t.isolated_tools
+    ));
+  END IF;
+
   RETURN json_build_object(
-    'test', to_jsonb(t) - 'device_id',
+    'test', jsonb_build_object(
+      'id', t.id,
+      'company_id', t.company_id,
+      'updated_at', t.updated_at,
+      -- assinatura do Responsável Técnico: impressa no certificado
+      'tech_responsible_signature', t.tech_responsible_signature,
+      'payload', v_payload
+    ),
     'company', CASE WHEN c.id IS NULL THEN NULL ELSE jsonb_build_object(
       'id', c.id, 'name', c.name, 'legal_name', c.legal_name, 'cnpj', c.cnpj, 'lab_info', c.lab_info
     ) END
