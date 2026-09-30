@@ -699,6 +699,23 @@ export class SupabaseService {
     // nuvem. O ensaio é enviado sem o vínculo técnico — nome/tag continuam
     // gravados. A empresa (company_id) NUNCA é trocada.
     if (error && error.code === '23503') {
+      // Cliente/equipamento que existe neste aparelho ainda não subiu (ex.: falhou
+      // antes): o ensaio espera na fila e tenta de novo, sem perder o vínculo.
+      const pendingParent =
+        (row.client_id && DielectricStorageService.getLocalRecordForSync('client', row.client_id)) ||
+        (row.equipment_id && DielectricStorageService.getLocalRecordForSync('equipment', row.equipment_id));
+      if (pendingParent) {
+        // garante que o cliente/equipamento esteja na fila (ex.: removido do servidor)
+        const queued = new Set(DielectricStorageService.getSyncQueue().map(q => `${q.entityType}:${q.entityId}`));
+        if (row.client_id && DielectricStorageService.getLocalRecordForSync('client', row.client_id) && !queued.has(`client:${row.client_id}`)) {
+          DielectricStorageService.enqueueSync('client', 'update', row.client_id);
+        }
+        if (row.equipment_id && DielectricStorageService.getLocalRecordForSync('equipment', row.equipment_id) && !queued.has(`equipment:${row.equipment_id}`)) {
+          DielectricStorageService.enqueueSync('equipment', 'update', row.equipment_id);
+        }
+        return 'Aguardando o envio do cliente/equipamento vinculado; nova tentativa automática.';
+      }
+      // Vínculo com registro que não existe mais em lugar nenhum: envia sem ele
       const relaxed = { ...row };
       ['client_id', 'equipment_id'].forEach(k => {
         if (relaxed[k] !== undefined) relaxed[k] = null;
