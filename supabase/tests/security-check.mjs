@@ -238,8 +238,22 @@ async function main() {
   ok(!r.error, 'foto na pasta da própria empresa');
   r = await as(db, user(b), `INSERT INTO storage.objects (bucket_id, name) VALUES ('jvm-evidencias', 'comp-1/t-1/foto.jpg')`);
   ok(!!r.error, 'foto NÃO vai para pasta de outra empresa');
-  r = await as(db, anon, `INSERT INTO storage.objects (bucket_id, name) VALUES ('jvm-evidencias', 'camera-remota/JVM-CAM-1/f.jpg')`);
-  ok(!r.error, 'câmera remota (anon) envia para camera-remota/');
+  // câmera remota: o computador logado abre a sessão; o celular (anon) só envia para ela
+  r = await as(db, user(b), `SELECT public.jvm_open_camera_session('JVM-CAM-ABCDEFGH2345') AS e`);
+  ok(!r.error && !!r.rows[0].e, `usuário logado abre sessão de câmera (${r.error || 'ok'})`);
+  r = await as(db, anon, `INSERT INTO storage.objects (bucket_id, name) VALUES ('jvm-evidencias', 'camera-remota/JVM-CAM-ABCDEFGH2345/f.jpg')`);
+  ok(!r.error, 'câmera remota (anon) envia para a sessão aberta');
+  r = await as(db, anon, `INSERT INTO storage.objects (bucket_id, name) VALUES ('jvm-evidencias', 'camera-remota/JVM-CAM-QQQQQQQQQQQQ/f.jpg')`);
+  ok(!!r.error, 'câmera remota (anon) NÃO envia para sessão que não foi aberta');
+  r = await as(db, anon, `SELECT public.jvm_open_camera_session('JVM-CAM-ZZZZZZZZZZZZ')`);
+  ok(!!r.error, 'anon NÃO abre sessão de câmera');
+  r = await as(db, user(b), `SELECT public.jvm_open_camera_session('JVM-CAM-1')`);
+  ok(!!r.error, 'código de sessão fraco é recusado');
+  await db.exec(`UPDATE public.camera_sessions SET expires_at = NOW() - INTERVAL '1 minute' WHERE id = 'JVM-CAM-ABCDEFGH2345'`);
+  r = await as(db, anon, `INSERT INTO storage.objects (bucket_id, name) VALUES ('jvm-evidencias', 'camera-remota/JVM-CAM-ABCDEFGH2345/g.jpg')`);
+  ok(!!r.error, 'câmera remota NÃO envia depois que a sessão vence');
+  r = await as(db, anon, `SELECT * FROM public.camera_sessions`);
+  ok(!!r.error, 'tabela de sessões não é lida pela chave pública');
   r = await as(db, anon, `INSERT INTO storage.objects (bucket_id, name) VALUES ('jvm-evidencias', 'comp-2/x.jpg')`);
   ok(!!r.error, 'anon NÃO envia fora de camera-remota/');
   r = await as(db, anon, `SELECT name FROM storage.objects`);

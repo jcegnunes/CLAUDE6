@@ -1683,10 +1683,68 @@ EXCEPTION WHEN others THEN NULL;
 END $$;
 
 -- -------------------------------------------------------------------------
+-- CÂMERA REMOTA (celular sem login envia fotos para o computador)
+-- O computador (usuário logado) abre uma sessão com validade de 4 horas. O
+-- celular só consegue enviar fotos para a pasta de uma sessão aberta e ainda
+-- válida: ninguém de fora usa o armazenamento do laboratório.
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.camera_sessions (
+  id TEXT PRIMARY KEY,
+  company_id TEXT REFERENCES public.companies(id) ON DELETE CASCADE,
+  created_by UUID,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.camera_sessions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.camera_sessions FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.jvm_open_camera_session(p_id TEXT)
+RETURNS TIMESTAMPTZ
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_company TEXT := public.jvm_my_company();
+  v_expires TIMESTAMPTZ := NOW() + INTERVAL '4 hours';
+BEGIN
+  IF v_company IS NULL OR NOT public.jvm_can_write() THEN
+    RAISE EXCEPTION 'Sem permissão para abrir sessão de câmera.' USING ERRCODE = '42501';
+  END IF;
+  IF p_id IS NULL OR p_id !~ '^JVM-CAM-[A-Z0-9]{12}$' THEN
+    RAISE EXCEPTION 'Código de sessão inválido.' USING ERRCODE = '22023';
+  END IF;
+  -- limpeza das sessões vencidas há mais de 1 dia
+  DELETE FROM public.camera_sessions WHERE expires_at < NOW() - INTERVAL '1 day';
+  INSERT INTO public.camera_sessions (id, company_id, created_by, expires_at)
+  VALUES (p_id, v_company, auth.uid(), v_expires)
+  ON CONFLICT (id) DO UPDATE SET expires_at = EXCLUDED.expires_at
+   WHERE public.camera_sessions.company_id = v_company;
+  RETURN v_expires;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.jvm_open_camera_session(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.jvm_open_camera_session(TEXT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.jvm_camera_session_valid(p_id TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (SELECT 1 FROM public.camera_sessions WHERE id = p_id AND expires_at > NOW())
+$$;
+
+REVOKE ALL ON FUNCTION public.jvm_camera_session_valid(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.jvm_camera_session_valid(TEXT) TO anon, authenticated;
+
+-- -------------------------------------------------------------------------
 -- STORAGE: fotos/evidências dos ensaios (bucket "jvm-evidencias")
 -- * Leitura pública pela URL da foto (usada nos laudos e no portal do QR Code)
 -- * Envio/alteração: só usuário logado, na pasta da própria empresa
--- * Câmera remota (celular sem login): só ENVIA imagens para "camera-remota/"
+-- * Câmera remota (celular sem login): só ENVIA imagens para
+--   "camera-remota/<sessão>/", e somente enquanto a sessão estiver válida
 -- -------------------------------------------------------------------------
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('jvm-evidencias', 'jvm-evidencias', true, 10485760, ARRAY['image/*'])
@@ -1718,7 +1776,8 @@ CREATE POLICY "jvm_evidencias_update" ON storage.objects FOR UPDATE TO authentic
                    OR (SELECT public.jvm_is_master())));
 CREATE POLICY "jvm_evidencias_camera_insert" ON storage.objects FOR INSERT TO anon, authenticated
   WITH CHECK (bucket_id = 'jvm-evidencias'
-              AND (storage.foldername(name))[1] = 'camera-remota');
+              AND (storage.foldername(name))[1] = 'camera-remota'
+              AND public.jvm_camera_session_valid((storage.foldername(name))[2]));
 
 -- =========================================================================
 -- BLOQUEIO DE DADOS DE DEMONSTRAÇÃO

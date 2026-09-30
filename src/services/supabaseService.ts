@@ -798,6 +798,17 @@ export class SupabaseService {
     return { record: updated || test, count };
   }
 
+  /**
+   * Abre no servidor a sessão da câmera remota (computador logado). Só com a
+   * sessão aberta o celular consegue enviar fotos para "camera-remota/<sessão>/".
+   */
+  static async openCameraSession(sessionId: string): Promise<boolean> {
+    if (!this.canSync() || !(await this.getSession())) return false;
+    const { error } = await this.getClient().rpc('jvm_open_camera_session', { p_id: sessionId });
+    if (error) console.info('[Câmera Remota] Sessão não registrada no servidor:', error.message);
+    return !error;
+  }
+
   /** Envia uma imagem avulsa (ex.: câmera remota) e retorna a URL pública, ou null. */
   static async uploadEvidenceImage(dataUrl: string, folder: string): Promise<string | null> {
     if (!dataUrl || !dataUrl.startsWith('data:') || this.storageUnavailable || !this.canSync()) return null;
