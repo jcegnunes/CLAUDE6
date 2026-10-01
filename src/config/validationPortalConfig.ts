@@ -5,9 +5,10 @@
 export const DEFAULT_VALIDATION_BASE_URL = 'https://jvmlab.com.br';
 
 /**
- * Domínios antigos que devem ser migrados automaticamente para o endereço atual.
- * ATENÇÃO: QR Codes já impressos com esses endereços continuam apontando para
- * eles. Mantenha-os no ar redirecionando para https://jvmlab.com.br.
+ * Domínios antigos (desativados): endereços salvos nos aparelhos e no cadastro
+ * da empresa são trocados automaticamente pelo endereço atual. Documentos já
+ * impressos com esses endereços são validados digitando o código em
+ * https://jvmlab.com.br/validar.
  */
 const LEGACY_DOMAINS = ['mediumturquoise-giraffe-910043', 'mediumvioletred-bison-595566'];
 

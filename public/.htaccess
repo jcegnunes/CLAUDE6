@@ -1,9 +1,7 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-  # Endereço oficial: https://jvmlab.com.br. O endereço antigo da Hostinger (QR Codes já
-  # impressos) e o www redirecionam para ele, mantendo o caminho (/validar/CÓDIGO).
-  RewriteCond %{HTTP_HOST} \.hostingersite\.com$ [NC,OR]
+  # Endereço oficial: https://jvmlab.com.br (o www redireciona para ele)
   RewriteCond %{HTTP_HOST} ^www\.jvmlab\.com\.br$ [NC]
   RewriteRule ^(.*)$ https://jvmlab.com.br/$1 [R=301,L]
 

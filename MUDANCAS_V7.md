@@ -19,15 +19,17 @@
 ## Endereço da plataforma: https://jvmlab.com.br
 
 O app, os QR Codes de laudos/certificados/etiquetas e o portal `/validar/CÓDIGO` passam a
-usar **https://jvmlab.com.br**. Aparelhos e cadastros que ainda tenham o endereço antigo da
-Hostinger são convertidos automaticamente.
+usar **https://jvmlab.com.br**. O endereço antigo da Hostinger
+(`mediumvioletred-bison-595566.hostingersite.com`) **será desativado**; aparelhos e cadastros
+que ainda o tenham salvo são convertidos automaticamente para o novo.
 
 1. **Hostinger → Domínios:** aponte `jvmlab.com.br` (e `www`) para a hospedagem do site e
    ative o **SSL** (HTTPS é obrigatório para instalar o app e usar a câmera).
 2. Publique o build do app nesse domínio (mesmos arquivos de antes, com o `.htaccess`).
-3. **Mantenha o endereço antigo** (`mediumvioletred-bison-595566.hostingersite.com`)
-   redirecionando para `https://jvmlab.com.br`, mantendo o caminho (`/validar/...`):
-   laudos e etiquetas já impressos têm o QR Code com o endereço antigo.
+3. **Documentos já impressos com o QR Code antigo:** com o endereço antigo desativado, o
+   QR Code deles deixa de abrir. A autenticidade continua verificável: o cliente acessa
+   `https://jvmlab.com.br/validar` e digita o **código de validação** impresso no documento.
+   Se preferir, reemita os documentos ou etiquetas ainda em uso.
 4. **Supabase → Authentication → URL Configuration:** *Site URL* = `https://jvmlab.com.br`.
 5. Abra `https://jvmlab.com.br` e confira "Versão 7.0.0" no rodapé do login.
 
