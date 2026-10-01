@@ -129,6 +129,27 @@ faixas dos ensaios (sem número repetido entre aparelhos).
 (`www.jvmengenharia.com.br/validar?codigo=VAL-TRE-...`). O validador reconhece o código
 `VAL-TRE-` e mostra os dados do certificado com o **CPF mascarado** (***.456.789-**).
 
+**Certificado digital ICP-Brasil (A1) — assinatura digital dos PDFs:**
+- Em Treinamentos → Instrutores: no cadastro de cada instrutor (quadro "Certificado
+  digital") e no cartão do **Responsável Técnico**, envie o arquivo `.pfx`/`.p12` e a senha.
+  O sistema confere a senha, mostra titular, CPF, emissor e validade, e recusa certificado
+  vencido. Só administrador ou RT cadastram/trocam/removem (exige internet).
+- O arquivo e a senha ficam **criptografados no banco** (tabela `training_signing_certs`,
+  chave em `jvm_private_secrets`), que o app não lê diretamente. Funções do banco entregam o
+  material só para quem emite certificados de treinamento na própria empresa, e registram o
+  último uso. Como a senha fica salva (escolha do laboratório), **quem emite certificados
+  assina em nome do titular** — cadastre apenas com autorização dele.
+- Ao baixar certificados (com internet), cada PDF é assinado digitalmente pelo RT e pelos
+  instrutores que têm certificado (uma assinatura por pessoa, sem invalidar a anterior).
+  Vários certificados saem num `.zip` com um PDF assinado por aluno. O certificado impresso
+  traz "Assinado digitalmente · ICP-Brasil" sob o nome de quem assinou. Confira no Adobe
+  Reader ou em https://validar.iti.gov.br. Sem internet ou com certificado vencido, o PDF
+  sai sem assinatura digital (com aviso).
+- Limitação: a assinatura é PAdES básica (PKCS#7 destacada, SHA-256). Ela é válida e
+  verificável, mas não inclui a política de assinatura ICP-Brasil (AD-RB) — o validador do
+  ITI pode indicar "sem política". Certificado A3 (token/cartão) não é suportado no navegador.
+- Requer executar de novo `supabase/modules/treinamentos.sql`.
+
 **Ligar/desligar:** Configurações & Backup → Módulos do sistema (por empresa; os dados
 ficam guardados).
 
