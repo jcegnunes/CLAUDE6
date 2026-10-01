@@ -6,7 +6,7 @@
  */
 import { SupabaseService } from '../../services/supabaseService';
 import { currentCompanyId, currentUser, getInstructors } from './repository';
-import { base64ToBytes, bytesToBase64, inspectP12, isCertExpired, type PdfSigner } from './digitalSignature';
+import { base64ToBytes, bytesToBase64, inspectP12, isCertExpired, type CertDetails, type PdfSigner } from './digitalSignature';
 import type { TrainingCertificate } from './types';
 
 export type SigningOwnerType = 'instructor' | 'rt';
@@ -22,6 +22,8 @@ export interface SigningCertSummary {
   validTo: string;
   updatedAt?: string;
   lastUsedAt?: string;
+  /** Dados do certificado ligados à assinatura (lidos no cadastro) */
+  details?: CertDetails | null;
 }
 
 const LIST_KEY = 'jvm_training_signing_list';
@@ -109,7 +111,8 @@ export async function saveSigningCert(type: SigningOwnerType, ownerId: string, f
     p_issuer: info.issuer,
     p_serial: info.serial,
     p_valid_from: info.validFrom,
-    p_valid_to: info.validTo
+    p_valid_to: info.validTo,
+    p_details: info.details
   });
   if (error) throw rpcError(error);
   material.delete(keyOf(type, ownerId));
