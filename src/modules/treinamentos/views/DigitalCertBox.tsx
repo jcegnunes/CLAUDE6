@@ -135,3 +135,48 @@ export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: st
     </div>
   );
 };
+
+export interface PendingCert { file: File | null; password: string }
+
+/**
+ * Instrutor novo: o certificado é escolhido aqui e gravado ao clicar em
+ * "Salvar instrutor" (o instrutor precisa existir no servidor antes).
+ */
+export const PendingCertFields: React.FC<{ value: PendingCert; onChange: (v: PendingCert) => void; error?: string | null }> = ({ value, onChange, error }) => {
+  const [showPw, setShowPw] = useState(false);
+  if (!canManageSigningCerts()) {
+    return (
+      <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/60 text-[11px] text-slate-500">
+        <b className="text-slate-700">Certificado digital ICP-Brasil (A1):</b> somente o administrador ou o Responsável Técnico cadastra.
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/60">
+      <div className="flex items-center gap-2 mb-2">
+        <KeyRound className="w-4 h-4 text-blue-700" />
+        <span className="text-xs font-bold text-slate-800">Certificado digital ICP-Brasil (A1)</span>
+        <span className="text-[10px] text-slate-500">opcional</span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 items-end">
+        <label className="block">
+          <span className="block font-bold text-slate-700 mb-1 text-[11px]">Arquivo (.pfx/.p12)</span>
+          <input type="file" accept=".pfx,.p12,application/x-pkcs12" className="block w-full text-[11px]" onChange={e => onChange({ ...value, file: e.target.files?.[0] || null })} />
+        </label>
+        <label className="block">
+          <span className="block font-bold text-slate-700 mb-1 text-[11px]">Senha do certificado</span>
+          <div className="relative">
+            <input type={showPw ? 'text' : 'password'} className={`${inputCls} pr-8`} value={value.password} onChange={e => onChange({ ...value, password: e.target.value })} autoComplete="new-password" />
+            <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400" onClick={() => setShowPw(!showPw)} aria-label={showPw ? 'Ocultar senha' : 'Mostrar senha'}>
+              {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+        </label>
+      </div>
+      <p className="text-[10px] text-slate-500 mt-1.5">
+        Gravado junto com o instrutor (exige internet), criptografado no servidor, e usado para assinar automaticamente os PDFs.
+      </p>
+      {error && <p className="mt-2 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1" role="alert">{error}</p>}
+    </div>
+  );
+};
