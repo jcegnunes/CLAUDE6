@@ -767,6 +767,7 @@ export class SupabaseService {
     const targets: Array<{ key: string; dataUrl: string }> = [];
     (test.photos || []).forEach((ph, idx) => {
       if (isPending(ph?.url)) targets.push({ key: ph.id || `foto-${idx}`, dataUrl: ph.url });
+      if (isPending(ph?.originalUrl)) targets.push({ key: `${ph.id || `foto-${idx}`}-original`, dataUrl: ph.originalUrl });
     });
     (test.visualInspection || []).forEach((v: any, idx: number) => {
       if (isPending(v?.photoUrl)) {
