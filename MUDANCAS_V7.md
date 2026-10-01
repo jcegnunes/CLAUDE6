@@ -142,7 +142,8 @@ faixas dos ensaios (sem número repetido entre aparelhos).
 - Ao baixar certificados (com internet), cada PDF é assinado digitalmente pelo RT e pelos
   instrutores que têm certificado (uma assinatura por pessoa, sem invalidar a anterior).
   Vários certificados saem num `.zip` com um PDF assinado por aluno. O certificado impresso
-  traz "Assinado digitalmente · ICP-Brasil" sob o nome de quem assinou. Confira no Adobe
+  traz, acima do nome de quem assinou, o carimbo da assinatura digital com os dados lidos do
+  certificado (nome do titular, ND, razão, localização e data), no padrão dos leitores de PDF. Confira no Adobe
   Reader ou em https://validar.iti.gov.br. Sem internet ou com certificado vencido, o PDF
   sai sem assinatura digital (com aviso).
 - Limitação: a assinatura é PAdES básica (PKCS#7 destacada, SHA-256). Ela é válida e

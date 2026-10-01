@@ -26,6 +26,8 @@ describe('Certificado digital A1', () => {
     expect(info.holderName).toBe('ENG RT');
     expect(info.holderDoc).toBe('52998224725');
     expect(info.issuer).toBe('AC TESTE');
+    expect(info.commonName).toBe('ENG RT:52998224725');
+    expect(info.subjectDn).toBe('CN=ENG RT:52998224725');
     expect(isCertExpired(info)).toBe(false);
   });
 

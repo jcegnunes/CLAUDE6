@@ -8,6 +8,10 @@ import forge from 'node-forge';
 
 export interface SigningCertInfo {
   holderName: string;
+  /** Nome comum completo do certificado (ex.: "JVM ENGENHARIA LTDA:29894500000104") */
+  commonName: string;
+  /** Nome distinto (ND) do titular: "C=BR, S=DF, L=BRASILIA, O=ICP-Brasil, OU=..., CN=..." */
+  subjectDn: string;
   /** CPF/CNPJ do titular, quando presente no certificado ICP-Brasil */
   holderDoc: string;
   issuer: string;
@@ -22,6 +26,7 @@ export interface PdfSigner {
   password: string;
   name: string;
   reason: string;
+  location?: string;
 }
 
 function bytesToBinary(bytes: Uint8Array): string {
@@ -57,8 +62,13 @@ export function inspectP12(bytes: Uint8Array, password: string): SigningCertInfo
   const cn = String(own.subject.getField('CN')?.value || '');
   const [namePart, docPart] = cn.split(':');
   const issuer = String(own.issuer.getField('CN')?.value || own.issuer.getField('O')?.value || '');
+  const subjectDn = own.subject.attributes
+    .map(a => `${a.shortName === 'ST' ? 'S' : (a.shortName || a.name || a.type)}=${a.value}`)
+    .join(', ');
   return {
     holderName: (namePart || cn).trim(),
+    commonName: cn,
+    subjectDn,
     holderDoc: (docPart || '').replace(/\D/g, ''),
     issuer,
     serial: own.serialNumber,
@@ -90,7 +100,7 @@ export async function signPdf(pdf: Uint8Array, signers: PdfSigner[]): Promise<Ui
       reason: s.reason,
       contactInfo: '',
       name: s.name,
-      location: 'Brasil',
+      location: s.location || 'Brasil',
       signatureLength: 20000
     });
     const signer = new P12Signer(Buffer.from(s.p12), { passphrase: s.password });
