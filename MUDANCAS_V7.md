@@ -95,6 +95,11 @@ e mostra o aviso para executar o script.
   da planilha: Nome; CPF; Função; Empresa), presença e nota. "Emitir" gera os
   certificados de todos os aprovados de uma vez; "Lista de presença" gera o PDF com uma
   coluna de assinatura por dia.
+- **Alunos da turma** podem ser editados e excluídos mesmo depois da emissão: ao salvar,
+  as correções (nome, CPF, função, empresa, presença, nota) vão para o certificado, que
+  mantém número e QR Code; aluno excluído tem o certificado **cancelado**; aluno que deixa
+  de atingir o mínimo do curso tem o certificado cancelado (com confirmação) e pode
+  receber um novo se for corrigido. Nota de 0 a 10 e presença de 0 a 100% são conferidas.
 - **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem

@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { Users, Plus, Pencil, Trash2, Award, ClipboardList, Download, Loader2, ClipboardPaste, Search } from 'lucide-react';
 import { DielectricStorageService } from '../../../services/syncEngine';
 import {
-  canDeleteTraining, canEditTraining, currentCompanyId, deleteClass, getCertificates, getClasses, getCourse,
-  getCourses, getInstructors, issueCertificatesForClass, saveClass
+  canDeleteTraining, canEditTraining, cancelCertificate, currentCompanyId, deleteClass, getCertificate, getCertificates,
+  getClasses, getCourse, getCourses, getInstructors, issueCertificatesForClass, saveCertificate, saveClass
 } from '../repository';
 import { exportAttendanceList, exportTrainingCertificates } from '../certificatePdf';
 import { formatCpf, formatDateBr, formatHours, isParticipantApproved, isValidCpf, newId, todayIso } from '../rules';
@@ -149,6 +149,8 @@ const emptyParticipant = (company = ''): TrainingParticipant => ({ id: newId('al
 const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ turma, onClose }) => {
   const [t, setT] = useState<TrainingClass>(turma);
   const [pasting, setPasting] = useState(false);
+  // certificados de alunos excluídos: cancelados ao salvar a turma
+  const [removedCerts, setRemovedCerts] = useState<Array<{ id: string; name: string }>>([]);
   const set = <K extends keyof TrainingClass>(k: K, v: TrainingClass[K]) => setT(prev => ({ ...prev, [k]: v }));
   const courses = getCourses().filter(c => c.active || c.id === turma.courseId);
   const instructors = getInstructors().filter(i => i.active || turma.instructorIds.includes(i.id));
@@ -182,8 +184,43 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
     if (badCpf.length) return window.alert(`CPF inválido: ${badCpf.map(p => p.name).join(', ')}.`);
     const cpfs = participants.map(p => p.cpf).filter(Boolean);
     if (new Set(cpfs).size !== cpfs.length) return window.alert('Há CPF repetido na lista de alunos.');
+    const badGrade = participants.filter(p => p.grade !== undefined && (p.grade < 0 || p.grade > 10));
+    if (badGrade.length) return window.alert(`Nota deve ficar entre 0 e 10: ${badGrade.map(p => p.name).join(', ')}.`);
+    const badAttendance = participants.filter(p => !(p.attendance >= 0 && p.attendance <= 100));
+    if (badAttendance.length) return window.alert(`Presença deve ficar entre 0 e 100%: ${badAttendance.map(p => p.name).join(', ')}.`);
+
+    // Alunos com certificado: as correções vão para o certificado (mesmo número e QR Code)
+    const toCancel: Array<{ id: string; reason: string }> = removedCerts.map(r => ({ id: r.id, reason: `Aluno excluído da turma ${t.classNumber}` }));
+    const toUpdate: Array<ReturnType<typeof getCertificate>> = [];
+    for (const p of participants) {
+      const cert = p.certificateId ? getCertificate(p.certificateId) : undefined;
+      if (!cert) continue;
+      if (cert.status === 'valido' && !isParticipantApproved(p, course)) {
+        if (!window.confirm(`${p.name} deixou de atingir o mínimo do curso (presença ${course.minAttendance}%${course.minGrade !== undefined ? `, nota ${course.minGrade}` : ''}).\nCancelar o certificado ${cert.certificateNumber}?\n\nOK = cancelar · Cancelar = voltar e conferir`)) return;
+        toCancel.push({ id: cert.id, reason: 'Aluno reprovado após correção da presença/nota' });
+        // se a nota for corrigida de novo, o aluno pode receber um novo certificado
+        p.certificateId = undefined;
+        continue;
+      }
+      const changed = cert.participantName !== p.name || cert.participantCpf !== p.cpf || (cert.participantRole || '') !== (p.role || '')
+        || (cert.participantCompany || '') !== (p.company || '') || cert.attendance !== p.attendance || cert.grade !== p.grade;
+      if (changed) toUpdate.push({ ...cert, participantName: p.name, participantCpf: p.cpf, participantRole: p.role, participantCompany: p.company, attendance: p.attendance, grade: p.grade });
+    }
+    if (toCancel.length && !window.confirm(`Salvar a turma e cancelar ${toCancel.length} certificado(s)? O validador do QR Code passará a mostrá-lo(s) como CANCELADO.`)) return;
+
     saveClass({ ...t, id: t.id || newId('tur'), endDate: t.endDate || t.startDate, workloadHours: Number(t.workloadHours) || course.workloadHours, participants });
+    toUpdate.forEach(c => c && saveCertificate(c));
+    toCancel.forEach(c => cancelCertificate(c.id, c.reason));
     onClose();
+  };
+
+  const removeParticipant = (p: TrainingParticipant) => {
+    const cert = p.certificateId ? getCertificate(p.certificateId) : undefined;
+    if (cert && cert.status === 'valido') {
+      if (!window.confirm(`Excluir ${p.name} da turma?\nO certificado ${cert.certificateNumber} será CANCELADO ao salvar a turma (o QR Code passa a mostrar "cancelado").`)) return;
+      setRemovedCerts(prev => [...prev, { id: cert.id, name: p.name }]);
+    }
+    set('participants', t.participants.filter(x => x.id !== p.id));
   };
 
   return (
@@ -265,15 +302,20 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
               const cpfBad = !!p.cpf && !isValidCpf(p.cpf);
               return (
                 <div key={p.id} className={`grid grid-cols-2 sm:grid-cols-12 gap-2 items-end p-2 rounded-xl border ${p.certificateId ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'}`}>
-                  <Field label={`${idx + 1}. Nome`} className="col-span-2 sm:col-span-3"><input className={inputCls} value={p.name} onChange={e => setP(p.id, { name: e.target.value })} disabled={!!p.certificateId} /></Field>
-                  <Field label="CPF" className="sm:col-span-2"><input className={`${inputCls} ${cpfBad ? 'border-red-400' : ''}`} value={p.cpf} onChange={e => setP(p.id, { cpf: e.target.value })} onBlur={e => setP(p.id, { cpf: formatCpf(e.target.value) })} disabled={!!p.certificateId} inputMode="numeric" /></Field>
-                  <Field label="Função" className="sm:col-span-2"><input className={inputCls} value={p.role || ''} onChange={e => setP(p.id, { role: e.target.value })} disabled={!!p.certificateId} /></Field>
-                  <Field label="Empresa" className="sm:col-span-2"><input className={inputCls} value={p.company || ''} onChange={e => setP(p.id, { company: e.target.value })} disabled={!!p.certificateId} /></Field>
-                  <Field label="Presença %"><input type="number" min={0} max={100} className={inputCls} value={p.attendance} onChange={e => setP(p.id, { attendance: Number(e.target.value) })} disabled={!!p.certificateId} /></Field>
-                  <Field label="Nota" className="sm:col-span-2"><input type="number" min={0} max={10} step={0.1} className={inputCls} value={p.grade ?? ''} onChange={e => setP(p.id, { grade: e.target.value === '' ? undefined : Number(e.target.value) })} disabled={!!p.certificateId} /></Field>
+                  <Field label={`${idx + 1}. Nome`} className="col-span-2 sm:col-span-3"><input className={inputCls} value={p.name} onChange={e => setP(p.id, { name: e.target.value })} /></Field>
+                  <Field label="CPF" className="sm:col-span-2"><input className={`${inputCls} ${cpfBad ? 'border-red-400' : ''}`} value={p.cpf} onChange={e => setP(p.id, { cpf: e.target.value })} onBlur={e => setP(p.id, { cpf: formatCpf(e.target.value) })} inputMode="numeric" /></Field>
+                  <Field label="Função" className="sm:col-span-2"><input className={inputCls} value={p.role || ''} onChange={e => setP(p.id, { role: e.target.value })} /></Field>
+                  <Field label="Empresa" className="sm:col-span-2"><input className={inputCls} value={p.company || ''} onChange={e => setP(p.id, { company: e.target.value })} /></Field>
+                  <Field label="Presença %"><input type="number" min={0} max={100} className={inputCls} value={p.attendance} onChange={e => setP(p.id, { attendance: Number(e.target.value) })} /></Field>
+                  <Field label="Nota" className="sm:col-span-2"><input type="number" min={0} max={10} step={0.1} className={inputCls} value={p.grade ?? ''} onChange={e => setP(p.id, { grade: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
                   <div className="col-span-2 sm:col-span-12 flex items-center gap-1 justify-end -mt-1">
                     {p.certificateId ? (
-                      <span className="text-[10px] font-bold text-emerald-700">Certificado emitido</span>
+                      <>
+                        <span className="text-[10px] font-bold text-emerald-700">
+                          Certificado {getCertificate(p.certificateId)?.certificateNumber || 'emitido'} · alterações vão para o certificado
+                        </span>
+                        <button type="button" className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" onClick={() => removeParticipant(p)} aria-label="Excluir aluno" title="Excluir aluno (cancela o certificado)"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </>
                     ) : (
                       <>
                         <select
@@ -286,7 +328,7 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
                           <option value="sim">Aprovado</option>
                           <option value="nao">Reprovado</option>
                         </select>
-                        <button type="button" className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" onClick={() => set('participants', t.participants.filter(x => x.id !== p.id))} aria-label="Remover aluno"><Trash2 className="w-3.5 h-3.5" /></button>
+                        <button type="button" className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" onClick={() => removeParticipant(p)} aria-label="Excluir aluno" title="Excluir aluno"><Trash2 className="w-3.5 h-3.5" /></button>
                       </>
                     )}
                   </div>
@@ -296,6 +338,12 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
           </div>
         )}
       </div>
+
+      {removedCerts.length > 0 && (
+        <p className="mt-3 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1.5">
+          Ao salvar, serão cancelados os certificados de: {removedCerts.map(r => r.name).join(', ')}.
+        </p>
+      )}
 
       <Field label="Observações internas" className="mt-4"><textarea rows={2} className={inputCls} value={t.notes || ''} onChange={e => set('notes', e.target.value)} /></Field>
 
