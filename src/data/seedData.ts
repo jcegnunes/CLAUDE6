@@ -37,7 +37,7 @@ export const JVM_COMPANY_INFO: CompanyLabInfo = {
   email: '',
   website: '',
   instagram: '',
-  validationBaseUrl: 'https://validador.jvmlab.com.br',
+  validationBaseUrl: 'https://www.jvmengenharia.com.br/validar?codigo={codigo}',
   supabaseUrl: 'https://cdtbzbshylrcprvmjpgc.supabase.co',
   supabaseAnonKey: 'sb_publishable_j3sUJcAb-zBEQI_S09u2Cg_X1-WJ-8M',
   supabaseAutoSync: true,

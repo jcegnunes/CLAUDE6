@@ -4,6 +4,10 @@ import './index.css';
 import { initPwaInstall } from './services/pwaInstallService';
 import { initLocalStore } from './services/localStore';
 import { MANAGED_STORAGE_KEYS } from './services/storageKeys';
+import { ensureWebStorage } from './utils/storageFallback';
+
+// Iframe restrito (sem acesso ao armazenamento): usa memória
+ensureWebStorage();
 
 // Instalação pelo navegador (PWA) + armazenamento persistente dos dados offline
 initPwaInstall();

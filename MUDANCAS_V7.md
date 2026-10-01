@@ -21,10 +21,12 @@
 | Uso | Endereço |
 |---|---|
 | Sistema (login, ensaios, laudos, cadastros) | **https://jvmlab.com.br** |
-| Validação de certificados e laudos (QR Code) | **https://validador.jvmlab.com.br** |
+| Validação no site da JVM (QR Code) | **https://www.jvmengenharia.com.br/validar?codigo=CÓDIGO** |
+| Validador (exibido dentro da página do Wix) | **https://validador.jvmlab.com.br** |
 
-- Os QR Codes de certificados, laudos e etiquetas apontam para
-  `https://validador.jvmlab.com.br/validar/CÓDIGO`.
+- Os QR Codes de certificados, laudos e etiquetas apontam para a página **/validar** do site
+  da JVM no Wix, que mostra o validador (`validador.jvmlab.com.br`) dentro dela.
+- O leitor de QR Code do app entende os dois formatos (`?codigo=` e `/validar/CÓDIGO`).
 - No `validador`, qualquer endereço abre **somente** a consulta de certificados: a tela de
   login do sistema não aparece ali.
 - Endereços antigos salvos (Hostinger ou `jvmlab.com.br`) são convertidos automaticamente.
@@ -41,6 +43,34 @@
    em `https://validador.jvmlab.com.br`. Reemita etiquetas ainda em uso, se preferir.
 6. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.0.0";
    `https://validador.jvmlab.com.br` mostra só o "Portal de Validação de Autenticidade".
+
+### Página do validador no site Wix (www.jvmengenharia.com.br)
+
+1. No editor do Wix: **Páginas → Adicionar página** em branco, com o endereço (slug) **validar**.
+2. **Adicionar → Incorporar código → Incorporar um site** (elemento HTML). Em
+   "Configurações", escolha **Endereço do site** e informe `https://validador.jvmlab.com.br`.
+   Deixe-o com a largura total da página e cerca de 1000 px de altura.
+3. Ative o **Modo Dev (Velo)**, troque o ID do elemento para `validador` e cole no código da página:
+
+```js
+import wixLocationFrontend from 'wix-location-frontend';
+
+$w.onReady(function () {
+  const codigo = (wixLocationFrontend.query.codigo || '').trim();
+  const base = 'https://validador.jvmlab.com.br';
+  $w('#validador').src = codigo ? `${base}/validar/${encodeURIComponent(codigo)}` : base;
+});
+```
+
+   (Em sites antigos, use `import wixLocation from 'wix-location';` e `wixLocation.query`.)
+4. Publique o site e teste: `https://www.jvmengenharia.com.br/validar?codigo=VAL-JVM-...`.
+
+- O `.htaccess` permite que **só o validador** seja exibido dentro do site da JVM (e dos
+  domínios do Wix); o sistema continua proibido de aparecer dentro de outros sites.
+- Dentro do Wix, o botão **"Abrir em tela cheia"** abre o validador direto, caso o navegador
+  bloqueie algo dentro do quadro.
+- Se a hospedagem trocar do Apache (Hostinger) para Cloudflare/Netlify, o `_headers` não
+  diferencia domínios: o validador precisará de um site separado com `frame-ancestors` liberado.
 
 ## Por que mudou
 

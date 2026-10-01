@@ -1,3 +1,4 @@
+import { buildValidationUrl } from '../config/validationPortalConfig';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Sliders,
@@ -1467,7 +1468,7 @@ export const BackupSettingsView: React.FC = () => {
                         ...company,
                         validationBaseUrl: e.target.value
                       })}
-                      placeholder="https://validador.jvmlab.com.br"
+                      placeholder="https://www.jvmengenharia.com.br/validar?codigo={codigo}"
                       className="flex-1 p-2 border border-slate-300 rounded-xl bg-white font-mono text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                     />
                     <button
@@ -1494,7 +1495,7 @@ export const BackupSettingsView: React.FC = () => {
                   <input
                     type="text"
                     readOnly
-                    value={`${(company.validationBaseUrl || DEFAULT_VALIDATION_BASE_URL).replace(/\/+$/, '')}/validar/VAL-JVM-0000-XXXXXX`}
+                    value={buildValidationUrl(company.validationBaseUrl, 'VAL-JVM-0000-XXXXXXXX')}
                     className="w-full p-2 border border-slate-300 rounded-xl bg-slate-50 font-mono text-xs text-slate-600"
                   />
                 </div>

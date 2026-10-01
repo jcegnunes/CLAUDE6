@@ -40,6 +40,8 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
   // Consulta pública (sem login): só os dados do certificado vêm do banco
   const [isPublicResult, setIsPublicResult] = useState(false);
   const company = remoteLabInfo || DielectricStorageService.getCompanyInfo();
+  // Exibido dentro de outro site (página do Wix)? O download pode ser bloqueado lá
+  const isEmbedded = (() => { try { return window.self !== window.top; } catch { return true; } })();
 
   const handleSearch = async (codeToSearch: string) => {
     const clean = codeToSearch.trim().toUpperCase();
@@ -282,6 +284,16 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
                         <Award className="w-4 h-4" />
                         <span>{isExportingCert ? 'Gerando Certificado...' : 'Exportar Certificado PDF'}</span>
                       </button>
+                    )}
+                    {isEmbedded && (
+                      <a
+                        href={`${window.location.origin}/validar/${encodeURIComponent(testRecord.validationCode || searchCode)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-xl transition-all shadow-2xs"
+                      >
+                        Abrir em tela cheia
+                      </a>
                     )}
                     {isPublicResult ? (
                       <p className="text-[11px] text-slate-500 max-w-xs">
