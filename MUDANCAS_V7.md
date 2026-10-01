@@ -236,6 +236,8 @@ UPDATE public.users SET active = false WHERE email = 'maria@empresa.com.br';
 
 ## O que mudou no app
 
+- **Troca de usuário exige a senha** (menu do usuário e botão "Trocar" do Modo Android): a senha do usuário escolhido é conferida como no login (Supabase Auth; sem internet, só quem já entrou no aparelho nos últimos 30 dias) e a sessão do banco passa a ser a dele. Só aparecem usuários da mesma empresa, ativos e com acesso ao sistema. A troca fica na auditoria e o novo usuário escolhe o módulo, como num login.
+
 - Login pelo Supabase Auth; a sessão fica no aparelho e renova sozinha.
   O acesso offline (quem já entrou nos últimos 30 dias) continua igual.
 - Com internet e sem sessão válida, o app pede login novamente.
