@@ -553,6 +553,8 @@ export interface CompanyLabInfo {
   website: string;
   instagram?: string;
   validationBaseUrl?: string; // URL pública (hospedagem do app) para validação de laudos via QR Code
+  /** Módulos da plataforma ligados/desligados para a empresa (ausente = ligado) */
+  enabledModules?: Record<string, boolean>;
   supabaseUrl?: string; // Ex: 'https://cdtbzbshylrcprvmjpgc.supabase.co'
   supabaseAnonKey?: string; // Chave pública / anon key do Supabase
   supabaseAutoSync?: boolean; // Sincronização automática em segundo plano com Supabase

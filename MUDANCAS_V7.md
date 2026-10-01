@@ -7,6 +7,8 @@
    - cria as contas de login (Supabase Auth) para todos os usuários que já têm senha,
      **com a mesma senha de antes**;
    - troca as regras de acesso abertas pelas regras por empresa.
+
+   Em seguida execute `supabase/modules/treinamentos.sql` (módulo Treinamentos).
 3. **Desative o cadastro público**: Authentication → Sign In / Providers →
    *Allow new users to sign up* = **OFF**.
 4. **Publique o app novo** (`publicar.bat` → AI Studio → Pull, ou o site na Hostinger).
@@ -71,6 +73,45 @@ $w.onReady(function () {
   bloqueie algo dentro do quadro.
 - Se a hospedagem trocar do Apache (Hostinger) para Cloudflare/Netlify, o `_headers` não
   diferencia domínios: o validador precisará de um site separado com `frame-ancestors` liberado.
+
+## Módulo Treinamentos — certificados de treinamento
+
+Módulo independente (`src/modules/treinamentos` + `supabase/modules/treinamentos.sql`):
+não altera ensaios, laudos nem a sincronização deles.
+
+**Instalar no banco:** depois do `schema.sql`, execute `supabase/modules/treinamentos.sql`
+no SQL Editor (não apaga dados; pode repetir). Sem isso o módulo funciona só no aparelho
+e mostra o aviso para executar o script.
+
+**Menu Treinamentos** (perfis administrador, RT, técnico e administrativo):
+- **Cursos**: já vêm NR-10 Básico (40 h), NR-10 SEP (40 h), NR-35 (8 h) e Uso de EPI/EPC
+  isolantes (4 h), com conteúdo programático, validade (24 meses) e regra de aprovação
+  (presença e nota mínimas). Tudo editável; dá para cadastrar outros cursos, duplicar e
+  recolocar os padrão. A divisão das horas por tópico é sugestão: confira com o plano de
+  curso do laboratório.
+- **Instrutores**: nome, qualificação, registro e assinatura (desenhada ou imagem);
+  podem ser importados dos usuários e técnicos.
+- **Turmas**: curso, datas, local, cliente, instrutores e alunos (digitados ou colados
+  da planilha: Nome; CPF; Função; Empresa), presença e nota. "Emitir" gera os
+  certificados de todos os aprovados de uma vez; "Lista de presença" gera o PDF com uma
+  coluna de assinatura por dia.
+- **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
+  link de validação, cancelamento com motivo (o validador mostra CANCELADO).
+- **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem
+  reciclagem.
+
+**Certificado (PDF A4 paisagem):** frente com participante, CPF, curso, norma, período,
+carga horária, validade, assinaturas do instrutor, do Responsável Técnico (cadastro da
+empresa) e linha do participante, QR Code; verso com o conteúdo programático e o
+aproveitamento. Número `TRE-AAMM-0001` (turma `TUR-AAMM-0001`), com a mesma reserva de
+faixas dos ensaios (sem número repetido entre aparelhos).
+
+**Validação:** o QR Code usa o mesmo link do site Wix
+(`www.jvmengenharia.com.br/validar?codigo=VAL-TRE-...`). O validador reconhece o código
+`VAL-TRE-` e mostra os dados do certificado com o **CPF mascarado** (***.456.789-**).
+
+**Ligar/desligar:** Configurações & Backup → Módulos do sistema (por empresa; os dados
+ficam guardados).
 
 ## Por que mudou
 

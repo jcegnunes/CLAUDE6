@@ -19,6 +19,8 @@ import {
   Users
 } from 'lucide-react';
 import { UserRole } from '../types';
+import { DielectricStorageService } from '../services/syncEngine';
+import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
 
 interface SidebarProps {
   activeView: string;
@@ -40,7 +42,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenInstallModal,
   variant = 'desktop'
 }) => {
-  const navItems = [
+  // Módulos (src/modules): aparecem quando ligados para a empresa
+  const companyInfo = DielectricStorageService.getCompanyInfo();
+  const moduleItems = PLATFORM_MODULES
+    .filter(m => isModuleEnabled(companyInfo, m.id))
+    .map(m => ({ id: m.id, label: m.label, icon: m.icon, roles: m.roles as string[] }));
+
+  type NavItem = { id: string; label: string; icon: React.ElementType; roles: string[]; badge?: string; highlight?: boolean };
+  const navItems: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo', 'cliente'] },
     { id: 'wizard', label: 'Novo Ensaio', icon: FlaskConical, badge: 'Etapas', roles: ['admin', 'responsavel_tecnico', 'tecnico'], highlight: true },
     { id: 'tests', label: 'Ensaios & Laudos', icon: FileText, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo', 'cliente'] },
@@ -48,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'equipment', label: 'Equipamentos (EPI/EPC)', icon: Shield, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo', 'cliente'] },
     { id: 'service_orders', label: 'Ordens de Serviço', icon: ClipboardList, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'] },
     { id: 'clients', label: 'Clientes', icon: Building2, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'] },
+    ...moduleItems,
     { id: 'instruments', label: 'Instrumentos & Hipot', icon: Gauge, roles: ['admin', 'responsavel_tecnico', 'tecnico'] },
     { id: 'norms', label: 'Normas & Critérios', icon: BookOpen, roles: ['admin', 'responsavel_tecnico'] },
     { id: 'sync', label: 'Sincronização & Conflitos', icon: RefreshCw, badge: pendingSyncCount > 0 ? String(pendingSyncCount) : undefined, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'] },

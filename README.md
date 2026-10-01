@@ -36,6 +36,24 @@ Depois de executar, no painel do Supabase desative o cadastro público:
 
 O script fica somente no projeto (pasta `supabase/`): o app não exibe nem contém as configurações do banco.
 
+### Módulos (`supabase/modules/`)
+
+Cada módulo da plataforma tem o próprio script, executado **depois** do `schema.sql`
+(também idempotente). Hoje: `supabase/modules/treinamentos.sql` (certificados de
+treinamento). O `recriar_banco.sql` já inclui todos os módulos.
+
+## Módulos do sistema (`src/modules/`)
+
+Partes independentes da plataforma: cada módulo tem pasta própria (telas, regras, PDF,
+sincronização, testes) e script SQL próprio, e se liga ao app só pelo registro
+`src/modules/registry.ts` (menu e telas) e por `src/modules/storageKeys.ts` (dados no
+aparelho). Pode ser alterado sem mexer nos ensaios e ligado/desligado por empresa em
+**Configurações & Backup → Módulos do sistema**.
+
+| Módulo | Pasta | Banco |
+|---|---|---|
+| Treinamentos (certificados NR-10, NR-35...) | `src/modules/treinamentos` | `supabase/modules/treinamentos.sql` |
+
 ## Como funciona a sincronização
 
 - Todo registro salvo entra numa **fila local** e é enviado ao Supabase

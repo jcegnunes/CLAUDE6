@@ -17,6 +17,7 @@ import { lazyView } from './utils/lazyView';
 import { isPortalOnlyHost } from './config/validationPortalConfig';
 import { ModalErrorBoundary } from './components/ModalErrorBoundary';
 import { startPhotoStorage } from './services/photoExternalizer';
+import { PLATFORM_MODULES, isModuleEnabled } from './modules/registry';
 
 // Telas carregadas sob demanda (arquivos separados)
 const DashboardView = lazyView(() => import('./views/DashboardView'), 'DashboardView');
@@ -283,6 +284,14 @@ export default function App() {
     setActiveView('reports');
   };
 
+  // Telas dos módulos (src/modules): só se o módulo estiver ligado e o perfil tiver acesso
+  const renderModuleView = (prefix: string) => PLATFORM_MODULES
+    .filter(m => activeView === m.id
+      && isModuleEnabled(DielectricStorageService.getCompanyInfo(), m.id)
+      && m.roles.includes(currentUser.role))
+    // sem dataVersion na chave: a sincronização dos ensaios não fecha o que está sendo editado
+    .map(m => <m.View key={`${prefix}_${m.id}`} />);
+
   // If this device was opened by scanning the remote camera QR code on a mobile phone
   if (mobileCamSessionId) {
     return (
@@ -483,6 +492,7 @@ export default function App() {
 
           {activeView === 'backup' && <BackupSettingsView key={`android_backup_${dataVersion}`} />}
           {activeView === 'usuarios' && <UsersView key={`android_users_${dataVersion}`} />}
+          {renderModuleView('android')}
           </Suspense>
           </ViewErrorBoundary>
         </AndroidAppShell>
@@ -723,6 +733,7 @@ export default function App() {
 
           {activeView === 'backup' && <BackupSettingsView key={`desk_backup_${dataVersion}`} />}
           {activeView === 'usuarios' && <UsersView key={`desk_users_${dataVersion}`} />}
+          {renderModuleView('desk')}
           </Suspense>
           </ViewErrorBoundary>
         </main>

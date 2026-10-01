@@ -55,6 +55,7 @@ import { saveFileLocally } from '../utils/nativeFileSaver';
 import { ValidationPortalService, DEFAULT_VALIDATION_BASE_URL, PortalConnectionResult } from '../services/validationPortalService';
 import { CompleteBackupModal } from '../components/CompleteBackupModal';
 import { CompanyUsersPanel } from '../components/CompanyUsersPanel';
+import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
 import { FullBackupService, BackupStats, BackupProgressInfo } from '../services/fullBackupService';
 
 export const BackupSettingsView: React.FC = () => {
@@ -1055,6 +1056,36 @@ export const BackupSettingsView: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* SEÇÃO: MÓDULOS DO SISTEMA (src/modules) */}
+            <div className="pt-3 border-t border-slate-200">
+              <h4 className="font-bold text-xs text-slate-800 mb-1">Módulos do sistema</h4>
+              <p className="text-[11px] text-slate-500 mb-2">Ligue ou desligue módulos para esta empresa. Os dados de um módulo desligado são mantidos.</p>
+              <div className="space-y-2">
+                {PLATFORM_MODULES.map(m => {
+                  const on = isModuleEnabled(company, m.id);
+                  return (
+                    <label key={m.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={on}
+                        onChange={e => {
+                          const updated: CompanyLabInfo = { ...company, enabledModules: { ...(company.enabledModules || {}), [m.id]: e.target.checked } };
+                          setCompany(updated);
+                          DielectricStorageService.saveCompanyInfo(updated);
+                        }}
+                      />
+                      <m.icon className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                      <span>
+                        <span className="block text-xs font-bold text-slate-800">{m.label}</span>
+                        <span className="block text-[11px] text-slate-500">{m.description}</span>
+                      </span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

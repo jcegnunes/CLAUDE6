@@ -4,6 +4,7 @@ import './index.css';
 import { initPwaInstall } from './services/pwaInstallService';
 import { initLocalStore } from './services/localStore';
 import { MANAGED_STORAGE_KEYS } from './services/storageKeys';
+import { MODULE_STORAGE_KEYS } from './modules/storageKeys';
 import { ensureWebStorage } from './utils/storageFallback';
 
 // Iframe restrito (sem acesso ao armazenamento): usa memória
@@ -14,7 +15,7 @@ initPwaInstall();
 
 // Os dados do aparelho (IndexedDB) precisam estar carregados antes de o app
 // ser importado: o motor de sincronização lê o armazenamento ao iniciar.
-initLocalStore(MANAGED_STORAGE_KEYS)
+initLocalStore([...MANAGED_STORAGE_KEYS, ...MODULE_STORAGE_KEYS])
   .catch(err => console.error('[Armazenamento] Falha ao iniciar:', err))
   .then(() => import('./App.tsx'))
   .then(({ default: App }) => {

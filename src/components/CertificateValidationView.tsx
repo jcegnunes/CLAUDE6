@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -20,6 +20,11 @@ import { SupabaseService } from '../services/supabaseService';
 import { CompanyLabInfo, TestRecord } from '../types';
 import { exportCertificadoPDF, exportLaudoPDF } from '../services/pdfGenerator';
 import { formatDateBR } from '../utils/dateUtils';
+import { lazyView } from '../utils/lazyView';
+import { isTrainingValidationCode } from '../modules/treinamentos/rules';
+
+// Certificados de treinamento (módulo Treinamentos): códigos VAL-TRE-...
+const TrainingValidationResult = lazyView(() => import('../modules/treinamentos/views/TrainingValidationResult'), 'TrainingValidationResult');
 
 interface CertificateValidationViewProps {
   initialCode?: string;
@@ -39,6 +44,7 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
   const [remoteLabInfo, setRemoteLabInfo] = useState<CompanyLabInfo | null>(null);
   // Consulta pública (sem login): só os dados do certificado vêm do banco
   const [isPublicResult, setIsPublicResult] = useState(false);
+  const [trainingCode, setTrainingCode] = useState<string | null>(null);
   const company = remoteLabInfo || DielectricStorageService.getCompanyInfo();
   // Exibido dentro de outro site (página do Wix)? O download pode ser bloqueado lá
   const isEmbedded = (() => { try { return window.self !== window.top; } catch { return true; } })();
@@ -46,6 +52,15 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
   const handleSearch = async (codeToSearch: string) => {
     const clean = codeToSearch.trim().toUpperCase();
     if (!clean) return;
+
+    // Certificado de treinamento: consulta própria do módulo
+    if (isTrainingValidationCode(clean)) {
+      setTestRecord(null);
+      setTrainingCode(clean);
+      setHasSearched(true);
+      return;
+    }
+    setTrainingCode(null);
 
     // 1. Cache do aparelho (consulta instantânea, funciona offline)
     const localTest = DielectricStorageService.getTestById(clean);
@@ -117,7 +132,7 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
             </div>
             <div>
               <h1 className="font-extrabold text-lg text-white">Portal de Validação de Autenticidade</h1>
-              <p className="text-xs text-slate-300">Ensaios Dielétricos NR-10</p>
+              <p className="text-xs text-slate-300">Ensaios Dielétricos e Certificados de Treinamento</p>
             </div>
           </div>
 
@@ -166,7 +181,12 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
         </div>
 
         {/* Validation Result Display */}
-        {hasSearched && (
+        {hasSearched && trainingCode && (
+          <Suspense fallback={null}>
+            <TrainingValidationResult code={trainingCode} />
+          </Suspense>
+        )}
+        {hasSearched && !trainingCode && (
           <div>
             {testRecord ? (
               <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
