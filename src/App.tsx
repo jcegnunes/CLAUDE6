@@ -33,6 +33,7 @@ const ReportEmissionView = lazyView(() => import('./views/ReportEmissionView'), 
 const AndroidFieldModeView = lazyView(() => import('./views/AndroidFieldModeView'), 'AndroidFieldModeView');
 const MobileCameraCompanionView = lazyView(() => import('./views/MobileCameraCompanionView'), 'MobileCameraCompanionView');
 const CertificateValidationView = lazyView(() => import('./components/CertificateValidationView'), 'CertificateValidationView');
+const UsersView = lazyView(() => import('./views/UsersView'), 'UsersView');
 // Janelas (PDF, QR Code, câmera, instalação): baixadas só quando abertas
 const QRCodeScannerModal = lazyView(() => import('./components/QRCodeScannerModal'), 'QRCodeScannerModal');
 const LaudoViewModal = lazyView(() => import('./components/LaudoViewModal'), 'LaudoViewModal');
@@ -131,6 +132,8 @@ export default function App() {
 
   // Modals & Active Records
   const [isQRScannerOpen, setIsQRScannerOpen] = useState<boolean>(false);
+  // Menu com todas as telas (celular)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const [isGlobalMobileCamOpen, setIsGlobalMobileCamOpen] = useState<boolean>(false);
   const [isDeviceFilesModalOpen, setIsDeviceFilesModalOpen] = useState<boolean>(false);
   const [activeLaudoTest, setActiveLaudoTest] = useState<TestRecord | null>(null);
@@ -476,6 +479,7 @@ export default function App() {
           {activeView === 'audit' && <AuditLogsView key={`android_audit_${dataVersion}`} />}
 
           {activeView === 'backup' && <BackupSettingsView key={`android_backup_${dataVersion}`} />}
+          {activeView === 'usuarios' && <UsersView key={`android_users_${dataVersion}`} />}
           </Suspense>
           </ViewErrorBoundary>
         </AndroidAppShell>
@@ -715,6 +719,7 @@ export default function App() {
           {activeView === 'audit' && <AuditLogsView key={`desk_audit_${dataVersion}`} />}
 
           {activeView === 'backup' && <BackupSettingsView key={`desk_backup_${dataVersion}`} />}
+          {activeView === 'usuarios' && <UsersView key={`desk_users_${dataVersion}`} />}
           </Suspense>
           </ViewErrorBoundary>
         </main>
@@ -726,7 +731,29 @@ export default function App() {
         onNavigate={setActiveView}
         onOpenQRScanner={() => setIsQRScannerOpen(true)}
         pendingSyncCount={pendingSyncCount}
+        onOpenMenu={() => setIsMobileMenuOpen(true)}
       />
+
+      {/* Menu com todas as telas (celular): a barra lateral abre como gaveta */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menu do sistema">
+          <Sidebar
+            variant="drawer"
+            activeView={activeView}
+            onNavigate={(view) => { setActiveView(view); setIsMobileMenuOpen(false); }}
+            userRole={currentUser.role}
+            pendingSyncCount={pendingSyncCount}
+            onToggleFieldMode={() => { setIsMobileMenuOpen(false); setIsFieldMode(!isFieldMode); }}
+            onOpenInstallModal={() => { setIsMobileMenuOpen(false); setIsInstallModalOpen(true); }}
+          />
+          <button
+            type="button"
+            className="flex-1 bg-slate-900/60"
+            aria-label="Fechar menu"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+        </div>
+      )}
 
       {/* MODAL: QR Code Live Scanner & Lookup */}
       {isQRScannerOpen && (

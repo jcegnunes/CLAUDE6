@@ -181,6 +181,34 @@ UPDATE public.users SET active = false WHERE email = 'maria@empresa.com.br';
 - O botão de download do detalhe da foto passou a funcionar com as fotos guardadas no
   aparelho.
 
+## Correções após a análise da versão 7.0 (30/09/2026)
+
+- **Portal público (QR Code):** devolve só os dados do certificado. Fotos, colaborador,
+  assinatura do cliente, medições detalhadas e observações internas ficam restritos a
+  quem tem login. Sem login, o portal não exporta o laudo completo.
+- **Cabeçalhos de segurança do site** (`public/.htaccess` e `public/_headers`): política de
+  conteúdo (CSP), nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy e HSTS.
+  Testados contra o build real (login, portal, telas, laudo e certificado em PDF).
+- **Carregamento:** gerador de PDF, leitor de QR e instalação só são baixados quando a
+  janela é aberta.
+- **Defeito corrigido:** laudo de ensaio sem temperatura/umidade derrubava o app (tela branca).
+  Agora mostra "N/I", e qualquer janela com erro mostra a mensagem com "Fechar".
+- **Defeito corrigido:** campo vazio impedia gerar o PDF (sem aviso). Os 5 geradores de PDF
+  aceitam campos vazios, e o usuário é avisado se um PDF falhar.
+- **Câmera remota:** o celular sem login só envia fotos para uma sessão aberta pelo
+  computador logado (válida por 4 h); código da sessão com 12 caracteres aleatórios.
+- **Vínculo do ensaio:** se o cliente/equipamento existe no aparelho e ainda não subiu, o
+  ensaio espera na fila em vez de subir sem o vínculo.
+- **Editor de fotos:** a foto original é preservada na primeira edição (sobe para a nuvem e
+  vai no backup) e pode ser restaurada.
+- **Celular:** botão **Menu** na barra inferior com todas as telas (antes várias telas não
+  tinham acesso pelo celular). Novo item **Usuários & Técnicos** no menu (admin e RT).
+- Dependência `dompurify` atualizada (3.4.16).
+
+Não alterados (projetos à parte): divisão dos arquivos muito grandes, testes automáticos
+de tela (Playwright) e o alerta do `xlsx` (só afeta leitura de planilhas, que o app não faz).
+A consulta de CNPJ usa, como última alternativa, o proxy público `api.allorigins.win`.
+
 ## Pendências recomendadas (não alteradas)
 
 - **Vínculo de ensaio sem cliente/equipamento no banco**: quando o cliente ou o
