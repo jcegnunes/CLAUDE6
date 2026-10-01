@@ -105,15 +105,19 @@ e mostra o aviso para executar o script.
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem
   reciclagem.
 - **Importar planilha** (Certificados): emissão de vários certificados a partir de Excel
-  (.xlsx/.xls, CSV ou ODS, até 1000 linhas). "Baixar modelo" gera a planilha com as colunas
-  Nome, CPF, Função, Empresa, Curso, Início, Término, Carga horária, Local, Presença (%),
-  Nota e Instrutor, mais a lista de cursos/instrutores e as instruções. Colunas em branco
-  usam os valores padrão escolhidos na tela (curso, datas, local, instrutor). A prévia
+  (.xlsx/.xls, CSV ou ODS, até 1000 linhas). A planilha tem 3 colunas: **Nome, CPF e
+  Colaborador da Empresa** ("Baixar modelo" gera o arquivo, com a lista de cursos e as
+  instruções). Curso, datas, local, instrutor, presença e nota são escolhidos na tela e
+  valem para todos. Colunas extras opcionais (Função, Curso, Início, Término, Carga
+  horária, Local, Presença (%), Nota, Instrutor) valem só para a linha. A prévia
   mostra, linha a linha, quem será emitido, quem foi reprovado (presença/nota abaixo do
   mínimo do curso) e os erros (CPF inválido, curso ou instrutor não cadastrado, datas,
   pessoa repetida ou certificado já emitido — conferido pelo CPF ou, sem CPF, pelo nome).
   Por padrão cria uma turma por curso + período + local + instrutor (com lista de
   presença); no fim, um único PDF com todos os certificados emitidos.
+- **Turma → Importar planilha**: a mesma planilha (Nome, CPF, Colaborador da Empresa)
+  inclui os alunos na turma; CPF inválido e alunos já presentes ficam de fora (com aviso).
+  "Colar lista" segue a mesma ordem: Nome; CPF; Colaborador da Empresa (Função opcional).
 
 **Certificado (PDF A4 paisagem):** frente com participante, CPF, curso, norma, período,
 carga horária, validade, assinaturas do instrutor, do Responsável Técnico (cadastro da

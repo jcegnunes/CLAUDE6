@@ -1,5 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { Users, Plus, Pencil, Trash2, Award, ClipboardList, Download, Loader2, ClipboardPaste, Search } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Users, Plus, Pencil, Trash2, Award, ClipboardList, Download, Loader2, ClipboardPaste, Search, FileSpreadsheet } from 'lucide-react';
+import { downloadParticipantsTemplate, readSpreadsheet } from '../spreadsheetFiles';
+import { normalizeText, parseParticipantRows } from '../spreadsheetImport';
 import { DielectricStorageService } from '../../../services/syncEngine';
 import {
   canDeleteTraining, canEditTraining, cancelCertificate, currentCompanyId, deleteClass, getCertificate, getCertificates,
@@ -149,6 +151,38 @@ const emptyParticipant = (company = ''): TrainingParticipant => ({ id: newId('al
 const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ turma, onClose }) => {
   const [t, setT] = useState<TrainingClass>(turma);
   const [pasting, setPasting] = useState(false);
+  const [readingSheet, setReadingSheet] = useState(false);
+  const sheetRef = useRef<HTMLInputElement | null>(null);
+
+  /** Planilha com Nome, CPF e Colaborador da Empresa: inclui os alunos na turma. */
+  const importSheet = async (file?: File | null) => {
+    if (!file) return;
+    setReadingSheet(true);
+    try {
+      const rows = parseParticipantRows(await readSpreadsheet(file), t.clientName || '');
+      const current = t.participants.filter(x => x.name.trim());
+      const cpfs = new Set(current.map(x => x.cpf.replace(/\D/g, '')).filter(Boolean));
+      const names = new Set(current.map(x => normalizeText(x.name)));
+      const added: TrainingParticipant[] = [];
+      const skipped: string[] = [];
+      rows.forEach(r => {
+        const digits = r.cpf.replace(/\D/g, '');
+        if (r.error) return skipped.push(`linha ${r.line} (${r.name || 'sem nome'}): ${r.error}`);
+        if (digits ? cpfs.has(digits) : names.has(normalizeText(r.name))) return skipped.push(`linha ${r.line} (${r.name}): já está na turma`);
+        if (digits) cpfs.add(digits); else names.add(normalizeText(r.name));
+        added.push({ ...emptyParticipant(r.company), name: r.name, cpf: r.cpf, role: r.role, company: r.company, attendance: r.attendance, grade: r.grade });
+      });
+      set('participants', [...current, ...added]);
+      window.alert(`${added.length} aluno(s) incluído(s) da planilha.`
+        + (skipped.length ? `\n\nNão incluídos (${skipped.length}):\n${skipped.slice(0, 15).join('\n')}${skipped.length > 15 ? '\n…' : ''}` : '')
+        + (added.length ? '\n\nConfira presença e nota e clique em "Salvar turma".' : ''));
+    } catch (err) {
+      alertError(err, 'Não foi possível ler a planilha');
+    } finally {
+      setReadingSheet(false);
+      if (sheetRef.current) sheetRef.current.value = '';
+    }
+  };
   // certificados de alunos excluídos: cancelados ao salvar a turma
   const [removedCerts, setRemovedCerts] = useState<Array<{ id: string; name: string }>>([]);
   const set = <K extends keyof TrainingClass>(k: K, v: TrainingClass[K]) => setT(prev => ({ ...prev, [k]: v }));
@@ -289,6 +323,11 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
             {course && <span className="font-normal text-slate-500"> · aprovação: presença ≥ {course.minAttendance}%{course.minGrade !== undefined && course.minGrade !== null ? ` e nota ≥ ${course.minGrade}` : ''}</span>}
           </h4>
           <div className="flex gap-2">
+            <button type="button" className={btnSecondary} title="Baixar planilha modelo (Nome, CPF, Colaborador da Empresa)" onClick={() => downloadParticipantsTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}><Download className="w-3.5 h-3.5" /> Modelo</button>
+            <button type="button" className={btnSecondary} disabled={readingSheet} onClick={() => sheetRef.current?.click()}>
+              {readingSheet ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />} Importar planilha
+            </button>
+            <input ref={sheetRef} type="file" accept=".xlsx,.xls,.csv,.ods" className="hidden" onChange={e => importSheet(e.target.files?.[0])} />
             <button type="button" className={btnSecondary} onClick={() => setPasting(true)}><ClipboardPaste className="w-3.5 h-3.5" /> Colar lista</button>
             <button type="button" className={btnSecondary} onClick={() => set('participants', [...t.participants, emptyParticipant(t.clientName)])}><Plus className="w-3.5 h-3.5" /> Aluno</button>
           </div>
@@ -363,8 +402,8 @@ const PasteParticipants: React.FC<{ defaultCompany: string; onClose: () => void;
   const [text, setText] = useState('');
   const parsed = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
     const cols = line.split(line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',').map(c => c.trim());
-    return { ...emptyParticipant(defaultCompany), name: cols[0] || '', cpf: cols[1] ? formatCpf(cols[1]) : '', role: cols[2] || '', company: cols[3] || defaultCompany };
-  }).filter(p => p.name && !/^nome$/i.test(p.name));
+    return { ...emptyParticipant(defaultCompany), name: cols[0] || '', cpf: cols[1] ? formatCpf(cols[1]) : '', company: cols[2] || defaultCompany, role: cols[3] || '' };
+  }).filter(p => p.name && !/^nome$/i.test(p.name) && !/^cpf$/i.test(p.cpf));
 
   return (
     <Modal
@@ -375,8 +414,8 @@ const PasteParticipants: React.FC<{ defaultCompany: string; onClose: () => void;
         <button type="button" className={btnPrimary} disabled={!parsed.length} onClick={() => { onAdd(parsed); onClose(); }}>Incluir {parsed.length || ''} aluno(s)</button>
       </>}
     >
-      <p className="text-xs text-slate-500 mb-2">Uma pessoa por linha, nas colunas <b>Nome, CPF, Função, Empresa</b> (copie direto do Excel ou separe por ponto e vírgula).</p>
-      <textarea rows={10} className={`${inputCls} font-mono`} value={text} onChange={e => setText(e.target.value)} placeholder={'Maria Souza;123.456.789-09;Eletricista;Cliente X\nJoão Lima;98765432100;Técnico'} />
+      <p className="text-xs text-slate-500 mb-2">Uma pessoa por linha, nas colunas <b>Nome, CPF, Colaborador da Empresa</b> (e, se quiser, Função). Copie direto do Excel ou separe por ponto e vírgula.</p>
+      <textarea rows={10} className={`${inputCls} font-mono`} value={text} onChange={e => setText(e.target.value)} placeholder={'Maria Souza;529.982.247-25;Cliente X\nJoão Lima;11144477735;Cliente X'} />
       {parsed.length > 0 && (
         <p className="text-[11px] text-slate-600 mt-2">
           {parsed.length} aluno(s) reconhecido(s){parsed.some(p => p.cpf && !isValidCpf(p.cpf)) ? ' — há CPF inválido; corrija antes de salvar a turma.' : '.'}

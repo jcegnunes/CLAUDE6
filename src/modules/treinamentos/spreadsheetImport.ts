@@ -5,11 +5,15 @@
 import { formatCpf, isParticipantApproved, isValidCpf, onlyDigits } from './rules';
 import type { TrainingCertificate, TrainingCourse, TrainingInstructor } from './types';
 
-/** Colunas do modelo (a ordem e acentos não importam na leitura). */
-export const TEMPLATE_HEADERS = [
-  'Nome', 'CPF', 'Função', 'Empresa', 'Curso', 'Início', 'Término',
-  'Carga horária', 'Local', 'Presença (%)', 'Nota', 'Instrutor'
-];
+/**
+ * Colunas do modelo: Nome, CPF e Colaborador da Empresa. Curso, datas, local,
+ * instrutor, presença e nota são escolhidos na tela. Colunas extras (Função,
+ * Curso, Início, Término, Carga horária, Local, Presença, Nota, Instrutor)
+ * continuam aceitas e valem para a linha. A ordem e acentos não importam.
+ */
+export const TEMPLATE_HEADERS = ['Nome', 'CPF', 'Colaborador da Empresa'];
+
+export const OPTIONAL_HEADERS = ['Função', 'Curso', 'Início', 'Término', 'Carga horária', 'Local', 'Presença (%)', 'Nota', 'Instrutor'];
 
 export const MAX_IMPORT_ROWS = 1000;
 
@@ -19,7 +23,7 @@ const ALIASES: Record<Field, string[]> = {
   name: ['nome', 'nome completo', 'participante', 'aluno', 'colaborador', 'funcionario'],
   cpf: ['cpf', 'documento'],
   role: ['funcao', 'cargo'],
-  company: ['empresa', 'cliente', 'contratante'],
+  company: ['colaborador da empresa', 'empresa do colaborador', 'empresa', 'cliente', 'contratante'],
   course: ['curso', 'treinamento', 'sigla', 'codigo do curso'],
   start: ['inicio', 'data inicio', 'data de inicio', 'data', 'data do treinamento'],
   end: ['termino', 'fim', 'data termino', 'data de termino', 'data final', 'conclusao'],
@@ -100,6 +104,10 @@ export function findInstructors(text: string, instructors: TrainingInstructor[])
 
 export interface ImportDefaults {
   courseId?: string;
+  /** Presença (%) de quem não tem a coluna Presença (padrão 100) */
+  attendance?: number;
+  /** Nota de quem não tem a coluna Nota (cursos com avaliação) */
+  grade?: number;
   startDate?: string;
   endDate?: string;
   location?: string;
@@ -157,8 +165,8 @@ export function buildImportRows(
     const startDate = (v.start !== undefined && v.start !== '' ? parseDateCell(v.start) : ctx.defaults.startDate) || '';
     const endRaw = v.end !== undefined && v.end !== '' ? parseDateCell(v.end) : null;
     const endDate = endRaw || (v.start !== undefined && v.start !== '' ? startDate : (ctx.defaults.endDate || startDate));
-    const attendance = parseNumberCell(v.attendance) ?? 100;
-    const grade = parseNumberCell(v.grade);
+    const attendance = parseNumberCell(v.attendance) ?? ctx.defaults.attendance ?? 100;
+    const grade = parseNumberCell(v.grade) ?? ctx.defaults.grade;
     const workloadHours = parseNumberCell(v.hours);
     const location = String(v.location ?? '').trim() || ctx.defaults.location || '';
     const instructorText = String(v.instructor ?? '').trim();
@@ -228,4 +236,44 @@ export function groupImportRows(rows: ImportRow[]): ImportGroup[] {
     map.get(key)!.rows.push(r);
   });
   return Array.from(map.values());
+}
+
+export interface ParticipantImport {
+  line: number;
+  name: string;
+  cpf: string;
+  role: string;
+  company: string;
+  attendance: number;
+  grade?: number;
+  error?: string;
+}
+
+/** Linhas da planilha -> alunos de uma turma. */
+export function parseParticipantRows(raw: Array<Record<string, unknown>>, defaultCompany = ''): ParticipantImport[] {
+  const out: ParticipantImport[] = [];
+  raw.slice(0, MAX_IMPORT_ROWS).forEach((obj, idx) => {
+    const v: Partial<Record<Field, unknown>> = {};
+    Object.entries(obj).forEach(([header, value]) => {
+      const f = fieldOf(header);
+      if (f && (v[f] === undefined || v[f] === '')) v[f] = value;
+    });
+    const name = String(v.name ?? '').replace(/\s+/g, ' ').trim();
+    if (!name && Object.values(v).every(x => x === undefined || String(x).trim() === '')) return;
+    const cpfRaw = String(v.cpf ?? '').trim();
+    const digits = onlyDigits(cpfRaw);
+    const cpf = digits ? formatCpf(digits.length >= 9 ? digits.padStart(11, '0') : digits) : '';
+    const attendance = parseNumberCell(v.attendance) ?? 100;
+    const grade = parseNumberCell(v.grade);
+    let error: string | undefined;
+    if (!name) error = 'Nome em branco';
+    else if (cpfRaw && !isValidCpf(cpf)) error = 'CPF inválido';
+    else if (attendance < 0 || attendance > 100) error = 'Presença deve ficar entre 0 e 100';
+    else if (grade !== undefined && (grade < 0 || grade > 10)) error = 'Nota deve ficar entre 0 e 10';
+    out.push({
+      line: idx + 2, name, cpf, role: String(v.role ?? '').trim(),
+      company: String(v.company ?? '').trim() || defaultCompany, attendance, grade, error
+    });
+  });
+  return out;
 }

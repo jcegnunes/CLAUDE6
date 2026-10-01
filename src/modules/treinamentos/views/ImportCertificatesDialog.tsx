@@ -1,71 +1,14 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { FileSpreadsheet, Download, Upload, Loader2, CheckCircle2, AlertTriangle, XCircle, Award } from 'lucide-react';
-import { saveFileLocally } from '../../../utils/nativeFileSaver';
+import { downloadParticipantsTemplate, readSpreadsheet } from '../spreadsheetFiles';
 import { getCertificates, getCourses, getInstructors, issueFromImport } from '../repository';
 import { exportTrainingCertificates } from '../certificatePdf';
 import {
-  MAX_IMPORT_ROWS, TEMPLATE_HEADERS, buildImportRows, groupImportRows, rowStatus, type ImportDefaults
+  MAX_IMPORT_ROWS, buildImportRows, groupImportRows, rowStatus, type ImportDefaults
 } from '../spreadsheetImport';
 import { formatDateBr, todayIso } from '../rules';
 import type { TrainingCertificate } from '../types';
 import { alertError, btnPrimary, btnSecondary, Field, inputCls, Modal } from './ui';
-
-const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-/** Modelo .xlsx com exemplo, lista de cursos/instrutores e instruções. */
-async function downloadTemplate() {
-  const XLSX = await import('xlsx');
-  const courses = getCourses().filter(c => c.active);
-  const instructors = getInstructors().filter(i => i.active);
-  // data de hoje como número de série do Excel (formatada dd/mm/aaaa abaixo)
-  const now = new Date();
-  const today = (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(1899, 11, 30)) / 86400000;
-  const example = (name: string, cpf: string, role: string) => [
-    name, cpf, role, 'Empresa Cliente Ltda', courses[0]?.code || courses[0]?.name || 'NR-10 BÁSICO',
-    today, today, courses[0]?.workloadHours || 40, 'São Paulo/SP', 100, 9, instructors[0]?.name || ''
-  ];
-  const ws = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, example('Maria da Silva', '529.982.247-25', 'Eletricista'), example('João Souza', '111.444.777-35', 'Técnico')]);
-  ws['!cols'] = [28, 16, 18, 24, 22, 12, 12, 13, 18, 12, 8, 24].map(wch => ({ wch }));
-  // datas no formato brasileiro
-  for (const addr of ['F2', 'G2', 'F3', 'G3']) if (ws[addr]) ws[addr].z = 'dd/mm/yyyy';
-
-  const lists = XLSX.utils.aoa_to_sheet([
-    ['Curso (use a sigla ou o nome na coluna "Curso")', 'Nome do curso', 'Carga horária'],
-    ...courses.map(c => [c.code, c.name, c.workloadHours]),
-    [],
-    ['Instrutores (use o nome na coluna "Instrutor"; vários: separe por ;)'],
-    ...instructors.map(i => [i.name])
-  ]);
-  lists['!cols'] = [{ wch: 30 }, { wch: 70 }, { wch: 14 }];
-
-  const help = XLSX.utils.aoa_to_sheet([
-    ['Como preencher'],
-    ['• Uma pessoa por linha. Obrigatórios: Nome, Curso e Início (ou escolha curso e datas padrão na tela de importação).'],
-    ['• CPF é opcional, mas recomendado: aparece mascarado no validador do QR Code.'],
-    ['• Datas no formato dd/mm/aaaa. Sem Término, vale a data de Início.'],
-    ['• Presença em % (padrão 100) e Nota de 0 a 10. Quem não atinge o mínimo do curso não recebe certificado.'],
-    ['• Carga horária e Local em branco: usa os do curso / os informados na tela.'],
-    ['• Pessoas do mesmo curso, período, local e instrutor formam uma turma (com lista de presença).'],
-    [`• Até ${MAX_IMPORT_ROWS} linhas por planilha.`]
-  ]);
-  help['!cols'] = [{ wch: 110 }];
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Certificados');
-  XLSX.utils.book_append_sheet(wb, lists, 'Cursos e instrutores');
-  XLSX.utils.book_append_sheet(wb, help, 'Instruções');
-  const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  await saveFileLocally({ filename: 'Modelo_importacao_certificados.xlsx', data: new Uint8Array(bytes), mimeType: XLSX_MIME, title: 'Modelo de importação de certificados', category: 'csv' });
-}
-
-async function readSpreadsheet(file: File): Promise<Array<Record<string, unknown>>> {
-  const XLSX = await import('xlsx');
-  // datas como número de série do Excel (sem fuso horário); convertidas em parseDateCell
-  const wb = XLSX.read(await file.arrayBuffer(), { cellDates: false });
-  const sheetName = wb.SheetNames.find(n => /certificad/i.test(n)) || wb.SheetNames[0];
-  if (!sheetName) throw new Error('A planilha está vazia.');
-  return XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[sheetName], { defval: '', raw: true });
-}
 
 const STATUS_UI = {
   ok: { label: 'Emitir', cls: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: CheckCircle2 },
@@ -83,7 +26,8 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
   const [issuing, setIssuing] = useState(false);
   const [createClasses, setCreateClasses] = useState(true);
   const [filter, setFilter] = useState<'todas' | 'ok' | 'reprovado' | 'erro'>('todas');
-  const [defaults, setDefaults] = useState<ImportDefaults>({ courseId: '', startDate: todayIso(), endDate: '', location: '', instructorIds: instructors.slice(0, 1).map(i => i.id) });
+  const [defaults, setDefaults] = useState<ImportDefaults>({ courseId: '', startDate: todayIso(), endDate: '', location: '', attendance: 100, grade: undefined, instructorIds: instructors.slice(0, 1).map(i => i.id) });
+  const defaultCourse = courses.find(c => c.id === defaults.courseId);
   const [result, setResult] = useState<{ certificates: TrainingCertificate[]; classes: number; skipped: number } | null>(null);
   const [downloading, setDownloading] = useState(false);
 
@@ -97,7 +41,6 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
     setReading(true);
     try {
       const data = await readSpreadsheet(file);
-      if (!data.length) throw new Error('Nenhuma linha encontrada. Use a primeira linha para os títulos das colunas (Nome, CPF, Curso...).');
       setRaw(data);
       setFileName(file.name);
       setFilter('todas');
@@ -177,11 +120,12 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
     >
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-start">
         <div className="text-xs text-slate-600 space-y-1">
-          <p>1. Baixe o modelo, preencha uma pessoa por linha (Nome, CPF, Curso, Início...) e salve.</p>
-          <p>2. Envie a planilha: a prévia mostra o que será emitido, quem foi reprovado e as linhas com erro.</p>
+          <p>1. Baixe o modelo e preencha uma pessoa por linha: <b>Nome, CPF e Colaborador da Empresa</b>.</p>
+          <p>2. Escolha abaixo o curso, as datas, o local, o instrutor e a nota (valem para todos).</p>
+          <p>3. Envie a planilha: a prévia mostra o que será emitido, quem foi reprovado e as linhas com erro.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={btnSecondary} onClick={() => downloadTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}>
+          <button type="button" className={btnSecondary} onClick={() => downloadParticipantsTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}>
             <Download className="w-3.5 h-3.5" /> Baixar modelo
           </button>
           <button type="button" className={btnPrimary} disabled={reading} onClick={() => fileRef.current?.click()}>
@@ -191,18 +135,24 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
         </div>
       </div>
 
-      <details className="mt-3 rounded-xl border border-slate-200 p-3" open={!raw}>
-        <summary className="text-xs font-bold text-slate-700 cursor-pointer">Valores padrão (para colunas em branco na planilha)</summary>
+      <div className="mt-3 rounded-xl border border-slate-200 p-3">
+        <p className="text-xs font-bold text-slate-700">Dados do treinamento (valem para todos os alunos da planilha)</p>
         <div className="grid gap-3 sm:grid-cols-4 mt-3">
-          <Field label="Curso" className="sm:col-span-2">
-            <select className={inputCls} value={defaults.courseId} onChange={e => setDefaults({ ...defaults, courseId: e.target.value })}>
-              <option value="">— informado na planilha —</option>
+          <Field label="Curso *" className="sm:col-span-2">
+            <select className={`${inputCls} ${!defaults.courseId ? 'border-amber-400' : ''}`} value={defaults.courseId} onChange={e => setDefaults({ ...defaults, courseId: e.target.value })}>
+              <option value="">Escolha o curso…</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.code ? `${c.code} – ` : ''}{c.name}</option>)}
             </select>
           </Field>
           <Field label="Início"><input type="date" className={inputCls} value={defaults.startDate} onChange={e => setDefaults({ ...defaults, startDate: e.target.value })} /></Field>
           <Field label="Término"><input type="date" className={inputCls} value={defaults.endDate} min={defaults.startDate} onChange={e => setDefaults({ ...defaults, endDate: e.target.value })} /></Field>
-          <Field label="Local" className="sm:col-span-2"><input className={inputCls} value={defaults.location} onChange={e => setDefaults({ ...defaults, location: e.target.value })} /></Field>
+          <Field label="Local" className="sm:col-span-2"><input className={inputCls} value={defaults.location} onChange={e => setDefaults({ ...defaults, location: e.target.value })} placeholder="Cidade/UF ou endereço" /></Field>
+          <Field label="Presença (%)"><input type="number" min={0} max={100} className={inputCls} value={defaults.attendance ?? ''} onChange={e => setDefaults({ ...defaults, attendance: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
+          <Field label={defaultCourse?.minGrade !== undefined ? `Nota * (mínima ${defaultCourse.minGrade})` : 'Nota'} hint="0 a 10">
+            <input type="number" min={0} max={10} step={0.1}
+              className={`${inputCls} ${defaultCourse?.minGrade !== undefined && defaults.grade === undefined ? 'border-amber-400' : ''}`}
+              value={defaults.grade ?? ''} onChange={e => setDefaults({ ...defaults, grade: e.target.value === '' ? undefined : Number(e.target.value) })} />
+          </Field>
           <div className="sm:col-span-2">
             <span className="block font-bold text-slate-700 mb-1 text-xs">Instrutor(es)</span>
             <div className="flex flex-wrap gap-1.5">
@@ -220,9 +170,9 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
         </div>
         <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 mt-3">
           <input type="checkbox" checked={createClasses} onChange={e => setCreateClasses(e.target.checked)} />
-          Criar turmas (mesmo curso, período, local e instrutor) com lista de presença
+          Criar turma com lista de presença
         </label>
-      </details>
+      </div>
 
       {!raw ? (
         <div className="mt-4 border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center"
@@ -269,7 +219,9 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
                       <td className="p-2">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border font-bold ${ui.cls}`}><ui.icon className="w-3 h-3" />{ui.label}</span>
                         {[...r.errors, ...(st === 'erro' ? [] : r.warnings)].map(m => <div key={m} className={`mt-0.5 ${r.errors.includes(m) ? 'text-red-700' : 'text-slate-500'}`}>{m}</div>)}
-                        {st === 'reprovado' && r.course && <div className="mt-0.5 text-amber-700">Mínimo: presença {r.course.minAttendance}%{r.course.minGrade !== undefined ? `, nota ${r.course.minGrade}` : ''}</div>}
+                        {st === 'reprovado' && r.course && (r.grade === undefined && r.course.minGrade !== undefined
+                          ? <div className="mt-0.5 text-amber-700">Sem nota: informe a Nota acima</div>
+                          : <div className="mt-0.5 text-amber-700">Mínimo: presença {r.course.minAttendance}%{r.course.minGrade !== undefined ? `, nota ${r.course.minGrade}` : ''}</div>)}
                       </td>
                     </tr>
                   );

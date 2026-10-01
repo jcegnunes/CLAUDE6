@@ -109,3 +109,36 @@ describe('Planilha de certificados — turmas', () => {
     expect(groups[0].workloadHours).toBe(8);
   });
 });
+
+describe('Planilha de alunos — Nome, CPF e Colaborador da Empresa', () => {
+  it('3 colunas + curso, datas e nota escolhidos na tela', () => {
+    const rows = buildImportRows([
+      { 'Nome': 'Rogerio Conceição Couto', 'CPF': '702.409.145-20', 'Colaborador da Empresa': 'Empresa A' },
+      { 'Nome': 'Jorge Luiz', 'CPF': '049.384.421-08', 'Colaborador da Empresa': 'Empresa B' }
+    ], ctx({ defaults: { courseId: 'crs-nr10', startDate: '2026-09-21', endDate: '2026-09-25', location: 'SP', attendance: 100, grade: 9, instructorIds: ['ins-ana'] } }));
+    expect(rows.map(rowStatus)).toEqual(['ok', 'ok']);
+    expect(rows.map(r => r.company)).toEqual(['Empresa A', 'Empresa B']);
+    expect([rows[0].course?.id, rows[0].startDate, rows[0].endDate, rows[0].grade]).toEqual(['crs-nr10', '2026-09-21', '2026-09-25', 9]);
+    expect(groupImportRows(rows)).toHaveLength(1);
+  });
+
+  it('sem nota na tela, curso com avaliação fica reprovado (não emite por engano)', () => {
+    const [r] = buildImportRows([{ Nome: 'A', CPF: '', 'Colaborador da Empresa': 'X' }],
+      ctx({ defaults: { courseId: 'crs-nr10', startDate: '2026-09-21', endDate: '', location: '', instructorIds: [] } }));
+    expect(rowStatus(r)).toBe('reprovado');
+  });
+
+  it('alunos para a turma: valida CPF e usa a empresa da turma quando em branco', async () => {
+    const { parseParticipantRows } = await import('../spreadsheetImport');
+    const rows = parseParticipantRows([
+      { Nome: 'Maria', CPF: 52998224725, 'Colaborador da Empresa': 'Empresa A' },
+      { Nome: 'Zé', CPF: '123.456.789-00', 'Colaborador da Empresa': '' },
+      { Nome: 'Ana', CPF: '', 'Colaborador da Empresa': '' },
+      { Nome: '', CPF: '', 'Colaborador da Empresa': '' }
+    ], 'Cliente da Turma');
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toMatchObject({ name: 'Maria', cpf: '529.982.247-25', company: 'Empresa A', attendance: 100 });
+    expect(rows[1].error).toBe('CPF inválido');
+    expect(rows[2]).toMatchObject({ company: 'Cliente da Turma', error: undefined });
+  });
+});
