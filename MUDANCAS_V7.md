@@ -99,6 +99,16 @@ e mostra o aviso para executar o script.
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem
   reciclagem.
+- **Importar planilha** (Certificados): emissão de vários certificados a partir de Excel
+  (.xlsx/.xls, CSV ou ODS, até 1000 linhas). "Baixar modelo" gera a planilha com as colunas
+  Nome, CPF, Função, Empresa, Curso, Início, Término, Carga horária, Local, Presença (%),
+  Nota e Instrutor, mais a lista de cursos/instrutores e as instruções. Colunas em branco
+  usam os valores padrão escolhidos na tela (curso, datas, local, instrutor). A prévia
+  mostra, linha a linha, quem será emitido, quem foi reprovado (presença/nota abaixo do
+  mínimo do curso) e os erros (CPF inválido, curso ou instrutor não cadastrado, datas,
+  pessoa repetida ou certificado já emitido — conferido pelo CPF ou, sem CPF, pelo nome).
+  Por padrão cria uma turma por curso + período + local + instrutor (com lista de
+  presença); no fim, um único PDF com todos os certificados emitidos.
 
 **Certificado (PDF A4 paisagem):** frente com participante, CPF, curso, norma, período,
 carga horária, validade, assinaturas do instrutor, do Responsável Técnico (cadastro da
