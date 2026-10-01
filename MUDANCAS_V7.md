@@ -124,6 +124,15 @@ ativa, entra direto no último módulo usado; a cada novo login a escolha aparec
 Quem só tem um módulo disponível (ex.: perfil cliente, ou Treinamentos desligado) entra
 direto, sem a tela de escolha.
 
+**Módulos por usuário (7.2):** em Usuários & Técnicos, ao cadastrar ou editar um usuário
+com acesso, marque os **Módulos com acesso** (Ensaios de EPI, Treinamentos). A regra vale
+no banco (coluna `users.allowed_modules`, função `jvm_can_use_module`): quem não tem o
+módulo não lê nem grava aqueles dados, nem reserva numeração. Clientes são comuns a todos
+os módulos. Administradores acessam sempre todos os módulos. Todos marcados = acesso a
+todos, incluindo módulos novos. Usuários já cadastrados continuam com acesso a todos.
+A mudança vale no próximo login do usuário. Requer executar de novo `supabase/schema.sql`
+e `supabase/modules/treinamentos.sql`.
+
 ## Por que mudou
 
 Até a v6.5, as regras do banco eram `USING (true)`: a chave pública, que vai dentro do

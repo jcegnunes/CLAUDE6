@@ -18,7 +18,7 @@ import { isPortalOnlyHost } from './config/validationPortalConfig';
 import { ModalErrorBoundary } from './components/ModalErrorBoundary';
 import { startPhotoStorage } from './services/photoExternalizer';
 import { PLATFORM_MODULES, isModuleEnabled } from './modules/registry';
-import { getAvailableWorkspaces, loadSavedWorkspace, saveWorkspace, type Workspace } from './modules/workspaces';
+import { canUseModule, getAvailableWorkspaces, loadSavedWorkspace, saveWorkspace, type Workspace } from './modules/workspaces';
 import { ModuleLauncherView } from './views/ModuleLauncherView';
 
 // Telas carregadas sob demanda (arquivos separados)
@@ -82,7 +82,7 @@ export default function App() {
     return u && u.id ? loadSavedWorkspace(u.id) : null;
   });
   const availableWorkspaces = isAuthenticated && currentUser.id
-    ? getAvailableWorkspaces(DielectricStorageService.getCompanyInfo(), currentUser.role)
+    ? getAvailableWorkspaces(DielectricStorageService.getCompanyInfo(), currentUser)
     : [];
   const currentWorkspace = availableWorkspaces.find(w => w.id === workspaceId)
     || (availableWorkspaces.length === 1 ? availableWorkspaces[0] : undefined);
@@ -319,7 +319,8 @@ export default function App() {
   const renderModuleView = (prefix: string) => PLATFORM_MODULES
     .filter(m => activeView === m.id
       && isModuleEnabled(DielectricStorageService.getCompanyInfo(), m.id)
-      && m.roles.includes(currentUser.role))
+      && m.roles.includes(currentUser.role)
+      && canUseModule(currentUser, m.id))
     // sem dataVersion na chave: a sincronização dos ensaios não fecha o que está sendo editado
     .map(m => <m.View key={`${prefix}_${m.id}`} />);
 

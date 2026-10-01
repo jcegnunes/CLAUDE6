@@ -128,18 +128,21 @@ BEGIN
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('REVOKE ALL ON public.%I FROM anon', t);
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', t);
+    -- só quem tem acesso ao módulo Treinamentos (cadastro do usuário)
     EXECUTE format($p$CREATE POLICY jvm_select ON public.%I FOR SELECT TO authenticated
-      USING (company_id = (SELECT public.jvm_my_company()) OR (SELECT public.jvm_is_master()))$p$, t);
+      USING ((company_id = (SELECT public.jvm_my_company()) OR (SELECT public.jvm_is_master()))
+             AND (SELECT public.jvm_can_use_module('treinamentos')))$p$, t);
     EXECUTE format($p$CREATE POLICY jvm_insert ON public.%I FOR INSERT TO authenticated
       WITH CHECK ((company_id = (SELECT public.jvm_my_company()) OR (SELECT public.jvm_is_master()))
-                  AND (SELECT public.jvm_can_write()))$p$, t);
+                  AND (SELECT public.jvm_can_write()) AND (SELECT public.jvm_can_use_module('treinamentos')))$p$, t);
     EXECUTE format($p$CREATE POLICY jvm_update ON public.%I FOR UPDATE TO authenticated
-      USING (company_id = (SELECT public.jvm_my_company()) OR (SELECT public.jvm_is_master()))
+      USING ((company_id = (SELECT public.jvm_my_company()) OR (SELECT public.jvm_is_master()))
+             AND (SELECT public.jvm_can_use_module('treinamentos')))
       WITH CHECK ((company_id = (SELECT public.jvm_my_company()) OR (SELECT public.jvm_is_master()))
-                  AND (SELECT public.jvm_can_write()))$p$, t);
+                  AND (SELECT public.jvm_can_write()) AND (SELECT public.jvm_can_use_module('treinamentos')))$p$, t);
     EXECUTE format($p$CREATE POLICY jvm_delete ON public.%I FOR DELETE TO authenticated
-      USING ((company_id = (SELECT public.jvm_my_company()) AND (SELECT public.jvm_is_admin()))
-             OR (SELECT public.jvm_is_master()))$p$, t);
+      USING (((company_id = (SELECT public.jvm_my_company()) AND (SELECT public.jvm_is_admin()))
+             OR (SELECT public.jvm_is_master())) AND (SELECT public.jvm_can_use_module('treinamentos')))$p$, t);
   END LOOP;
 END $$;
 
@@ -159,7 +162,7 @@ DECLARE
   v_used BIGINT := 0;
   v_last BIGINT;
 BEGIN
-  IF v_company IS NULL OR NOT public.jvm_can_write() THEN
+  IF v_company IS NULL OR NOT public.jvm_can_write() OR NOT public.jvm_can_use_module('treinamentos') THEN
     RAISE EXCEPTION 'Sem permissão para reservar numeração.' USING ERRCODE = '42501';
   END IF;
   IF p_kind NOT IN ('class', 'certificate') THEN

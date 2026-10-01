@@ -243,6 +243,37 @@ async function main() {
   r = await as(db, user(b), `DELETE FROM public.training_certificates WHERE id = 'tc-1'`);
   ok(!r.error && r.count === 0, 'técnico NÃO apaga certificado (só administrador)');
 
+  // ------------------------------------------------- acesso por módulo
+  r = await as(db, user(b), `UPDATE public.users SET allowed_modules = '{ensaios,treinamentos}' WHERE id = 'usr-b'`);
+  await as(db, user(b), `UPDATE public.users SET allowed_modules = '{treinamentos}' WHERE id = 'usr-b'`);
+  ok((await db.query(`SELECT allowed_modules FROM public.users WHERE id='usr-b'`)).rows[0].allowed_modules === null,
+    'técnico NÃO altera os próprios módulos liberados');
+  await db.exec(`UPDATE public.users SET allowed_modules = '{treinamentos}' WHERE id = 'usr-b'`);
+  r = await as(db, user(b), `SELECT id FROM public.test_records`);
+  ok(!r.error && r.rows.length === 0, 'usuário só de Treinamentos NÃO enxerga os ensaios');
+  r = await as(db, user(b), `INSERT INTO public.equipment (id, company_id, uuid, type, tag) VALUES ('eq-mod', 'comp-2', 'u-mod', 'luva', 'T-MOD')`);
+  ok(!!r.error, 'usuário só de Treinamentos NÃO grava equipamentos');
+  r = await as(db, user(b), `SELECT public.jvm_reserve_numbers('test', '2610', 5, 0) AS v`);
+  ok(!!r.error, 'usuário só de Treinamentos NÃO reserva numeração de ensaios');
+  r = await as(db, user(b), `SELECT id FROM public.clients`);
+  ok(!r.error && r.rows.some(x => x.id === 'cli-2'), 'clientes continuam visíveis (comuns aos módulos)');
+  r = await as(db, user(b), `SELECT id FROM public.training_courses`);
+  ok(!r.error && r.rows.some(x => x.id === 'crs-1'), 'usuário só de Treinamentos enxerga os cursos');
+  await db.exec(`UPDATE public.users SET allowed_modules = '{ensaios}' WHERE id = 'usr-b'`);
+  r = await as(db, user(b), `SELECT id FROM public.training_courses`);
+  ok(!r.error && r.rows.length === 0, 'usuário só de Ensaios NÃO enxerga os treinamentos');
+  r = await as(db, user(b), `INSERT INTO public.training_courses (id, company_id, name) VALUES ('crs-mod', 'comp-2', 'X')`);
+  ok(!!r.error, 'usuário só de Ensaios NÃO grava cursos');
+  r = await as(db, user(b), `SELECT public.jvm_training_reserve_numbers('certificate', '2610', 5, 0) AS v`);
+  ok(!!r.error, 'usuário só de Ensaios NÃO reserva numeração de certificados de treinamento');
+  r = await as(db, user(b), `SELECT id FROM public.test_records`);
+  ok(!r.error && r.rows.length > 0, 'usuário só de Ensaios enxerga os ensaios');
+  r = await as(db, user(b), `INSERT INTO public.equipment (id, company_id, uuid, type, tag) VALUES ('eq-mod', 'comp-2', 'u-mod', 'luva', 'T-MOD')`);
+  ok(!r.error, `usuário de Ensaios grava equipamentos ${r.error || ''}`);
+  r = await as(db, user(b), `SELECT allowed_modules FROM public.users WHERE id = 'usr-b'`);
+  ok(!r.error && JSON.stringify(r.rows[0].allowed_modules) === '["ensaios"]', 'o app lê os módulos liberados do usuário');
+  await db.exec(`UPDATE public.users SET allowed_modules = NULL WHERE id = 'usr-b'`);
+
   // ---------------------------------------------------------------- perfis
   await db.exec(`INSERT INTO public.users (id, company_id, name, email, role, password_hash) VALUES ('usr-c', 'comp-2', 'Cli', 'cli@x.com', 'cliente', 'Senha@C1')`);
   const c = await uidOf(db, 'usr-c');

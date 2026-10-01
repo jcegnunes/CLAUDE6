@@ -40,6 +40,12 @@ export const ModuleLauncherView: React.FC<ModuleLauncherViewProps> = ({ user, co
         <h1 className="text-2xl font-black text-slate-900">Olá{firstName ? `, ${firstName}` : ''}!</h1>
         <p className="text-sm text-slate-600 mt-1 mb-6">Escolha o módulo do sistema que você vai utilizar. Dá para trocar a qualquer momento pelo menu.</p>
 
+        {workspaces.length === 0 && (
+          <div className="bg-white rounded-2xl border border-amber-200 p-5 text-sm text-amber-800">
+            Nenhum módulo do sistema está liberado para o seu usuário. Fale com o administrador da empresa.
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           {workspaces.map(w => {
             const Icon = w.icon;

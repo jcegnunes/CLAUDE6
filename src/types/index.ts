@@ -46,6 +46,11 @@ export interface User {
   isMasterAdmin?: boolean;
   /** Tem conta de acesso ao sistema (login). Técnicos só para assinatura não têm. */
   hasLogin?: boolean;
+  /**
+   * Módulos que o usuário pode usar (ex.: ['ensaios', 'treinamentos']).
+   * null = todos. Administradores acessam todos. Conferido também no banco.
+   */
+  allowedModules?: string[] | null;
   phone?: string;
   active?: boolean;
   avatarUrl?: string;
