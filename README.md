@@ -1,4 +1,4 @@
-# JVM Dielectric Lab — Ensaios & Certificação EPI/EPC (v7.0)
+# JVM Dielectric Lab — Ensaios & Certificação EPI/EPC (v7.2)
 
 Plataforma de ensaios dielétricos, laudos e certificados de EPI/EPC com
 **Supabase como banco de dados único**.
@@ -169,7 +169,7 @@ localmente na primeira abertura desta versão e passam a mostrar apenas o que es
 - Ao entrar, dados de outras empresas que estivessem no aparelho são removidos.
 - O banco **recusa** as empresas/usuários de demonstração (`comp-jvm`, `comp-voltsafe`,
   `comp-altatensao`, `usr-1`…), que só versões antigas do app ainda enviam.
-- A tela de login mostra a versão no rodapé (ex.: **"Versão 7.0.0"**): use para conferir se o site publicado
+- A tela de login mostra a versão no rodapé (ex.: **"Versão 7.2.0"**): use para conferir se o site publicado
   está atualizado.
 
 Descobrir quem está gravando no banco (aparelho e horário):

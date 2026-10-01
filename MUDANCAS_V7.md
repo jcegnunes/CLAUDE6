@@ -43,7 +43,7 @@
 5. O endereço antigo da Hostinger (`mediumvioletred-bison-595566.hostingersite.com`) será
    desativado: documentos já impressos com o QR Code antigo são validados digitando o código
    em `https://validador.jvmlab.com.br`. Reemita etiquetas ainda em uso, se preferir.
-6. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.0.0";
+6. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.2.0";
    `https://validador.jvmlab.com.br` mostra só o "Portal de Validação de Autenticidade".
 
 ### Página do validador no site Wix (www.jvmengenharia.com.br)
