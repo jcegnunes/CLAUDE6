@@ -19,11 +19,13 @@ import {
   Users,
   Briefcase,
   Settings,
-  ChevronDown
+  ChevronDown,
+  ArrowLeftRight
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
 import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
+import type { Workspace } from '../modules/workspaces';
 
 type NavItem = { id: string; label: string; icon: React.ElementType; roles: UserRole[]; badge?: string; highlight?: boolean };
 type NavGroup = { id: string; label?: string; icon?: React.ElementType; items: NavItem[] };
@@ -40,6 +42,10 @@ interface SidebarProps {
   onOpenInstallModal?: () => void;
   /** 'drawer': menu lateral aberto pelo botão "Menu" no celular. */
   variant?: 'desktop' | 'drawer';
+  /** Módulo escolhido depois do login: o menu mostra só os blocos dele. */
+  workspace?: Workspace;
+  /** Volta para a tela de escolha do módulo (quando há mais de um). */
+  onSwitchWorkspace?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -49,7 +55,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   pendingSyncCount,
   onToggleFieldMode,
   onOpenInstallModal,
-  variant = 'desktop'
+  variant = 'desktop',
+  workspace,
+  onSwitchWorkspace
 }) => {
   const [closedGroups, setClosedGroups] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(GROUPS_KEY) || '[]'); } catch { return []; }
@@ -101,6 +109,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(g => ({ ...g, items: g.items.filter(item => item.roles.includes(userRole)) }))
     .filter(g => g.items.length > 0);
 
+  // Só os blocos do módulo escolhido, na ordem dele
+  const visibleGroups = workspace
+    ? workspace.groups
+        .map(id => groups.find(g => g.id === id))
+        .filter((g): g is NavGroup => !!g)
+        .map(g => ({ ...g, items: g.items.filter(item => !workspace.hiddenItems.includes(item.id)) }))
+        .filter(g => g.items.length > 0)
+    : groups;
+  const WorkspaceIcon = workspace?.icon;
+
   const renderItem = (item: NavItem, nested: boolean) => {
     const Icon = item.icon;
     const isActive = activeView === item.id;
@@ -138,7 +156,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ? 'w-72 max-w-[85vw] h-full bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 shadow-2xl'
       : 'w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 border-r border-slate-800 hidden md:flex min-h-[calc(100vh-4rem)]'}>
       <div className="p-4 flex-1 space-y-1 overflow-y-auto">
-        {groups.map(group => {
+        {workspace && (
+          <div className="mb-2 p-3 rounded-2xl bg-slate-800/70 border border-slate-700 flex items-center gap-2.5">
+            {WorkspaceIcon && (
+              <div className="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0">
+                <WorkspaceIcon className="w-4 h-4" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-slate-400">Módulo</span>
+              <span className="block text-xs font-bold text-white truncate">{workspace.label}</span>
+            </div>
+            {onSwitchWorkspace && (
+              <button
+                type="button"
+                onClick={onSwitchWorkspace}
+                title="Trocar de módulo"
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold text-orange-300 hover:bg-slate-700"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" /> Trocar
+              </button>
+            )}
+          </div>
+        )}
+
+        {visibleGroups.map(group => {
           // bloco com um item só (Dashboard, Validação, módulo de uma tela): item direto
           if (!group.label || group.items.length === 1) {
             return <div key={group.id} className="pt-1">{group.items.map(item => renderItem(item, false))}</div>;
@@ -173,6 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
         {/* App Android Quick Banner in Sidebar */}
+        {(!workspace || workspace.id === 'ensaios') && (
         <div className="pt-2 pb-1">
           <div className="p-3 bg-gradient-to-br from-blue-950/80 to-slate-950 border border-blue-800/50 rounded-2xl space-y-2">
             <div className="flex items-center gap-2">
@@ -203,6 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Footer Info Box */}

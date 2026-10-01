@@ -113,6 +113,17 @@ faixas dos ensaios (sem número repetido entre aparelhos).
 **Ligar/desligar:** Configurações & Backup → Módulos do sistema (por empresa; os dados
 ficam guardados).
 
+**Escolha do módulo no login:** depois de entrar, o usuário escolhe **Ensaios de EPI** ou
+**Treinamentos**. O menu mostra só os blocos do módulo escolhido, mais os comuns:
+- Ensaios de EPI: Dashboard, Clientes & OS, Ensaios de EPI, Validação de QR Code e
+  Configuração do Sistema;
+- Treinamentos: Treinamentos, Clientes, Validação de QR Code e Configuração do Sistema.
+
+O botão **Trocar** (topo do menu) volta para a escolha. Reabrindo o app com a sessão
+ativa, entra direto no último módulo usado; a cada novo login a escolha aparece de novo.
+Quem só tem um módulo disponível (ex.: perfil cliente, ou Treinamentos desligado) entra
+direto, sem a tela de escolha.
+
 ## Por que mudou
 
 Até a v6.5, as regras do banco eram `USING (true)`: a chave pública, que vai dentro do

@@ -15,4 +15,9 @@ export interface PlatformModule {
   /** Perfis que veem o módulo no menu */
   roles: UserRole[];
   View: ComponentType<Record<string, never>>;
+  /**
+   * Ao escolher este módulo depois do login: blocos comuns do menu que também
+   * aparecem (ex.: clientes, validação, configuração) e itens a esconder.
+   */
+  workspace?: { sharedGroups: string[]; hiddenItems?: string[] };
 }
