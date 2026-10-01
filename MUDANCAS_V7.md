@@ -16,6 +16,21 @@
 > que estiverem só na fila de um aparelho antigo continuam guardados nele e são enviados
 > quando o aparelho abrir a versão nova e o usuário entrar.
 
+## Endereço da plataforma: https://jvmlab.com.br
+
+O app, os QR Codes de laudos/certificados/etiquetas e o portal `/validar/CÓDIGO` passam a
+usar **https://jvmlab.com.br**. Aparelhos e cadastros que ainda tenham o endereço antigo da
+Hostinger são convertidos automaticamente.
+
+1. **Hostinger → Domínios:** aponte `jvmlab.com.br` (e `www`) para a hospedagem do site e
+   ative o **SSL** (HTTPS é obrigatório para instalar o app e usar a câmera).
+2. Publique o build do app nesse domínio (mesmos arquivos de antes, com o `.htaccess`).
+3. **Mantenha o endereço antigo** (`mediumvioletred-bison-595566.hostingersite.com`)
+   redirecionando para `https://jvmlab.com.br`, mantendo o caminho (`/validar/...`):
+   laudos e etiquetas já impressos têm o QR Code com o endereço antigo.
+4. **Supabase → Authentication → URL Configuration:** *Site URL* = `https://jvmlab.com.br`.
+5. Abra `https://jvmlab.com.br` e confira "Versão 7.0.0" no rodapé do login.
+
 ## Por que mudou
 
 Até a v6.5, as regras do banco eram `USING (true)`: a chave pública, que vai dentro do
