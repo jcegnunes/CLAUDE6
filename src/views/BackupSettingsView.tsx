@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Sliders, 
-  Download, 
-  Upload, 
-  RefreshCw, 
-  Building2, 
-  Check, 
-  Database, 
-  FileSpreadsheet, 
+import {
+  Sliders,
+  Download,
+  Upload,
+  RefreshCw,
+  Building2,
+  Check,
+  Database,
+  FileSpreadsheet,
   AlertTriangle,
   AlertCircle,
   HardDrive,
@@ -492,9 +492,9 @@ export const BackupSettingsView: React.FC = () => {
                     {/* Light Background Preview (Laudos / Certificados) */}
                     <div className="bg-white p-3 rounded-xl border border-slate-200 text-center flex flex-col items-center justify-center min-h-[90px] shadow-2xs">
                       {company.logoUrl ? (
-                        <img 
-                          src={company.logoUrl} 
-                          alt="Logo da Empresa" 
+                        <img
+                          src={company.logoUrl}
+                          alt="Logo da Empresa"
                           className="max-h-12 max-w-full object-contain"
                         />
                       ) : (
@@ -508,9 +508,9 @@ export const BackupSettingsView: React.FC = () => {
                     {/* Dark Background Preview (Topbar / Header) */}
                     <div className="bg-[#0A2540] p-3 rounded-xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[90px] shadow-2xs">
                       {company.logoUrl ? (
-                        <img 
-                          src={company.logoUrl} 
-                          alt="Logo da Empresa" 
+                        <img
+                          src={company.logoUrl}
+                          alt="Logo da Empresa"
                           className="max-h-12 max-w-full object-contain filter brightness-105"
                         />
                       ) : (
@@ -756,8 +756,8 @@ export const BackupSettingsView: React.FC = () => {
 
                 {cepFeedback && (
                   <div className={`p-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    cepFeedback.type === 'success' 
-                      ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200' 
+                    cepFeedback.type === 'success'
+                      ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-200'
                       : 'bg-red-100/90 text-red-800 border border-red-200'
                   }`}>
                     {cepFeedback.type === 'success' ? (
@@ -1005,9 +1005,9 @@ export const BackupSettingsView: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                   <div className="w-full sm:w-48 h-20 bg-white border border-slate-300 rounded-lg flex items-center justify-center overflow-hidden p-1 shadow-inner">
                     {company.technicalResponsible?.signatureUrl ? (
-                      <img 
-                        src={company.technicalResponsible.signatureUrl} 
-                        alt="Assinatura RT Padrão" 
+                      <img
+                        src={company.technicalResponsible.signatureUrl}
+                        alt="Assinatura RT Padrão"
                         className="max-h-full max-w-full object-contain"
                       />
                     ) : (
@@ -1020,7 +1020,7 @@ export const BackupSettingsView: React.FC = () => {
                       Carregue o arquivo de assinatura (PNG, JPG, SVG). Este arquivo será carregado automaticamente como padrão em todos os laudos e certificados assinados pelo Responsável Técnico.
                     </p>
                     <div className="flex items-center gap-2 pt-1">
-                      <input 
+                      <input
                         ref={rtSignatureInputRef}
                         type="file"
                         accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
@@ -1078,7 +1078,7 @@ export const BackupSettingsView: React.FC = () => {
                 {usersList
                   .filter(u => u.role === 'tecnico' || u.role === 'admin' || u.role === 'responsavel_tecnico')
                   .map(user => (
-                    <div 
+                    <div
                       key={user.id}
                       className="p-3 bg-slate-50/80 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
@@ -1113,7 +1113,7 @@ export const BackupSettingsView: React.FC = () => {
                         <label className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold transition-colors cursor-pointer">
                           <Upload className="w-3.5 h-3.5" />
                           <span>{user.signatureUrl ? 'Trocar Imagem' : 'Carregar Imagem'}</span>
-                          <input 
+                          <input
                             type="file"
                             accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
                             className="hidden"
@@ -1467,7 +1467,7 @@ export const BackupSettingsView: React.FC = () => {
                         ...company,
                         validationBaseUrl: e.target.value
                       })}
-                      placeholder="https://jvmlab.com.br"
+                      placeholder="https://validador.jvmlab.com.br"
                       className="flex-1 p-2 border border-slate-300 rounded-xl bg-white font-mono text-xs font-bold text-slate-900 focus:ring-2 focus:ring-emerald-500"
                     />
                     <button
@@ -1728,11 +1728,11 @@ export const BackupSettingsView: React.FC = () => {
                 <span className="flex items-center gap-2">
                   <Upload className="w-4 h-4 text-purple-600" /> Restaurar Backup (.ZIP ou .JSON)
                 </span>
-                <input 
-                  type="file" 
-                  accept=".zip,.json" 
-                  onChange={handleUniversalRestoreFile} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  accept=".zip,.json"
+                  onChange={handleUniversalRestoreFile}
+                  className="hidden"
                 />
               </label>
 

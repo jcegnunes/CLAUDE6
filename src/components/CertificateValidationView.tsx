@@ -161,20 +161,6 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
             </button>
           </form>
 
-          {/* Quick Samples */}
-          <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
-            <span className="text-[11px] text-slate-400">Exemplos para teste:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchCode('VAL-JVM-2026-A8B1C4');
-                handleSearch('VAL-JVM-2026-A8B1C4');
-              }}
-              className="text-[11px] font-mono px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-blue-700 rounded-md"
-            >
-              VAL-JVM-2026-A8B1C4
-            </button>
-          </div>
         </div>
 
         {/* Validation Result Display */}

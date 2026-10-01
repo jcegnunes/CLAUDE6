@@ -1,7 +1,8 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-  # Endereço oficial: https://jvmlab.com.br (o www redireciona para ele)
+  # Sistema: https://jvmlab.com.br (o www redireciona para ele).
+  # Validação (QR Code): https://validador.jvmlab.com.br, mesma pasta do site.
   RewriteCond %{HTTP_HOST} ^www\.jvmlab\.com\.br$ [NC]
   RewriteRule ^(.*)$ https://jvmlab.com.br/$1 [R=301,L]
 

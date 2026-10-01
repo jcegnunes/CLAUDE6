@@ -1,20 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_VALIDATION_BASE_URL, normalizeValidationBaseUrl } from '../../config/validationPortalConfig';
+import {
+  APP_BASE_URL,
+  DEFAULT_VALIDATION_BASE_URL,
+  isPortalOnlyHost,
+  normalizeValidationBaseUrl
+} from '../../config/validationPortalConfig';
 
-describe('Endereço da plataforma (QR Code)', () => {
-  it('o endereço padrão é jvmlab.com.br', () => {
-    expect(DEFAULT_VALIDATION_BASE_URL).toBe('https://jvmlab.com.br');
-    expect(normalizeValidationBaseUrl('')).toBe('https://jvmlab.com.br');
-    expect(normalizeValidationBaseUrl(undefined)).toBe('https://jvmlab.com.br');
+describe('Endereços da plataforma', () => {
+  it('sistema em jvmlab.com.br e validação em validador.jvmlab.com.br', () => {
+    expect(APP_BASE_URL).toBe('https://jvmlab.com.br');
+    expect(DEFAULT_VALIDATION_BASE_URL).toBe('https://validador.jvmlab.com.br');
+    expect(normalizeValidationBaseUrl('')).toBe('https://validador.jvmlab.com.br');
+    expect(normalizeValidationBaseUrl(undefined)).toBe('https://validador.jvmlab.com.br');
   });
 
-  it('endereços antigos da Hostinger passam para jvmlab.com.br', () => {
-    expect(normalizeValidationBaseUrl('https://mediumvioletred-bison-595566.hostingersite.com')).toBe('https://jvmlab.com.br');
-    expect(normalizeValidationBaseUrl('https://mediumvioletred-bison-595566.hostingersite.com/')).toBe('https://jvmlab.com.br');
-    expect(normalizeValidationBaseUrl('https://mediumturquoise-giraffe-910043.hostingersite.com')).toBe('https://jvmlab.com.br');
+  it('endereços antigos passam para o validador', () => {
+    expect(normalizeValidationBaseUrl('https://mediumvioletred-bison-595566.hostingersite.com')).toBe(DEFAULT_VALIDATION_BASE_URL);
+    expect(normalizeValidationBaseUrl('https://mediumturquoise-giraffe-910043.hostingersite.com/')).toBe(DEFAULT_VALIDATION_BASE_URL);
+    expect(normalizeValidationBaseUrl('https://jvmlab.com.br')).toBe(DEFAULT_VALIDATION_BASE_URL);
+    expect(normalizeValidationBaseUrl('https://jvmlab.com.br/')).toBe(DEFAULT_VALIDATION_BASE_URL);
   });
 
-  it('endereço configurado manualmente é mantido (sem barra no final)', () => {
-    expect(normalizeValidationBaseUrl('https://validar.jvmlab.com.br/')).toBe('https://validar.jvmlab.com.br');
+  it('o próprio validador e endereços configurados manualmente são mantidos', () => {
+    expect(normalizeValidationBaseUrl('https://validador.jvmlab.com.br/')).toBe('https://validador.jvmlab.com.br');
+    expect(normalizeValidationBaseUrl('https://certificados.cliente.com.br')).toBe('https://certificados.cliente.com.br');
+  });
+
+  it('só o validador funciona como portal exclusivo', () => {
+    expect(isPortalOnlyHost('validador.jvmlab.com.br')).toBe(true);
+    expect(isPortalOnlyHost('VALIDADOR.jvmlab.com.br')).toBe(true);
+    expect(isPortalOnlyHost('jvmlab.com.br')).toBe(false);
+    expect(isPortalOnlyHost('localhost')).toBe(false);
   });
 });

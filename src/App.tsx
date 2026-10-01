@@ -14,6 +14,7 @@ import { LoginView } from './views/LoginView';
 import { CompanySetupView } from './views/CompanySetupView';
 import { EMPTY_USER } from './services/syncEngine';
 import { lazyView } from './utils/lazyView';
+import { isPortalOnlyHost } from './config/validationPortalConfig';
 import { ModalErrorBoundary } from './components/ModalErrorBoundary';
 import { startPhotoStorage } from './services/photoExternalizer';
 
@@ -55,8 +56,10 @@ export default function App() {
 
   // Check if current URL is a public validation URL like /validar/VAL-JVM-2026-A8B1C4
   const currentPath = window.location.pathname;
-  const isDirectValidation = currentPath.startsWith('/validar');
-  const pathValidationCode = isDirectValidation ? currentPath.split('/validar/')[1]?.split('/')[0] : '';
+  // validador.jvmlab.com.br: qualquer endereço abre só a consulta de certificados
+  const isPortalHost = isPortalOnlyHost(window.location.hostname);
+  const isDirectValidation = isPortalHost || currentPath.startsWith('/validar');
+  const pathValidationCode = currentPath.startsWith('/validar/') ? decodeURIComponent(currentPath.split('/validar/')[1]?.split('/')[0] || '') : '';
 
   // Auth & Multi-Company Login State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => AuthService.isAuthenticated());
@@ -302,7 +305,7 @@ export default function App() {
       <Suspense fallback={viewFallback}>
       <CertificateValidationView
         initialCode={validationCodeForPortal}
-        onBackToApp={() => {
+        onBackToApp={isPortalHost ? undefined : () => {
           setValidationCodeForPortal('');
           setActiveView('dashboard');
           if (window.history.pushState) {
