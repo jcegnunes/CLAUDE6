@@ -172,6 +172,11 @@ faixas dos ensaios (sem número repetido entre aparelhos).
   como "assinatura íntegra, mas não confirmada como ICP-Brasil".
 - Requer executar de novo `supabase/modules/treinamentos.sql`.
 
+**Backup completo:** o backup de Configurações & Backup (ZIP ou JSON) inclui a seção
+`modules.treinamentos` com cursos, instrutores, turmas e certificados; a restauração junta
+por id e envia ao servidor. Os certificados digitais (A1) não entram no backup (ficam só no
+servidor, criptografados). Backups antigos continuam sendo aceitos.
+
 **Ligar/desligar:** Configurações & Backup → Módulos do sistema (por empresa; os dados
 ficam guardados).
 
@@ -392,8 +397,5 @@ A consulta de CNPJ usa, como última alternativa, o proxy público `api.allorigi
 
 ## Pendências recomendadas (não alteradas)
 
-- **Vínculo de ensaio sem cliente/equipamento no banco**: quando o cliente ou o
-  equipamento ainda não chegou ao banco, o ensaio é enviado sem o vínculo técnico
-  (nome e tag continuam gravados). Pode ser trocado por nova tentativa.
 - **Arquivos muito grandes** (`TestWizardView`, `ReportEmissionView`, `syncEngine`...):
   dividir em módulos menores facilita a manutenção.
