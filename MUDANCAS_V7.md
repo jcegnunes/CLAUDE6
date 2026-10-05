@@ -113,6 +113,8 @@ e mostra o aviso para executar o script.
   são cancelados** com um motivo (padrão "Curso … excluído"); o QR Code passa a mostrar
   CANCELADO. As turmas continuam e mostram "Curso excluído": para emitir novos
   certificados, edite a turma e escolha outro curso.
+- **Validador**: a tela de validação do certificado de treinamento não mostra mais o botão
+  "Baixar certificado (PDF)"; o PDF é baixado só pelo módulo Treinamentos.
 - **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem
