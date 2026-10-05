@@ -135,6 +135,19 @@ export const getCourse = (id: string) => getCourses().find(c => c.id === id);
 export const saveCourse = (c: TrainingCourse) => putRecord('training_courses', c);
 export const deleteCourse = (id: string) => removeRecord('training_courses', id);
 
+/** Certificados ainda válidos do curso (os que serão cancelados ao excluí-lo). */
+export const activeCourseCertificates = (courseId: string) =>
+  getCertificates().filter(c => c.courseId === courseId && c.status !== 'cancelado');
+
+/** Exclui o curso e cancela todos os certificados dele (o validador mostra CANCELADO). */
+export function deleteCourseAndCancelCertificates(courseId: string, reason: string): TrainingCertificate[] {
+  const cancelled = activeCourseCertificates(courseId)
+    .map(c => cancelCertificate(c.id, reason))
+    .filter((c): c is TrainingCertificate => !!c);
+  deleteCourse(courseId);
+  return cancelled;
+}
+
 /** Cadastra os cursos padrão na primeira abertura do módulo (por empresa). */
 export function ensureDefaultCourses(): number {
   const company = currentCompanyId();
