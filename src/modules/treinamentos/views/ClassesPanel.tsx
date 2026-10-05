@@ -123,6 +123,7 @@ export const ClassesPanel: React.FC = () => {
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_CLS[t.status]}`}>{STATUS_LABEL[t.status]}</span>
                     </div>
                     <h4 className="font-bold text-sm text-slate-900 leading-snug mt-0.5">{t.courseName}</h4>
+                    {!course && <p className="text-[11px] text-amber-700">Curso excluído — edite a turma e escolha outro curso para emitir certificados.</p>}
                     <p className="text-[11px] text-slate-500">
                       {formatDateBr(t.startDate)}{t.endDate && t.endDate !== t.startDate ? ` a ${formatDateBr(t.endDate)}` : ''} · {formatHours(t.workloadHours)}
                       {t.location ? ` · ${t.location}` : ''}{t.clientName ? ` · ${t.clientName}` : ''}

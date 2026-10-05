@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Plus, Pencil, Trash2, ArrowUp, ArrowDown, RotateCcw, Copy } from 'lucide-react';
 import {
-  canDeleteTraining, canEditTraining, deleteCourse, getClasses, getCourses, restoreDefaultCourses, saveCourse
+  canDeleteTraining, canEditTraining, deleteCourse, getCertificates, getClasses, getCourses, restoreDefaultCourses, saveCourse
 } from '../repository';
 import { formatHours, newId, totalTopicHours } from '../rules';
 import type { TrainingCourse } from '../types';
@@ -19,11 +19,16 @@ export const CoursesPanel: React.FC = () => {
   const canEdit = canEditTraining();
 
   const handleDelete = (c: TrainingCourse) => {
-    if (getClasses().some(t => t.courseId === c.id)) {
-      window.alert('Este curso tem turmas cadastradas. Para não usá-lo mais, edite-o e desmarque "Curso ativo".');
-      return;
+    const classes = getClasses().filter(t => t.courseId === c.id);
+    const openClasses = classes.filter(t => t.status === 'planejada' || t.status === 'em_andamento').length;
+    const certs = getCertificates().filter(x => x.courseId === c.id && x.status !== 'cancelado').length;
+    const lines = [`Excluir o curso "${c.name}"?`];
+    if (classes.length || certs) {
+      lines.push('');
+      if (classes.length) lines.push(`• ${classes.length} turma(s) usam este curso${openClasses ? ` (${openClasses} ativa(s))` : ''}: elas continuam cadastradas, mas para emitir novos certificados será preciso editar a turma e escolher outro curso.`);
+      if (certs) lines.push(`• ${certs} certificado(s) emitido(s) continuam VÁLIDOS, com o PDF e o QR Code inalterados (os dados do curso ficam guardados no certificado).`);
     }
-    if (window.confirm(`Excluir o curso "${c.name}"? Certificados já emitidos não são afetados.`)) deleteCourse(c.id);
+    if (window.confirm(lines.join('\n'))) deleteCourse(c.id);
   };
 
   const handleRestore = () => {

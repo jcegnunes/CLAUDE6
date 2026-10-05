@@ -108,6 +108,10 @@ e mostra o aviso para executar o script.
   são cancelados** com um motivo (padrão "Turma TUR-… excluída"). Antes de excluir aparece
   a lista dos certificados que serão cancelados. Os certificados continuam na aba
   Certificados e o QR Code passa a mostrar CANCELADO.
+- **Excluir curso** (administrador) mesmo com turmas ativas ou certificados emitidos: a
+  confirmação mostra quantas turmas e certificados usam o curso. Os certificados continuam
+  VÁLIDOS (PDF e QR Code iguais, pois guardam os dados do curso); as turmas continuam e
+  mostram "Curso excluído": para emitir novos certificados, edite a turma e escolha outro curso.
 - **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem
