@@ -115,6 +115,15 @@ e mostra o aviso para executar o script.
   certificados, edite a turma e escolha outro curso.
 - **Validador**: a tela de validação do certificado de treinamento não mostra mais o botão
   "Baixar certificado (PDF)"; o PDF é baixado só pelo módulo Treinamentos.
+- **Layout do certificado** (nova aba em Treinamentos; administrador ou RT altera):
+  logo (da empresa, próprio do certificado ou nenhum; posição esquerda/centro/direita e
+  tamanho, sem distorcer), dados da empresa no cabeçalho, título, subtítulo, frase antes do
+  nome, **texto padrão** com campos ({curso}, {norma}, {periodo}, {local}, {carga_horaria},
+  {nome}, {cpf}, {empresa}, {validade}, {turma}…), texto complementar, linha de CPF/empresa,
+  "Válido até", **assinaturas** (quantos instrutores, RT, participante e os cargos), cores,
+  moldura e verso (título e aproveitamento). Pré-visualização do PDF ao lado. Fica nos dados
+  da empresa: sincroniza entre aparelhos e entra no backup. A assinatura digital ICP-Brasil é
+  aplicada só para quem aparece no certificado. O padrão reproduz o certificado anterior.
 - **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem
