@@ -104,6 +104,10 @@ e mostra o aviso para executar o script.
   CPF, Empresa e Presença %. Na turma a aprovação é pela presença mínima do curso; a nota
   só conta quando veio de uma planilha importada, e quem a importação reprovou continua
   reprovado.
+- **Excluir turma** (administrador): a turma é excluída e **todos os certificados dela
+  são cancelados** com um motivo (padrão "Turma TUR-… excluída"). Antes de excluir aparece
+  a lista dos certificados que serão cancelados. Os certificados continuam na aba
+  Certificados e o QR Code passa a mostrar CANCELADO.
 - **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem

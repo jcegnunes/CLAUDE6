@@ -173,6 +173,25 @@ export const getClass = (id: string) => getClasses().find(c => c.id === id);
 export const saveClass = (c: TrainingClass) => putRecord('training_classes', { ...c, classNumber: c.classNumber || nextTrainingNumber('class') });
 export const deleteClass = (id: string) => removeRecord('training_classes', id);
 
+/** Certificados ainda válidos emitidos pela turma (os que serão cancelados ao excluí-la). */
+export const activeClassCertificates = (classId: string) =>
+  getCertificates().filter(c => c.classId === classId && c.status !== 'cancelado');
+
+/**
+ * Exclui a turma e cancela todos os certificados dela: os certificados ficam
+ * guardados (número e QR Code continuam existindo) e o validador mostra CANCELADO.
+ */
+export function deleteClassAndCancelCertificates(classId: string, reason?: string): TrainingCertificate[] {
+  const turma = getClass(classId);
+  if (!turma) return [];
+  const motivo = (reason || '').trim() || `Turma ${turma.classNumber} excluída`;
+  const cancelled = activeClassCertificates(classId)
+    .map(c => cancelCertificate(c.id, motivo))
+    .filter((c): c is TrainingCertificate => !!c);
+  deleteClass(classId);
+  return cancelled;
+}
+
 // ---------------------------------------------------------------- certificados
 export const getCertificates = () => listOf<TrainingCertificate>('training_certificates').sort((a, b) => (b.issueDate || '').localeCompare(a.issueDate || '') || b.certificateNumber.localeCompare(a.certificateNumber));
 export const getCertificate = (id: string) => getCertificates().find(c => c.id === id);

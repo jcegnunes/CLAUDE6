@@ -4,7 +4,7 @@ import { downloadParticipantsTemplate, readSpreadsheet } from '../spreadsheetFil
 import { normalizeText, parseParticipantRows } from '../spreadsheetImport';
 import { DielectricStorageService } from '../../../services/syncEngine';
 import {
-  canDeleteTraining, canEditTraining, cancelCertificate, currentCompanyId, deleteClass, getCertificate, getCertificates,
+  activeClassCertificates, canDeleteTraining, canEditTraining, cancelCertificate, currentCompanyId, deleteClass, deleteClassAndCancelCertificates, getCertificate, getCertificates,
   getClasses, getCourse, getCourses, getInstructors, issueCertificatesForClass, saveCertificate, saveClass
 } from '../repository';
 import { exportAttendanceList, exportTrainingCertificates } from '../certificatePdf';
@@ -76,11 +76,18 @@ export const ClassesPanel: React.FC = () => {
   };
 
   const handleDelete = (t: TrainingClass) => {
-    if (certificates.some(c => c.classId === t.id)) {
-      window.alert('A turma tem certificados emitidos. Cancele a turma (status "Cancelada") em vez de excluir.');
+    const active = activeClassCertificates(t.id);
+    if (!active.length) {
+      if (window.confirm(`Excluir a turma ${t.classNumber}?`)) deleteClass(t.id);
       return;
     }
-    if (window.confirm(`Excluir a turma ${t.classNumber}?`)) deleteClass(t.id);
+    const list = active.slice(0, 10).map(c => `  • ${c.certificateNumber} — ${c.participantName}`).join('\n')
+      + (active.length > 10 ? `\n  … e mais ${active.length - 10}` : '');
+    if (!window.confirm(`Excluir a turma ${t.classNumber}?\n\nOs ${active.length} certificado(s) emitido(s) serão CANCELADOS (o QR Code passa a mostrar "cancelado"):\n${list}\n\nEsta ação não pode ser desfeita.`)) return;
+    const reason = window.prompt('Motivo do cancelamento (aparece no validador):', `Turma ${t.classNumber} excluída`);
+    if (reason === null) return;
+    const cancelled = deleteClassAndCancelCertificates(t.id, reason);
+    window.alert(`Turma ${t.classNumber} excluída e ${cancelled.length} certificado(s) cancelado(s).`);
   };
 
   return (
