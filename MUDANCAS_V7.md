@@ -100,6 +100,10 @@ e mostra o aviso para executar o script.
   mantém número e QR Code; aluno excluído tem o certificado **cancelado**; aluno que deixa
   de atingir o mínimo do curso tem o certificado cancelado (com confirmação) e pode
   receber um novo se for corrigido. Nota de 0 a 10 e presença de 0 a 100% são conferidas.
+- **Tela da turma sem Função e Nota** (Nova turma / Editar turma): cada aluno tem só Nome,
+  CPF, Empresa e Presença %. Na turma a aprovação é pela presença mínima do curso; a nota
+  só conta quando veio de uma planilha importada, e quem a importação reprovou continua
+  reprovado.
 - **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem

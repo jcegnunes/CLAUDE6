@@ -17,7 +17,7 @@ import type { ImportGroup } from './spreadsheetImport';
 import { normalizeText } from './spreadsheetImport';
 import {
   CERTIFICATE_PREFIX, CLASS_PREFIX, computeExpiryDate, generateTrainingValidationCode,
-  isParticipantApproved, newId, todayIso
+  isApprovedInClass, newId, todayIso
 } from './rules';
 import type {
   TrainingCertificate, TrainingClass, TrainingConflict, TrainingCourse, TrainingInstructor,
@@ -261,7 +261,7 @@ export function issueCertificatesForClass(classId: string): TrainingCertificate[
   const created: TrainingCertificate[] = [];
   const participants = turma.participants.map(p => {
     if (p.certificateId && getCertificate(p.certificateId)) return p;
-    if (!isParticipantApproved(p, course)) return p;
+    if (!isApprovedInClass(p, course)) return p;
     const cert = saveCertificate(buildCertificate(course, {
       participant: p, startDate: turma.startDate, endDate: turma.endDate, location: turma.location,
       workloadHours: turma.workloadHours, modality: turma.modality, instructorIds: turma.instructorIds,
@@ -299,7 +299,8 @@ export function issueFromImport(groups: ImportGroup[], createClasses: boolean): 
         workloadHours: g.workloadHours, instructorIds: g.instructorIds, status: 'concluida',
         notes: 'Turma criada pela importação de planilha.',
         participants: g.rows.map(r => ({
-          id: newId('alu'), name: r.name, cpf: r.cpf, role: r.role, company: r.company, attendance: r.attendance, grade: r.grade
+          id: newId('alu'), name: r.name, cpf: r.cpf, role: r.role, company: r.company, attendance: r.attendance, grade: r.grade,
+          approvedOverride: r.approved ? undefined : false
         }))
       });
       classes.push(turma);
