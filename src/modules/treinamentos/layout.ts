@@ -6,9 +6,25 @@
 import { DielectricStorageService } from '../../services/syncEngine';
 import { formatCpf, formatDateBr, formatHours } from './rules';
 import type { TrainingCertificate } from './types';
+import type { CompanyLabInfo } from '../../types';
 
 export type LogoSource = 'empresa' | 'personalizado' | 'nenhum';
 export type LogoPosition = 'esquerda' | 'centro' | 'direita';
+export type CompanyField = 'razaoSocial' | 'nomeFantasia' | 'cnpj' | 'crea' | 'endereco' | 'telefone' | 'email' | 'site' | 'instagram';
+
+/** Dados da empresa que podem aparecer no cabeçalho (a ordem é a da tela). */
+export const COMPANY_FIELDS: Array<{ id: CompanyField; label: string }> = [
+  { id: 'razaoSocial', label: 'Razão social' },
+  { id: 'nomeFantasia', label: 'Nome fantasia' },
+  { id: 'cnpj', label: 'CNPJ' },
+  { id: 'crea', label: 'Registro no CREA' },
+  { id: 'endereco', label: 'Endereço' },
+  { id: 'telefone', label: 'Telefone' },
+  { id: 'email', label: 'E-mail' },
+  { id: 'site', label: 'Site' },
+  { id: 'instagram', label: 'Instagram' }
+];
+
 export type FrameStyle = 'nenhuma' | 'classica' | 'arredondada' | 'tracejada' | 'cantos' | 'faixa' | 'geometrica';
 
 /** Modelos de moldura oferecidos na tela (a ordem é a da lista). */
@@ -39,7 +55,14 @@ export interface TrainingCertificateLayout {
   logoPosition: LogoPosition;
   /** Largura máxima do logo (mm) */
   logoWidth: number;
-  showCompanyData: boolean;
+  /** Logo na frente / no verso */
+  logoOnFront: boolean;
+  logoOnBack: boolean;
+  /** Dados da empresa na frente / no verso */
+  companyDataOnFront: boolean;
+  companyDataOnBack: boolean;
+  /** Quais dados da empresa aparecem */
+  companyFields: CompanyField[];
   // ------------------------------------------------------- aparência
   primaryColor: string;
   accentColor: string;
@@ -87,7 +110,11 @@ export const DEFAULT_LAYOUT: TrainingCertificateLayout = {
   customLogo: '',
   logoPosition: 'esquerda',
   logoWidth: 34,
-  showCompanyData: true,
+  logoOnFront: true,
+  logoOnBack: true,
+  companyDataOnFront: true,
+  companyDataOnBack: true,
+  companyFields: ['razaoSocial', 'cnpj', 'telefone', 'email', 'site'],
   primaryColor: '#0a2540',
   accentColor: '#ea580c',
   frameStyle: 'classica',
@@ -160,7 +187,14 @@ export function normalizeLayout(raw?: Partial<TrainingCertificateLayout> | Recor
     customLogo: typeof r.customLogo === 'string' && r.customLogo.startsWith('data:image/') ? r.customLogo : '',
     logoPosition: ['esquerda', 'centro', 'direita'].includes(r.logoPosition) ? r.logoPosition : d.logoPosition,
     logoWidth: Number.isFinite(width) ? Math.min(70, Math.max(15, width)) : d.logoWidth,
-    showCompanyData: bool(r.showCompanyData, d.showCompanyData),
+    logoOnFront: bool(r.logoOnFront, d.logoOnFront),
+    logoOnBack: bool(r.logoOnBack, d.logoOnBack),
+    // layout antigo: showCompanyData valia para frente e verso
+    companyDataOnFront: bool(r.companyDataOnFront, bool(r.showCompanyData, d.companyDataOnFront)),
+    companyDataOnBack: bool(r.companyDataOnBack, bool(r.showCompanyData, d.companyDataOnBack)),
+    companyFields: Array.isArray(r.companyFields)
+      ? COMPANY_FIELDS.map(f => f.id).filter(id => (r.companyFields as unknown[]).includes(id))
+      : [...d.companyFields],
     primaryColor: HEX.test(r.primaryColor) ? r.primaryColor : d.primaryColor,
     accentColor: HEX.test(r.accentColor) ? r.accentColor : d.accentColor,
     // layout antigo: showFrame=false equivale a "sem moldura"
@@ -234,4 +268,38 @@ export function getTrainingLayout(): TrainingCertificateLayout {
 export function saveTrainingLayout(layout: TrainingCertificateLayout): void {
   const info = DielectricStorageService.getCompanyInfo();
   DielectricStorageService.saveCompanyInfo({ ...info, trainingCertificateLayout: normalizeLayout(layout) as unknown as Record<string, unknown> });
+}
+
+function formatCnpjText(v: string): string {
+  const d = (v || '').replace(/\D/g, '');
+  return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : v;
+}
+
+/**
+ * Linhas do cabeçalho com os dados escolhidos: o nome em destaque (title),
+ * a identificação (CNPJ, CREA…) e os contatos (endereço, telefone…).
+ */
+export function companyHeaderLines(company: Partial<CompanyLabInfo>, fields: CompanyField[]): { title: string; identity: string[]; contact: string[] } {
+  const on = (f: CompanyField) => fields.includes(f);
+  const legal = (company.legalName || '').trim();
+  const trade = (company.name || '').trim();
+  let title = '';
+  const identity: string[] = [];
+  if (on('razaoSocial') && (legal || trade)) title = legal || trade;
+  if (on('nomeFantasia') && trade && trade !== title) {
+    if (title) identity.push(trade); else title = trade;
+  }
+  identity.push([
+    on('cnpj') && company.cnpj ? `CNPJ ${formatCnpjText(company.cnpj)}` : '',
+    on('crea') && company.creaCompanyRegister ? `CREA ${company.creaCompanyRegister.replace(/^CREA[\s:-]*/i, '')}` : ''
+  ].filter(Boolean).join(' · '));
+  const street = [company.address, company.number].filter(Boolean).join(', ');
+  const place = [company.neighborhood, [company.city, company.state].filter(Boolean).join('/'), company.cep ? `CEP ${company.cep}` : '']
+    .filter(Boolean).join(' – ');
+  const contact = [
+    on('endereco') ? [street, place].filter(Boolean).join(' – ') : '',
+    [on('telefone') ? company.phone : '', on('email') ? company.email : ''].filter(Boolean).join(' · '),
+    [on('site') ? company.website : '', on('instagram') ? company.instagram : ''].filter(Boolean).join(' · ')
+  ];
+  return { title, identity: identity.filter(Boolean), contact: contact.filter(Boolean) as string[] };
 }

@@ -13,7 +13,7 @@ import { DielectricStorageService } from '../../services/syncEngine';
 import type { CompanyLabInfo } from '../../types';
 import { formatCpf, formatDateBr, formatHours, totalTopicHours, onlyDigits } from './rules';
 import type { TrainingCertificate, TrainingClass, TrainingInstructor } from './types';
-import { fillTemplate, getTrainingLayout, hexToRgb, type TrainingCertificateLayout } from './layout';
+import { companyHeaderLines, fillTemplate, getTrainingLayout, hexToRgb, type TrainingCertificateLayout } from './layout';
 
 type Rgb = [number, number, number];
 const GRAY: Rgb = [90, 100, 115];
@@ -143,11 +143,13 @@ function drawFrame(doc: jsPDF, w: number, h: number, a: Assets) {
   }
 }
 
-/** Logo (proporção mantida) e dados da empresa, conforme a posição escolhida no layout. */
-function drawHeader(doc: jsPDF, company: CompanyLabInfo, assets: Assets, w: number) {
+/** Logo (proporção mantida) e dados da empresa escolhidos, conforme o lado da página e a posição do logo. */
+function drawHeader(doc: jsPDF, company: CompanyLabInfo, assets: Assets, w: number, side: 'frente' | 'verso' = 'frente') {
   const { layout } = assets;
   const pos = layout.logoPosition;
-  if (assets.logo) {
+  const showLogo = side === 'frente' ? layout.logoOnFront : layout.logoOnBack;
+  const showData = side === 'frente' ? layout.companyDataOnFront : layout.companyDataOnBack;
+  if (assets.logo && showLogo) {
     try {
       const props = doc.getImageProperties(assets.logo);
       const ratio = props.height / props.width || 0.65;
@@ -158,28 +160,28 @@ function drawHeader(doc: jsPDF, company: CompanyLabInfo, assets: Assets, w: numb
       doc.addImage(assets.logo, imageFormat(assets.logo), x, 14, lw, lh, undefined, 'FAST');
     } catch { /* logo inválido */ }
   }
-  if (!layout.showCompanyData) return;
-  const name = company.legalName || company.name || '';
-  const cnpj = company.cnpj ? `CNPJ ${formatCnpj(company.cnpj)}` : '';
-  const contact = [[company.phone, company.email].filter(Boolean).join(' · '), company.website || ''].filter(Boolean);
-  const block = (lines: string[], x: number, align: 'left' | 'right', bold: boolean) => {
+  if (!showData) return;
+  const { title, identity, contact } = companyHeaderLines(company, layout.companyFields);
+  const maxWidth = pos === 'centro' ? w / 2 - 50 : w - 80;
+  // até 6 linhas sem invadir o título do certificado
+  const block = (lines: string[], x: number, align: 'left' | 'right', withTitle: boolean) => {
+    let y = 20;
+    const step = lines.length > 4 ? 3.4 : 4;
     lines.forEach((l, i) => {
-      const first = bold && i === 0;
-      doc.setFont('helvetica', first ? 'bold' : 'normal');
-      doc.setFontSize(first ? 11 : 8);
-      if (first) doc.setTextColor(...assets.navy); else doc.setTextColor(...GRAY);
-      doc.text(l, x, first ? 20 : 21 + i * 4, { align, maxWidth: pos === 'centro' ? w / 2 - 50 : w - 80 });
+      const bold = withTitle && i === 0;
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setFontSize(bold ? 11 : lines.length > 4 ? 7.5 : 8);
+      if (bold) doc.setTextColor(...assets.navy); else doc.setTextColor(...GRAY);
+      if (i > 0) y += i === 1 && withTitle ? step + 1 : step;
+      doc.text(l, x, y, { align, maxWidth });
     });
   };
   if (pos === 'centro') {
     // logo no meio: empresa à esquerda e contatos à direita
-    block([name, cnpj].filter(Boolean), 16, 'left', true);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(...GRAY);
-    contact.forEach((l, i) => doc.text(l, w - 16, 20 + i * 4, { align: 'right', maxWidth: w / 2 - 50 }));
+    block([title, ...identity].filter(Boolean), 16, 'left', !!title);
+    block(contact, w - 16, 'right', false);
   } else {
-    block([name, cnpj, ...contact].filter(Boolean), pos === 'direita' ? 16 : w - 16, pos === 'direita' ? 'left' : 'right', true);
+    block([title, ...identity, ...contact].filter(Boolean), pos === 'direita' ? 16 : w - 16, pos === 'direita' ? 'left' : 'right', !!title);
   }
 }
 
@@ -435,7 +437,7 @@ async function drawCertificate(
   doc.addPage();
   drawBackground(doc, w, h, L.backBackground);
   drawFrame(doc, w, h, assets);
-  drawHeader(doc, company, assets, w);
+  drawHeader(doc, company, assets, w, 'verso');
   doc.setTextColor(...NAVY);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
