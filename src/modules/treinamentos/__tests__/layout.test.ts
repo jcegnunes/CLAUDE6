@@ -74,3 +74,14 @@ describe('Treinamentos — dados da empresa no cabeçalho', () => {
     expect(normalizeLayout({ companyFields: ['site', 'xyz', 'cnpj'] }).companyFields).toEqual(['cnpj', 'site']);
   });
 });
+
+describe('Treinamentos — segundo logo', () => {
+  it('padrão sem segundo logo; só imagem válida; tamanho limitado', () => {
+    expect(DEFAULT_LAYOUT.logo2Image).toBe('');
+    const n = normalizeLayout({ logo2Image: 'http://x/logo.png', logo2Width: 5, logo2Position: 'x' });
+    expect(n.logo2Image).toBe('');
+    expect(n.logo2Width).toBe(15);
+    expect(n.logo2Position).toBe('direita');
+    expect(normalizeLayout({ logo2Image: 'data:image/png;base64,AAAA' }).logo2Image).toBe('data:image/png;base64,AAAA');
+  });
+});

@@ -48,11 +48,11 @@ function formatCnpj(v: string): string {
   return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : v;
 }
 
-interface Assets { logo: string; layout: TrainingCertificateLayout; navy: Rgb; orange: Rgb; }
+interface Assets { logo: string; logo2: string; layout: TrainingCertificateLayout; navy: Rgb; orange: Rgb; }
 
 async function loadAssets(company: CompanyLabInfo, layout: TrainingCertificateLayout = getTrainingLayout()): Promise<Assets> {
   const src = layout.logoSource === 'nenhum' ? '' : layout.logoSource === 'personalizado' ? (layout.customLogo || company.logoUrl) : company.logoUrl;
-  return { logo: await safeImage(src), layout, navy: hexToRgb(layout.primaryColor), orange: hexToRgb(layout.accentColor) };
+  return { logo: await safeImage(src), logo2: await safeImage(layout.logo2Image), layout, navy: hexToRgb(layout.primaryColor), orange: hexToRgb(layout.accentColor) };
 }
 
 /** Modelo importado ocupando a página inteira. */
@@ -143,28 +143,53 @@ function drawFrame(doc: jsPDF, w: number, h: number, a: Assets) {
   }
 }
 
-/** Logo (proporção mantida) e dados da empresa escolhidos, conforme o lado da página e a posição do logo. */
+type LogoPos = TrainingCertificateLayout['logoPosition'];
+
+/**
+ * Desenha os logos (proporção mantida, até 24 mm de altura). Logos na mesma
+ * posição ficam lado a lado.
+ */
+function drawLogos(doc: jsPDF, logos: Array<{ image: string; pos: LogoPos; width: number }>, w: number) {
+  (['esquerda', 'centro', 'direita'] as LogoPos[]).forEach(pos => {
+    const sized = logos.filter(l => l.pos === pos).map(l => {
+      try {
+        const props = doc.getImageProperties(l.image);
+        const ratio = props.height / props.width || 0.65;
+        let lw = l.width;
+        let lh = lw * ratio;
+        if (lh > 24) { lh = 24; lw = lh / ratio; }
+        return { ...l, lw, lh };
+      } catch { return null; }
+    }).filter((l): l is NonNullable<typeof l> => !!l);
+    if (!sized.length) return;
+    const gap = 5;
+    const total = sized.reduce((sum, l) => sum + l.lw, 0) + gap * (sized.length - 1);
+    let x = pos === 'esquerda' ? 16 : pos === 'direita' ? w - 16 - total : (w - total) / 2;
+    sized.forEach(l => {
+      try { doc.addImage(l.image, imageFormat(l.image), x, 14, l.lw, l.lh, undefined, 'FAST'); } catch { /* logo inválido */ }
+      x += l.lw + gap;
+    });
+  });
+}
+
+/** Logos e dados da empresa escolhidos, conforme o lado da página e as posições dos logos. */
 function drawHeader(doc: jsPDF, company: CompanyLabInfo, assets: Assets, w: number, side: 'frente' | 'verso' = 'frente') {
   const { layout } = assets;
-  const pos = layout.logoPosition;
-  const showLogo = side === 'frente' ? layout.logoOnFront : layout.logoOnBack;
-  const showData = side === 'frente' ? layout.companyDataOnFront : layout.companyDataOnBack;
-  if (assets.logo && showLogo) {
-    try {
-      const props = doc.getImageProperties(assets.logo);
-      const ratio = props.height / props.width || 0.65;
-      let lw = layout.logoWidth;
-      let lh = lw * ratio;
-      if (lh > 24) { lh = 24; lw = lh / ratio; }
-      const x = pos === 'centro' ? (w - lw) / 2 : pos === 'direita' ? w - 16 - lw : 16;
-      doc.addImage(assets.logo, imageFormat(assets.logo), x, 14, lw, lh, undefined, 'FAST');
-    } catch { /* logo inválido */ }
-  }
+  const front = side === 'frente';
+  const showData = front ? layout.companyDataOnFront : layout.companyDataOnBack;
+  const logos: Array<{ image: string; pos: LogoPos; width: number }> = [];
+  if (assets.logo && (front ? layout.logoOnFront : layout.logoOnBack)) logos.push({ image: assets.logo, pos: layout.logoPosition, width: layout.logoWidth });
+  if (assets.logo2 && (front ? layout.logo2OnFront : layout.logo2OnBack)) logos.push({ image: assets.logo2, pos: layout.logo2Position, width: layout.logo2Width });
+  drawLogos(doc, logos, w);
   if (!showData) return;
   const { title, identity, contact } = companyHeaderLines(company, layout.companyFields);
-  const maxWidth = pos === 'centro' ? w / 2 - 50 : w - 80;
+  const used = new Set(logos.map(l => l.pos));
+  // dados no lado sem logo: direita, senão esquerda; logo só no centro: divide nos dois lados
+  const placement = used.has('centro') && !used.has('esquerda') && !used.has('direita') ? 'dividido'
+    : !used.has('direita') ? 'direita' : !used.has('esquerda') ? 'esquerda' : 'centro';
+  const maxWidth = placement === 'dividido' ? w / 2 - 50 : placement === 'centro' ? w - 2 * (16 + Math.max(...logos.map(l => l.width))) - 10 : w - 80;
   // até 6 linhas sem invadir o título do certificado
-  const block = (lines: string[], x: number, align: 'left' | 'right', withTitle: boolean) => {
+  const block = (lines: string[], x: number, align: 'left' | 'right' | 'center', withTitle: boolean) => {
     let y = 20;
     const step = lines.length > 4 ? 3.4 : 4;
     lines.forEach((l, i) => {
@@ -176,12 +201,15 @@ function drawHeader(doc: jsPDF, company: CompanyLabInfo, assets: Assets, w: numb
       doc.text(l, x, y, { align, maxWidth });
     });
   };
-  if (pos === 'centro') {
+  if (placement === 'dividido') {
     // logo no meio: empresa à esquerda e contatos à direita
     block([title, ...identity].filter(Boolean), 16, 'left', !!title);
     block(contact, w - 16, 'right', false);
+  } else if (placement === 'centro') {
+    // logos nos dois lados: dados no meio, entre eles
+    block([title, ...identity, ...contact].filter(Boolean), w / 2, 'center', !!title);
   } else {
-    block([title, ...identity, ...contact].filter(Boolean), pos === 'direita' ? 16 : w - 16, pos === 'direita' ? 'left' : 'right', !!title);
+    block([title, ...identity, ...contact].filter(Boolean), placement === 'esquerda' ? 16 : w - 16, placement === 'esquerda' ? 'left' : 'right', !!title);
   }
 }
 

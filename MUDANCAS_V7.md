@@ -139,6 +139,10 @@ e mostra o aviso para executar o script.
   e escolha de **quais dados** aparecem (razão social, nome fantasia, CNPJ, CREA, endereço,
   telefone, e-mail, site, Instagram). O padrão mostra o mesmo de antes (razão social, CNPJ,
   telefone, e-mail e site) nos dois lados.
+- **Segundo logo** (Logo e cabeçalho → Segundo logo): imagem própria (parceiro, cliente,
+  acreditação…), posição, tamanho e frente/verso independentes do logo principal. Logos na
+  mesma posição ficam lado a lado; com logos nos dois lados, os dados da empresa vão para o
+  meio do cabeçalho.
 - **Certificados**: emissão individual (sem turma), busca por nome/CPF/número, PDF,
   link de validação, cancelamento com motivo (o validador mostra CANCELADO).
 - **Painel**: emitidos no ano, turmas abertas, vencendo em 60 dias e vencidos sem

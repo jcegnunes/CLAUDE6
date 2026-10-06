@@ -201,6 +201,11 @@ export const LayoutPanel: React.FC = () => {
     }
   };
 
+  const handleLogo2 = async (file?: File) => {
+    if (!file) return;
+    try { set({ logo2Image: await readLogo(file) }); } catch (err) { alertError(err, 'Logo não carregado'); }
+  };
+
   const handleSave = () => {
     try {
       const clean = normalizeLayout(L);
@@ -324,6 +329,40 @@ export const LayoutPanel: React.FC = () => {
               </div>
             )}
             {L.logoSource === 'personalizado' && !L.customLogo && <p className="text-[11px] text-amber-700">Sem imagem própria: usa o logo da empresa.</p>}
+            <div className="border-t border-slate-100 pt-3 space-y-2">
+              <span className="block font-bold text-slate-700 text-xs">Segundo logo <span className="font-normal text-slate-400">(opcional: parceiro, cliente, acreditação…)</span></span>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="w-28 h-16 border border-slate-200 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden">
+                  {L.logo2Image ? <img src={L.logo2Image} alt="Segundo logo" className="max-w-full max-h-full object-contain" /> : <span className="text-[10px] text-slate-400">sem imagem</span>}
+                </div>
+                {canEdit && (
+                  <div className="flex flex-col gap-1">
+                    <label className={`${btnSecondary} cursor-pointer`}>
+                      <ImageIcon className="w-3.5 h-3.5" /> {L.logo2Image ? 'Trocar imagem' : 'Escolher imagem'}
+                      <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => { handleLogo2(e.target.files?.[0]); e.target.value = ''; }} />
+                    </label>
+                    {L.logo2Image && <button type="button" className="text-[11px] text-red-600 hover:underline text-left" onClick={() => set({ logo2Image: '' })}>Remover</button>}
+                  </div>
+                )}
+                {L.logo2Image && (
+                  <>
+                    <Field label="Posição" className="w-32">
+                      <select className={inputCls} disabled={disabled} value={L.logo2Position} onChange={e => set({ logo2Position: e.target.value as TrainingCertificateLayout['logo2Position'] })}>
+                        <option value="esquerda">Esquerda</option>
+                        <option value="centro">Centro</option>
+                        <option value="direita">Direita</option>
+                      </select>
+                    </Field>
+                    <Field label={`Tamanho: ${Math.round(L.logo2Width)} mm`} className="flex-1 min-w-[140px]">
+                      <input type="range" min={15} max={70} step={1} disabled={disabled} value={L.logo2Width} onChange={e => set({ logo2Width: Number(e.target.value) })} className="w-full accent-blue-600" />
+                    </Field>
+                  </>
+                )}
+              </div>
+              {L.logo2Image && L.logo2Position === L.logoPosition && L.logoSource !== 'nenhum' && (
+                <p className="text-[11px] text-slate-500">Os dois logos estão na mesma posição: ficam lado a lado.</p>
+              )}
+            </div>
             <div>
               <span className="block font-bold text-slate-700 text-xs mb-1">Onde aparece</span>
               <table className="text-xs text-slate-700">
@@ -331,13 +370,13 @@ export const LayoutPanel: React.FC = () => {
                   <tr className="text-[10px] uppercase text-slate-400"><th className="text-left font-bold pr-6 pb-1"></th><th className="px-3 pb-1">Frente</th><th className="px-3 pb-1">Verso</th></tr>
                 </thead>
                 <tbody>
-                  {([['Logo', 'logoOnFront', 'logoOnBack'], ['Dados da empresa', 'companyDataOnFront', 'companyDataOnBack']] as const).map(([label, front, back]) => (
+                  {([['Logo', 'logoOnFront', 'logoOnBack'], ['Segundo logo', 'logo2OnFront', 'logo2OnBack'], ['Dados da empresa', 'companyDataOnFront', 'companyDataOnBack']] as const).map(([label, front, back]) => (
                     <tr key={label}>
                       <td className="pr-6 py-1 font-semibold">{label}</td>
                       {[front, back].map(k => (
                         <td key={k} className="px-3 py-1 text-center">
                           <input type="checkbox" className="w-4 h-4 accent-blue-600" aria-label={`${label} – ${k.endsWith('Front') ? 'frente' : 'verso'}`}
-                            disabled={disabled || (label === 'Logo' && L.logoSource === 'nenhum')} checked={L[k]} onChange={e => set({ [k]: e.target.checked } as Partial<TrainingCertificateLayout>)} />
+                            disabled={disabled || (label === 'Logo' && L.logoSource === 'nenhum') || (label === 'Segundo logo' && !L.logo2Image)} checked={L[k]} onChange={e => set({ [k]: e.target.checked } as Partial<TrainingCertificateLayout>)} />
                         </td>
                       ))}
                     </tr>

@@ -58,6 +58,12 @@ export interface TrainingCertificateLayout {
   /** Logo na frente / no verso */
   logoOnFront: boolean;
   logoOnBack: boolean;
+  /** Segundo logo, independente (ex.: parceiro, cliente, acreditação) */
+  logo2Image: string;
+  logo2Position: LogoPosition;
+  logo2Width: number;
+  logo2OnFront: boolean;
+  logo2OnBack: boolean;
   /** Dados da empresa na frente / no verso */
   companyDataOnFront: boolean;
   companyDataOnBack: boolean;
@@ -112,6 +118,11 @@ export const DEFAULT_LAYOUT: TrainingCertificateLayout = {
   logoWidth: 34,
   logoOnFront: true,
   logoOnBack: true,
+  logo2Image: '',
+  logo2Position: 'direita',
+  logo2Width: 34,
+  logo2OnFront: true,
+  logo2OnBack: false,
   companyDataOnFront: true,
   companyDataOnBack: true,
   companyFields: ['razaoSocial', 'cnpj', 'telefone', 'email', 'site'],
@@ -189,6 +200,11 @@ export function normalizeLayout(raw?: Partial<TrainingCertificateLayout> | Recor
     logoWidth: Number.isFinite(width) ? Math.min(70, Math.max(15, width)) : d.logoWidth,
     logoOnFront: bool(r.logoOnFront, d.logoOnFront),
     logoOnBack: bool(r.logoOnBack, d.logoOnBack),
+    logo2Image: typeof r.logo2Image === 'string' && r.logo2Image.startsWith('data:image/') ? r.logo2Image : '',
+    logo2Position: ['esquerda', 'centro', 'direita'].includes(r.logo2Position) ? r.logo2Position : d.logo2Position,
+    logo2Width: Number.isFinite(Number(r.logo2Width)) && r.logo2Width !== null && r.logo2Width !== '' ? Math.min(70, Math.max(15, Number(r.logo2Width))) : d.logo2Width,
+    logo2OnFront: bool(r.logo2OnFront, d.logo2OnFront),
+    logo2OnBack: bool(r.logo2OnBack, d.logo2OnBack),
     // layout antigo: showCompanyData valia para frente e verso
     companyDataOnFront: bool(r.companyDataOnFront, bool(r.showCompanyData, d.companyDataOnFront)),
     companyDataOnBack: bool(r.companyDataOnBack, bool(r.showCompanyData, d.companyDataOnBack)),
