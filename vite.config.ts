@@ -53,6 +53,8 @@ export default defineConfig(() => {
           globPatterns: ['**/*.{js,css,html,png,svg,ico,woff,woff2,webmanifest}'],
           maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
           navigateFallback: '/index.html',
+          // validador: sempre pela rede, para receber os cabeçalhos que liberam o Wix
+          navigateFallbackDenylist: [/^\/validar/i, /^\/validador/i],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,

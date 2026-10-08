@@ -14,7 +14,7 @@ import { LoginView } from './views/LoginView';
 import { CompanySetupView } from './views/CompanySetupView';
 import { EMPTY_USER } from './services/syncEngine';
 import { lazyView } from './utils/lazyView';
-import { isPortalOnlyHost } from './config/validationPortalConfig';
+import { isPortalOnlyHost, isPortalOnlyPath, validationCodeFromLocation } from './config/validationPortalConfig';
 import { ModalErrorBoundary } from './components/ModalErrorBoundary';
 import { startPhotoStorage } from './services/photoExternalizer';
 import { PLATFORM_MODULES, isModuleEnabled } from './modules/registry';
@@ -59,10 +59,12 @@ export default function App() {
 
   // Check if current URL is a public validation URL like /validar/VAL-JVM-2026-A8B1C4
   const currentPath = window.location.pathname;
-  // validador.jvmlab.com.br: qualquer endereço abre só a consulta de certificados
-  const isPortalHost = isPortalOnlyHost(window.location.hostname);
+  // Só a consulta de certificados (sem login): /validador, o antigo validador.jvmlab.com.br
+  // e qualquer tela aberta dentro de outro site (quadro do Wix)
+  const isFramed = (() => { try { return window.self !== window.top; } catch { return true; } })();
+  const isPortalHost = isPortalOnlyHost(window.location.hostname) || isPortalOnlyPath(currentPath) || isFramed;
   const isDirectValidation = isPortalHost || currentPath.startsWith('/validar');
-  const pathValidationCode = currentPath.startsWith('/validar/') ? decodeURIComponent(currentPath.split('/validar/')[1]?.split('/')[0] || '') : '';
+  const pathValidationCode = isDirectValidation ? validationCodeFromLocation(currentPath, window.location.search) : '';
 
   // Auth & Multi-Company Login State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => AuthService.isAuthenticated());

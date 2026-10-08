@@ -36,33 +36,30 @@
 |---|---|
 | Sistema (login, ensaios, laudos, cadastros) | **https://jvmlab.com.br** |
 | Validação no site da JVM (QR Code) | **https://www.jvmengenharia.com.br/validar?codigo=CÓDIGO** |
-| Validador (exibido dentro da página do Wix) | **https://validador.jvmlab.com.br** |
+| Validador (exibido dentro da página do Wix) | **https://jvmlab.com.br/validador** |
 
 - Os QR Codes de certificados, laudos e etiquetas apontam para a página **/validar** do site
-  da JVM no Wix, que mostra o validador (`validador.jvmlab.com.br`) dentro dela.
+  da JVM no Wix, que mostra o validador (`jvmlab.com.br/validador`) dentro dela.
 - O leitor de QR Code do app entende os dois formatos (`?codigo=` e `/validar/CÓDIGO`).
-- No `validador`, qualquer endereço abre **somente** a consulta de certificados: a tela de
-  login do sistema não aparece ali.
+- Em `/validador` (e sempre que o sistema estiver dentro de outro site) abre **somente** a
+  consulta de certificados: a tela de login nunca aparece ali.
 - Endereços antigos salvos (Hostinger ou `jvmlab.com.br`) são convertidos automaticamente.
 - O endereço pode ser trocado em **Configurações & Backup → Portal Público de Validação**
   (vale para os documentos emitidos depois da troca).
 
-1. **Hostinger → Domínios:** aponte `jvmlab.com.br` (e `www`) para a hospedagem do site.
-2. **Hostinger → Subdomínios:** crie `validador.jvmlab.com.br` usando a **mesma pasta** do
-   site (ou envie para ele os mesmos arquivos do build, com o `.htaccess`).
-3. Ative o **SSL** nos dois endereços (HTTPS é obrigatório para instalar o app e usar a câmera).
-4. **Supabase → Authentication → URL Configuration:** *Site URL* = `https://jvmlab.com.br`.
-5. O endereço antigo da Hostinger (`mediumvioletred-bison-595566.hostingersite.com`) será
-   desativado: documentos já impressos com o QR Code antigo são validados digitando o código
-   em `https://validador.jvmlab.com.br`. Reemita etiquetas ainda em uso, se preferir.
-6. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.4.0";
-   `https://validador.jvmlab.com.br` mostra só o "Portal de Validação de Autenticidade".
+1. **Hostinger:** o site jvmlab.com.br é publicado pelo GitHub (aplicação **Vite**, branch
+   `main`, `npm run build`, pasta `dist`). **Não crie subdomínio** com pasta dentro do
+   `public_html`: o deploy substitui essa pasta inteira e falha em "Syncing public_html".
+2. Ative o **SSL** (HTTPS é obrigatório para instalar o app e usar a câmera).
+3. **Supabase → Authentication → URL Configuration:** *Site URL* = `https://jvmlab.com.br`.
+4. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.4.0";
+   `https://jvmlab.com.br/validador` mostra só o "Portal de Validação de Autenticidade".
 
 ### Página do validador no site Wix (www.jvmengenharia.com.br)
 
 1. No editor do Wix: **Páginas → Adicionar página** em branco, com o endereço (slug) **validar**.
 2. **Adicionar → Incorporar código → Incorporar um site** (elemento HTML). Em
-   "Configurações", escolha **Endereço do site** e informe `https://validador.jvmlab.com.br`.
+   "Configurações", escolha **Endereço do site** e informe `https://jvmlab.com.br/validador`.
    Deixe-o com a largura total da página e cerca de 1000 px de altura.
 3. Ative o **Modo Dev (Velo)**, troque o ID do elemento para `validador` e cole no código da página:
 
@@ -71,16 +68,19 @@ import wixLocationFrontend from 'wix-location-frontend';
 
 $w.onReady(function () {
   const codigo = (wixLocationFrontend.query.codigo || '').trim();
-  const base = 'https://validador.jvmlab.com.br';
-  $w('#validador').src = codigo ? `${base}/validar/${encodeURIComponent(codigo)}` : base;
+  const base = 'https://jvmlab.com.br/validador';
+  $w('#validador').src = codigo ? `${base}/${encodeURIComponent(codigo)}` : base;
 });
 ```
 
    (Em sites antigos, use `import wixLocation from 'wix-location';` e `wixLocation.query`.)
 4. Publique o site e teste: `https://www.jvmengenharia.com.br/validar?codigo=VAL-JVM-...`.
 
-- O `.htaccess` permite que **só o validador** seja exibido dentro do site da JVM (e dos
-  domínios do Wix); o sistema continua proibido de aparecer dentro de outros sites.
+- O `.htaccess` permite que **só as páginas `/validar` e `/validador`** sejam exibidas dentro
+  do site da JVM (e dos domínios do Wix); o login e o resto do sistema continuam proibidos de
+  aparecer dentro de outros sites. Mesmo dentro do quadro, o sistema só mostra a consulta.
+- O app instalado (service worker) não guarda essas páginas: elas vêm sempre do servidor,
+  com os cabeçalhos que liberam o Wix.
 - Dentro do Wix, o botão **"Abrir em tela cheia"** abre o validador direto, caso o navegador
   bloqueie algo dentro do quadro.
 - Se a hospedagem trocar do Apache (Hostinger) para Cloudflare/Netlify, o `_headers` não

@@ -1,13 +1,14 @@
 /**
  * Endereços públicos da plataforma.
  * - Sistema (login, ensaios, laudos): https://jvmlab.com.br
- * - Validador (página que consulta o certificado): https://validador.jvmlab.com.br
+ * - Validador (página que consulta o certificado): https://jvmlab.com.br/validador
+ *   (só ele pode aparecer dentro do site da JVM no Wix; ver public/.htaccess)
  * - Endereço impresso no QR Code: página "validar" do site da JVM no Wix, que
  *   exibe o validador dentro do site (https://www.jvmengenharia.com.br/validar).
  * Não são banco de dados: o validador consulta o Supabase.
  */
 export const APP_BASE_URL = 'https://jvmlab.com.br';
-export const EMBEDDED_PORTAL_URL = 'https://validador.jvmlab.com.br';
+export const EMBEDDED_PORTAL_URL = 'https://jvmlab.com.br/validador';
 
 /** Marcador do código no endereço do QR Code. */
 export const CODE_PLACEHOLDER = '{codigo}';
@@ -28,6 +29,18 @@ export const PORTAL_ONLY_HOSTS = ['validador.jvmlab.com.br', 'validador.localhos
 
 export function isPortalOnlyHost(hostname: string): boolean {
   return PORTAL_ONLY_HOSTS.includes((hostname || '').toLowerCase());
+}
+
+/** /validador (página exibida no Wix): só a consulta de certificados, sem login. */
+export function isPortalOnlyPath(pathname: string): boolean {
+  return /^\/validador(\/|$)/i.test(pathname || '');
+}
+
+/** Código no endereço: /validar/CODIGO, /validador/CODIGO ou ?codigo=CODIGO. */
+export function validationCodeFromLocation(pathname: string, search: string): string {
+  const path = (pathname || '').match(/^\/valida(?:r|dor)\/([^/?#]+)/i);
+  if (path) return decodeURIComponent(path[1]);
+  return (new URLSearchParams(search || '').get('codigo') || '').trim();
 }
 
 /**
@@ -57,7 +70,7 @@ export function buildValidationUrl(base: string | null | undefined, code: string
 export function extractValidationCode(text: string): string | null {
   const clean = (text || '').trim();
   if (!clean) return null;
-  const path = clean.match(/\/validar\/([^/?#\s]+)/i);
+  const path = clean.match(/\/valida(?:r|dor)\/([^/?#\s]+)/i);
   if (path) return decodeURIComponent(path[1]);
   const query = clean.match(/[?&]codigo=([^&#\s]+)/i);
   if (query) return decodeURIComponent(query[1]);

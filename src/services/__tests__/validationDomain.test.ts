@@ -12,7 +12,7 @@ import {
 describe('Endereços da plataforma', () => {
   it('sistema, validador e QR Code no site da JVM (Wix)', () => {
     expect(APP_BASE_URL).toBe('https://jvmlab.com.br');
-    expect(EMBEDDED_PORTAL_URL).toBe('https://validador.jvmlab.com.br');
+    expect(EMBEDDED_PORTAL_URL).toBe('https://jvmlab.com.br/validador');
     expect(DEFAULT_VALIDATION_BASE_URL).toBe('https://www.jvmengenharia.com.br/validar?codigo={codigo}');
   });
 
@@ -43,5 +43,20 @@ describe('Endereços da plataforma', () => {
     expect(isPortalOnlyHost('validador.jvmlab.com.br')).toBe(true);
     expect(isPortalOnlyHost('jvmlab.com.br')).toBe(false);
     expect(isPortalOnlyHost('www.jvmengenharia.com.br')).toBe(false);
+  });
+});
+
+describe('Validador em jvmlab.com.br/validador', () => {
+  it('só consulta em /validador; código pelo caminho ou ?codigo=', async () => {
+    const { isPortalOnlyPath, validationCodeFromLocation, extractValidationCode } = await import('../../config/validationPortalConfig');
+    expect(isPortalOnlyPath('/validador')).toBe(true);
+    expect(isPortalOnlyPath('/validador/VAL-JVM-1')).toBe(true);
+    expect(isPortalOnlyPath('/validar/VAL-JVM-1')).toBe(false);
+    expect(isPortalOnlyPath('/')).toBe(false);
+    expect(validationCodeFromLocation('/validador/VAL-TRE-2610-ABCD2345', '')).toBe('VAL-TRE-2610-ABCD2345');
+    expect(validationCodeFromLocation('/validar/VAL-JVM-X', '')).toBe('VAL-JVM-X');
+    expect(validationCodeFromLocation('/validador', '?codigo=VAL-JVM-Y')).toBe('VAL-JVM-Y');
+    expect(validationCodeFromLocation('/validador', '')).toBe('');
+    expect(extractValidationCode('https://jvmlab.com.br/validador/VAL-JVM-Z')).toBe('VAL-JVM-Z');
   });
 });
