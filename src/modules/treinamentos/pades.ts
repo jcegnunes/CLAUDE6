@@ -32,6 +32,55 @@ const octets = (bytes: string) => A.create(C.UNIVERSAL, T.OCTETSTRING, false, by
 const int = (bytes: string) => A.create(C.UNIVERSAL, T.INTEGER, false, bytes);
 const algSha256 = () => seq([oid(OID.sha256)]);
 const der = (n: forge.asn1.Asn1) => A.toDer(n).getBytes();
+
+/** Algoritmos de resumo aceitos na verificação (OID do resumo → forge). */
+const DIGESTS: Record<string, { name: 'sha1' | 'sha256' | 'sha384' | 'sha512' }> = {
+  '1.3.14.3.2.26': { name: 'sha1' },
+  '2.16.840.1.101.3.4.2.1': { name: 'sha256' },
+  '2.16.840.1.101.3.4.2.2': { name: 'sha384' },
+  '2.16.840.1.101.3.4.2.3': { name: 'sha512' }
+};
+/** Assinatura RSA PKCS#1 v1.5 do certificado → OID do resumo */
+const RSA_SIG_DIGEST: Record<string, string> = {
+  '1.2.840.113549.1.1.5': '1.3.14.3.2.26',
+  '1.2.840.113549.1.1.11': '2.16.840.1.101.3.4.2.1',
+  '1.2.840.113549.1.1.12': '2.16.840.1.101.3.4.2.2',
+  '1.2.840.113549.1.1.13': '2.16.840.1.101.3.4.2.3'
+};
+
+/**
+ * Verificação RSA PKCS#1 v1.5 estrita ("codifica e compara", RFC 8017 §8.2.2):
+ * monta o bloco esperado e compara byte a byte. Não usa o verify() do
+ * node-forge, que aceita DigestInfo com elementos extras (GHSA-86w9-cpqp-85rv).
+ */
+export function verifyRsaPkcs1Strict(publicKey: forge.pki.rsa.PublicKey, digestOid: string, digest: string, signature: string): boolean {
+  const n = publicKey.n;
+  const k = Math.ceil(n.bitLength() / 8);
+  if (!DIGESTS[digestOid] || signature.length !== k) return false;
+  const s = new forge.jsbn.BigInteger(forge.util.bytesToHex(signature), 16);
+  if (s.compareTo(n) >= 0) return false;
+  const em = s.modPow(publicKey.e, n).toString(16).padStart(k * 2, '0');
+  const algWithNull = seq([oid(digestOid), A.create(C.UNIVERSAL, T.NULL, false, '')]);
+  const algWithoutNull = seq([oid(digestOid)]);
+  // aceita os dois formatos válidos do AlgorithmIdentifier (com e sem NULL)
+  return [algWithNull, algWithoutNull].some(alg => {
+    const t = der(seq([alg, A.create(C.UNIVERSAL, T.OCTETSTRING, false, digest)]));
+    if (k < t.length + 11) return false;
+    const expected = '0001' + 'ff'.repeat(k - t.length - 3) + '00' + forge.util.bytesToHex(t);
+    return expected === em;
+  });
+}
+
+/** O certificado "child" foi assinado pela chave de "issuer"? (verificação estrita) */
+export function issuedBy(issuer: forge.pki.Certificate, child: forge.pki.Certificate): boolean {
+  const digestOid = RSA_SIG_DIGEST[child.signatureOid || child.siginfo?.algorithmOid || ''];
+  if (!digestOid) throw new Error('algoritmo não suportado');
+  const tbsNode = (child as unknown as { tbsCertificate?: forge.asn1.Asn1 }).tbsCertificate
+    || (forge.pki as unknown as { getTBSCertificate: (c: forge.pki.Certificate) => forge.asn1.Asn1 }).getTBSCertificate(child);
+  const md = forge.md[DIGESTS[digestOid].name].create();
+  md.update(der(tbsNode));
+  return verifyRsaPkcs1Strict(issuer.publicKey as forge.pki.rsa.PublicKey, digestOid, md.digest().getBytes(), child.signature);
+}
 const sha256 = (bytes: string) => { const md = forge.md.sha256.create(); md.update(bytes); return md.digest().getBytes(); };
 const hexToBytes = (h: string) => forge.util.hexToBytes(h);
 const toBinary = (u8: Uint8Array) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000)); return s; };
@@ -197,7 +246,7 @@ function buildChain(leaf: forge.pki.Certificate, pool: forge.pki.Certificate[], 
     const anchor = anchors.find(a => sameDn(a.subject, current.issuer));
     if (anchor) {
       try {
-        if (!anchor.verify(current)) { problems.push(`assinatura de ${anchor.subject.getField('CN')?.value} não confere`); return { trusted: false, names, problems }; }
+        if (!issuedBy(anchor, current)) { problems.push(`assinatura de ${anchor.subject.getField('CN')?.value} não confere`); return { trusted: false, names, problems }; }
       } catch { problems.push('algoritmo da cadeia não suportado'); return { trusted: false, names, problems }; }
       names.push(String(anchor.subject.getField('CN')?.value));
       return { trusted: true, names, problems };
@@ -205,7 +254,7 @@ function buildChain(leaf: forge.pki.Certificate, pool: forge.pki.Certificate[], 
     const parent = pool.find(c => c !== current && sameDn(c.subject, current.issuer));
     if (!parent) { problems.push(`certificado da AC "${current.issuer.getField('CN')?.value}" não veio no arquivo assinado`); return { trusted: false, names, problems }; }
     try {
-      if (!parent.verify(current)) { problems.push(`assinatura de ${parent.subject.getField('CN')?.value} não confere`); return { trusted: false, names, problems }; }
+      if (!issuedBy(parent, current)) { problems.push(`assinatura de ${parent.subject.getField('CN')?.value} não confere`); return { trusted: false, names, problems }; }
     } catch { problems.push('algoritmo da cadeia não suportado'); return { trusted: false, names, problems }; }
     if (at < parent.validity.notBefore || at > parent.validity.notAfter) problems.push(`AC ${parent.subject.getField('CN')?.value} fora da validade na data da assinatura`);
     names.push(String(parent.subject.getField('CN')?.value));
@@ -281,7 +330,7 @@ export function verifyPdfSignatures(pdf: Uint8Array): PdfSignatureReport {
       const attrsDer = der(set(attrs));
       const mdA = forge.md.sha256.create();
       mdA.update(attrsDer);
-      try { check.cryptoValid = (signer.publicKey as forge.pki.rsa.PublicKey).verify(mdA.digest().getBytes(), signature); } catch { check.cryptoValid = false; }
+      try { check.cryptoValid = verifyRsaPkcs1Strict(signer.publicKey as forge.pki.rsa.PublicKey, OID.sha256, mdA.digest().getBytes(), signature); } catch { check.cryptoValid = false; }
       if (!check.cryptoValid) messages.push('a assinatura criptográfica não confere com o certificado');
 
       // signing-certificate-v2

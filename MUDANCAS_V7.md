@@ -74,6 +74,18 @@ $w.onReady(function () {
 - Se a hospedagem trocar do Apache (Hostinger) para Cloudflare/Netlify, o `_headers` não
   diferencia domínios: o validador precisará de um site separado com `frame-ancestors` liberado.
 
+## Vulnerabilidades das dependências (08/10/2026)
+
+- `brace-expansion` e `source-map-js`: atualizados (`npm audit fix`).
+- `vitest` 3 → 5 (corrige `tinypool` crítico e `@vitest/mocker`); só usado nos testes.
+- `xlsx` (SheetJS) 0.18.5 → **0.20.3**, instalado do site oficial `cdn.sheetjs.com` (a SheetJS
+  não publica mais versões no npm); corrige prototype pollution e ReDoS na leitura de planilhas.
+- `node-forge`: sem versão corrigida. A falha (GHSA-86w9-cpqp-85rv) está no `verify()` RSA dele;
+  o verificador de PDF assinado e a cadeia ICP-Brasil passaram a usar uma verificação
+  **estrita** própria (RFC 8017 "codifica e compara"), então a falha não nos afeta. O `npm audit`
+  continua listando o pacote (é usado para ler o .pfx e montar a assinatura).
+- `esbuild` (alerta retirado pelo próprio GitHub): nada a fazer.
+
 ## Módulo Treinamentos — certificados de treinamento
 
 Módulo independente (`src/modules/treinamentos` + `supabase/modules/treinamentos.sql`):
