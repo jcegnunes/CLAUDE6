@@ -98,6 +98,8 @@ export default defineConfig(() => {
           manualChunks: {
             vendor: ['react', 'react-dom', 'lucide-react', '@supabase/supabase-js'],
           },
+          // teste Hostinger: o worker do pdf.js sai como .js (sem arquivos .mjs na dist)
+          assetFileNames: (info) => (info.names?.[0] || info.name || '').endsWith('.mjs') ? 'assets/[name]-[hash].js' : 'assets/[name]-[hash][extname]',
         },
       },
     },

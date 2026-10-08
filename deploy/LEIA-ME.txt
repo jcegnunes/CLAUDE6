@@ -1,0 +1,9 @@
+Branch hostinger-teste (diagnóstico do deploy na Hostinger)
+
+O deploy pelo GitHub falhava em "Syncing public_html". Nesta branch a pasta dist
+sai sem os três arquivos fora do padrão, para descobrir qual travava a cópia:
+- .htaccess  -> movido para deploy/htaccess-apache.txt (regras de segurança/CSP e o
+               endereço validador.; recolocar quando o deploy funcionar)
+- _headers   -> movido para deploy/headers-netlify.txt (só serve em Netlify/Cloudflare)
+- pdf.worker .mjs -> agora sai como .js (vite.config.ts, assetFileNames)
+A branch main não foi alterada.
