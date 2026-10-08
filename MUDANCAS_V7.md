@@ -1,5 +1,17 @@
 # JVM Dielectric Lab — Mudanças da versão 7.0 (segurança do banco)
 
+## Versão 7.4.0 (08/10/2026) — resumo
+
+- **Treinamentos:** aba **Modelo do certificado** (logo e segundo logo, dados da empresa na
+  frente/verso, textos com campos, assinaturas, cores, 6 modelos de moldura, importação de
+  modelo em PDF/JPG/PNG, pré-visualização); excluir turma ou curso cancela os certificados;
+  turma sem Função e Nota; validador sem botão de baixar o PDF.
+- **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
+- **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
+- **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
+  assinaturas RSA no verificador de PDF (detalhes em "Vulnerabilidades das dependências").
+- **Banco:** nenhum script novo em relação à 7.2.
+
 ## ⚠️ Passos obrigatórios (nesta ordem)
 
 1. **Backup**: Supabase → Database → Backups (ou exporte as tabelas).
@@ -43,7 +55,7 @@
 5. O endereço antigo da Hostinger (`mediumvioletred-bison-595566.hostingersite.com`) será
    desativado: documentos já impressos com o QR Code antigo são validados digitando o código
    em `https://validador.jvmlab.com.br`. Reemita etiquetas ainda em uso, se preferir.
-6. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.2.0";
+6. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.4.0";
    `https://validador.jvmlab.com.br` mostra só o "Portal de Validação de Autenticidade".
 
 ### Página do validador no site Wix (www.jvmengenharia.com.br)
