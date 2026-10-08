@@ -6,6 +6,8 @@
   frente/verso, textos com campos, assinaturas, cores, 6 modelos de moldura, importação de
   modelo em PDF/JPG/PNG, pré-visualização); excluir turma ou curso cancela os certificados;
   turma sem Função e Nota; validador sem botão de baixar o PDF.
+- **Validador** (`jvmlab.com.br/validador`): mostra só a validação do documento na tela, sem
+  os botões de exportar certificado ou laudo em PDF (fica o "Imprimir" da própria tela).
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

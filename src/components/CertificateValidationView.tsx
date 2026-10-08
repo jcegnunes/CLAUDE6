@@ -10,15 +10,11 @@ import {
   ArrowLeft,
   Building,
   Check,
-  Download,
-  Printer,
-  FileText,
-  Award
+  Printer
 } from 'lucide-react';
 import { DielectricStorageService } from '../services/syncEngine';
 import { SupabaseService } from '../services/supabaseService';
 import { CompanyLabInfo, TestRecord } from '../types';
-import { exportCertificadoPDF, exportLaudoPDF } from '../services/pdfGenerator';
 import { formatDateBR } from '../utils/dateUtils';
 import { lazyView } from '../utils/lazyView';
 import { isTrainingValidationCode } from '../modules/treinamentos/rules';
@@ -39,12 +35,8 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
   const [searchCode, setSearchCode] = useState(initialCode);
   const [testRecord, setTestRecord] = useState<TestRecord | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [isExportingCert, setIsExportingCert] = useState(false);
-  const [isExportingLaudo, setIsExportingLaudo] = useState(false);
   // Laboratório emissor: vem junto com o certificado consultado no banco
   const [remoteLabInfo, setRemoteLabInfo] = useState<CompanyLabInfo | null>(null);
-  // Consulta pública (sem login): só os dados do certificado vêm do banco
-  const [isPublicResult, setIsPublicResult] = useState(false);
   const [trainingCode, setTrainingCode] = useState<string | null>(null);
   const company = remoteLabInfo || DielectricStorageService.getCompanyInfo();
   // Exibido dentro de outro site (página do Wix)? O download pode ser bloqueado lá
@@ -66,7 +58,6 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
     // 1. Cache do aparelho (consulta instantânea, funciona offline)
     const localTest = DielectricStorageService.getTestById(clean);
     if (localTest) {
-      setIsPublicResult(false);
       setRemoteLabInfo(null);
       setTestRecord(localTest);
       setHasSearched(true);
@@ -77,7 +68,6 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
     //    possui os dados localmente (antes o resultado era sempre "não encontrado")
     const remote = navigator.onLine ? await SupabaseService.fetchPublicValidation(clean) : null;
     setRemoteLabInfo(remote?.labInfo || null);
-    setIsPublicResult(!!remote);
     setTestRecord(remote?.test || null);
     setHasSearched(true);
   };
@@ -92,30 +82,6 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSearch(searchCode);
-  };
-
-  const handleDownloadCert = async () => {
-    if (!testRecord) return;
-    setIsExportingCert(true);
-    try {
-      await exportCertificadoPDF(testRecord, company);
-    } catch (err) {
-      console.error('Erro ao exportar certificado:', err);
-    } finally {
-      setIsExportingCert(false);
-    }
-  };
-
-  const handleDownloadLaudo = async () => {
-    if (!testRecord) return;
-    setIsExportingLaudo(true);
-    try {
-      await exportLaudoPDF(testRecord, company);
-    } catch (err) {
-      console.error('Erro ao exportar laudo:', err);
-    } finally {
-      setIsExportingLaudo(false);
-    }
   };
 
   const today = new Date().toISOString().split('T')[0];
@@ -285,7 +251,7 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
                     </div>
                   </div>
 
-                  {/* Actions: Download Certificate & Laudo */}
+                  {/* Só a validação na tela: o validador não baixa laudo nem certificado */}
                   <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-end gap-2">
                     <button
                       type="button"
@@ -295,17 +261,6 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
                       <Printer className="w-4 h-4 text-slate-600" />
                       <span>Imprimir</span>
                     </button>
-                    {testRecord.result === 'APROVADO' && (
-                      <button
-                        type="button"
-                        onClick={handleDownloadCert}
-                        disabled={isExportingCert}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 disabled:bg-orange-400 text-white rounded-xl transition-all shadow-sm"
-                      >
-                        <Award className="w-4 h-4" />
-                        <span>{isExportingCert ? 'Gerando Certificado...' : 'Exportar Certificado PDF'}</span>
-                      </button>
-                    )}
                     {isEmbedded && (
                       <a
                         href={`${window.location.origin}/validar/${encodeURIComponent(testRecord.validationCode || searchCode)}`}
@@ -316,21 +271,9 @@ export const CertificateValidationView: React.FC<CertificateValidationViewProps>
                         Abrir em tela cheia
                       </a>
                     )}
-                    {isPublicResult ? (
-                      <p className="text-[11px] text-slate-500 max-w-xs">
-                        O laudo técnico completo (medições, fotos e registros do ensaio) é fornecido pelo laboratório emissor.
-                      </p>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleDownloadLaudo}
-                        disabled={isExportingLaudo}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-[#0A2540] hover:bg-[#081d33] disabled:bg-slate-700 text-white rounded-xl transition-all shadow-sm"
-                      >
-                        <FileText className="w-4 h-4 text-orange-400" />
-                        <span>{isExportingLaudo ? 'Gerando Laudo...' : 'Exportar Laudo PDF'}</span>
-                      </button>
-                    )}
+                    <p className="text-[11px] text-slate-500 max-w-xs">
+                      Consulta de autenticidade. O laudo e o certificado são entregues pelo laboratório emissor.
+                    </p>
                   </div>
                 </div>
               </div>
