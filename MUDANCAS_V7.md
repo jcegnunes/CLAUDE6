@@ -14,6 +14,9 @@
   **local impresso junto à data** do certificado e o local da assinatura digital; sem filial,
   vale a cidade do laboratório. Novo campo de texto `{filial}`. Alterar a filial na turma
   atualiza o certificado já emitido.
+- **Empresa não escolhida** não aparece no certificado: a linha "Empresa:" (e o campo
+  `{empresa}`, o validador e a lista de presença) some quando o campo está vazio, só com espaços
+  ou com marcadores como "-", "N/A", "Não informado" ou "Selecione".
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

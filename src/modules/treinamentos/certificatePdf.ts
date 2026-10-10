@@ -11,7 +11,7 @@ import { saveDocLocally, saveFileLocally } from '../../utils/nativeFileSaver';
 import { buildValidationUrl } from '../../config/validationPortalConfig';
 import { DielectricStorageService } from '../../services/syncEngine';
 import type { CompanyLabInfo } from '../../types';
-import { formatCpf, formatDateBr, formatHours, totalTopicHours, onlyDigits } from './rules';
+import { displayCompany, formatCpf, formatDateBr, formatHours, totalTopicHours, onlyDigits } from './rules';
 import type { TrainingCertificate, TrainingClass, TrainingInstructor } from './types';
 import { companyHeaderLines, fillTemplate, getTrainingLayout, hexToRgb, type TrainingCertificateLayout } from './layout';
 
@@ -380,7 +380,7 @@ async function drawCertificate(
     const idLine = [
       cert.participantCpf ? `CPF ${formatCpf(cert.participantCpf)}` : '',
       cert.participantRole ? `Função: ${cert.participantRole}` : '',
-      cert.participantCompany ? `Empresa: ${cert.participantCompany}` : ''
+      displayCompany(cert.participantCompany) ? `Empresa: ${displayCompany(cert.participantCompany)}` : ''
     ].filter(Boolean).join('   ·   ');
     doc.text(idLine, w / 2, 92 + dy, { align: 'center', maxWidth: w - 50 });
   }
@@ -666,7 +666,7 @@ export async function exportAttendanceList(turma: TrainingClass, instructors: Tr
     }
   }
   const signCols = days.length ? days.map(d => `Assinatura ${d}`) : ['Assinatura'];
-  const rows = turma.participants.map((p, i) => [String(i + 1), p.name, formatCpf(p.cpf), [p.company, p.branch, p.role].filter(Boolean).join(' / '), ...signCols.map(() => '')]);
+  const rows = turma.participants.map((p, i) => [String(i + 1), p.name, formatCpf(p.cpf), [displayCompany(p.company), p.branch, p.role].filter(Boolean).join(' / '), ...signCols.map(() => '')]);
   for (let i = rows.length; i < Math.max(rows.length, 10); i++) rows.push([String(i + 1), '', '', '', ...signCols.map(() => '')]);
 
   autoTable(doc, {

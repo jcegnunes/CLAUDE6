@@ -24,6 +24,16 @@ export function isValidCpf(value: string): boolean {
   return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
 }
 
+/** Valores que significam "sem empresa" (campo não escolhido). */
+const NO_COMPANY = ['-', '--', '—', '–', '.', 'n/a', 'na', 'nao informado', 'nao informada', 'sem empresa', 'selecione', 'nenhum', 'nenhuma', 'null', 'undefined'];
+
+/** Empresa a exibir no certificado: vazio quando não foi escolhida. */
+export function displayCompany(value?: string | null): string {
+  const v = (value || '').replace(/\s+/g, ' ').trim();
+  const key = v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return !v || NO_COMPANY.includes(key) ? '' : v;
+}
+
 export function formatCpf(value: string): string {
   const d = onlyDigits(value).slice(0, 11);
   if (d.length !== 11) return value || '';

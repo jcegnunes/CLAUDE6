@@ -7,13 +7,13 @@ import React, { useEffect, useState } from 'react';
 import { ShieldCheck, ShieldAlert, AlertTriangle, Loader2, GraduationCap } from 'lucide-react';
 import { getCertificates } from '../repository';
 import { fetchPublicTrainingCertificate } from '../sync';
-import { certificateSituation, formatDateBr, formatHours, maskCpf } from '../rules';
+import { certificateSituation, displayCompany, formatDateBr, formatHours, maskCpf } from '../rules';
 import type { PublicTrainingCertificate, TrainingCertificate } from '../types';
 
 function fromLocal(c: TrainingCertificate): PublicTrainingCertificate {
   return {
     certificateNumber: c.certificateNumber, validationCode: c.validationCode, participantName: c.participantName,
-    participantCpfMasked: maskCpf(c.participantCpf), participantCompany: c.participantCompany, courseName: c.courseName,
+    participantCpfMasked: maskCpf(c.participantCpf), participantCompany: displayCompany(c.participantCompany), courseName: c.courseName,
     normReference: c.normReference, workloadHours: c.workloadHours, modality: c.modality, startDate: c.startDate,
     endDate: c.endDate, issueDate: c.issueDate, expiryDate: c.expiryDate, status: c.status, cancelReason: c.cancelReason,
     instructorNames: c.instructorNames, technicalResponsibleName: c.technicalResponsibleName
@@ -60,7 +60,7 @@ export const TrainingValidationResult: React.FC<{ code: string }> = ({ code }) =
   const rows: Array<[string, string | undefined]> = [
     ['Participante', cert.participantName],
     ['CPF', cert.participantCpfMasked],
-    ['Empresa', cert.participantCompany],
+    ['Empresa', displayCompany(cert.participantCompany)],
     ['Treinamento', cert.courseName],
     ['Norma / referência', cert.normReference],
     ['Carga horária', cert.workloadHours ? formatHours(Number(cert.workloadHours)) : undefined],

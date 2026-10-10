@@ -103,3 +103,12 @@ describe('Treinamentos — aprovação na turma (sem campo de nota)', () => {
     expect(isApprovedInClass({ ...p, approvedOverride: false }, course)).toBe(false);
   });
 });
+
+describe('Treinamentos — empresa não escolhida', () => {
+  it('vazio, espaços ou marcadores como "-" e "Selecione" não aparecem no certificado', async () => {
+    const { displayCompany } = await import('../rules');
+    expect(displayCompany('Empresa Cliente Ltda')).toBe('Empresa Cliente Ltda');
+    expect(displayCompany('  ACME   Ltda ')).toBe('ACME Ltda');
+    ['', '   ', '-', '—', 'N/A', 'Não informado', 'Selecione', undefined, null].forEach(v => expect(displayCompany(v as string)).toBe(''));
+  });
+});

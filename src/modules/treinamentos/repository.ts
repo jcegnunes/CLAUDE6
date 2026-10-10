@@ -16,7 +16,7 @@ import { TRAINING_KEYS, TRAINING_MANAGED_KEYS } from './storageKeys';
 import type { ImportGroup } from './spreadsheetImport';
 import { normalizeText } from './spreadsheetImport';
 import {
-  CERTIFICATE_PREFIX, CLASS_PREFIX, computeExpiryDate, generateTrainingValidationCode,
+  CERTIFICATE_PREFIX, CLASS_PREFIX, computeExpiryDate, displayCompany, generateTrainingValidationCode,
   isApprovedInClass, newId, todayIso
 } from './rules';
 import type {
@@ -270,7 +270,7 @@ function buildCertificate(course: TrainingCourse, data: {
     participantName: data.participant.name.trim(),
     participantCpf: data.participant.cpf,
     participantRole: data.participant.role,
-    participantCompany: data.participant.company,
+    participantCompany: displayCompany(data.participant.company) || undefined,
     participantBranch: data.participant.branch?.trim() || undefined,
     attendance: data.participant.attendance,
     grade: data.participant.grade,

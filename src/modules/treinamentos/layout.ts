@@ -4,7 +4,7 @@
  * sincronizam com a nuvem e entram no backup.
  */
 import { DielectricStorageService } from '../../services/syncEngine';
-import { formatCpf, formatDateBr, formatHours } from './rules';
+import { displayCompany, formatCpf, formatDateBr, formatHours } from './rules';
 import type { TrainingCertificate } from './types';
 import type { CompanyLabInfo } from '../../types';
 
@@ -265,7 +265,7 @@ export function fillTemplate(template: string, cert: TemplateCert): string {
     carga_horaria: formatHours(cert.workloadHours).replace(' h', ' horas'),
     nome: cert.participantName || '',
     cpf: cert.participantCpf ? formatCpf(cert.participantCpf) : '',
-    empresa: cert.participantCompany || '',
+    empresa: displayCompany(cert.participantCompany),
     filial: cert.participantBranch || '',
     data_inicio: formatDateBr(cert.startDate),
     data_fim: formatDateBr(cert.endDate || cert.startDate),
