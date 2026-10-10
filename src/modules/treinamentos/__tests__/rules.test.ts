@@ -83,7 +83,7 @@ describe('Treinamentos — cursos padrão', () => {
     expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'nr35-reciclagem', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
       'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem',
       ...DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-')).map(c => c.key),
-      'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi', 'nr12-elevadores', 'nr12-elevadores-reciclagem']);
+      'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi', 'nr12-elevadores', 'nr12-elevadores-reciclagem', 'nr01-psicossocial']);
     DEFAULT_COURSES.forEach(c => {
       expect(totalTopicHours(c.topics), c.name).toBe(c.workloadHours);
       // NR-20: Iniciação e Específico não têm atualização periódica (Anexo I, Tabela 2)
@@ -202,5 +202,14 @@ describe('Treinamentos — NR-12 elevadores (Anexo II)', () => {
     ['"a"', '"b", "c" e "d"', '"e" e "f"', '"g" e "h"', '"i"', 'furadeira', 'lixadeira', 'talha', '12.11.3'].forEach(t => expect(all).toContain(t));
     expect(c.topics.filter(t => t.title.startsWith('Prática')).reduce((a, t) => a + t.hours, 0)).toBe(8);
     expect(c.notes).toMatch(/12.1.4/);
+  });
+});
+
+describe('Treinamentos — NR-01 psicossocial', () => {
+  it('fatores psicossociais no PGR, assédio e validade anual (item 1.4.1.1 "c")', () => {
+    const c = DEFAULT_COURSES.find(x => x.key === 'nr01-psicossocial')!;
+    const all = c.topics.map(t => t.title).join(' ');
+    ['1.5.3.1.4', '1.5.4.4.5.3', '1.5.3.3', '1.4.1 "g"', 'assédio'].forEach(t => expect(all).toContain(t));
+    expect([c.workloadHours, c.validityMonths, c.minGrade]).toEqual([4, 12, undefined]);
   });
 });

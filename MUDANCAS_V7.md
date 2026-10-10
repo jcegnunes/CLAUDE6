@@ -63,6 +63,11 @@
   (texto atualizado 2022): 16 h (8 h de prática) com o conteúdo do Anexo II (itens a–i), bloqueio e
   etiquetagem (item 12.11.3), furadeira, lixadeira e talhas; e Reciclagem de 4 h (item 12.16.8,
   quando houver mudanças). A NR-12 não fixa carga horária nem periodicidade (item 12.16.3 "c").
+- **Curso NR-01 – Fatores de Risco Psicossociais Relacionados ao Trabalho e Prevenção ao Assédio**
+  (texto atualizado 2025): 4 h, validade de 12 meses, com os fatores psicossociais no GRO/PGR
+  (1.5.3.1.4, 1.5.3.2.1, 1.5.4.4.5.3), participação dos trabalhadores e da CIPA (1.5.3.3), ordem de
+  prioridade das medidas (1.4.1 "g") e prevenção ao assédio e à violência (1.4.1.1, anual nas
+  empresas com CIPA). Aprovação por presença (sem nota).
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

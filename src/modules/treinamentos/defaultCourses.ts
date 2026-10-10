@@ -9,6 +9,7 @@ import { NR20_COURSES } from './defaultCoursesNr20';
 import { NR18_COURSES } from './defaultCoursesNr18';
 import { NR06_COURSES } from './defaultCoursesNr06';
 import { NR12_COURSES } from './defaultCoursesNr12';
+import { NR01_COURSES } from './defaultCoursesNr01';
 
 type CourseSeed = Omit<TrainingCourse, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'serverUpdatedAt'>;
 
@@ -300,5 +301,7 @@ export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
   // NR-06: seleção, uso, guarda e conservação de EPI
   ...NR06_COURSES,
   // NR-12: instalação e manutenção de elevadores (ferramentas elétricas portáteis e talhas)
-  ...NR12_COURSES
+  ...NR12_COURSES,
+  // NR-01: fatores de risco psicossociais e prevenção ao assédio
+  ...NR01_COURSES
 ];
