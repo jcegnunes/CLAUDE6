@@ -327,7 +327,8 @@ function drawSignature(doc: jsPDF, navy: Rgb, x: number, y: number, width: numbe
   }
 }
 
-async function drawCertificate(
+/** Frente e verso de um certificado (exportado também para os testes). */
+export async function drawCertificate(
   doc: jsPDF, cert: TrainingCertificate, company: CompanyLabInfo, assets: Assets,
   stamps: Record<string, { cn: string; dn: string; reason: string; person?: string; docLine?: string }> = {}, signedAt: Date = new Date()
 ) {
@@ -335,7 +336,7 @@ async function drawCertificate(
   const NAVY = assets.navy;
   const ORANGE = assets.orange;
   const stampLocation = [company.city, company.state].filter(Boolean).join('/') || cityOf(company) || 'Brasil';
-  const digitalNames = Object.entries(stamps).map(([label, st]) => st.person || label);
+  const digitalNames = Object.values(stamps).map(st => st.person || st.cn);
   const digitalLine = digitalNames.length
     ? `Documento assinado digitalmente (ICP-Brasil) por ${digitalNames.join(' e ')}. Confira no leitor de PDF ou em validar.iti.gov.br`
     : '';
@@ -412,16 +413,18 @@ async function drawCertificate(
   doc.text(`${city ? `${city}, ` : ''}${longDate(cert.issueDate)}.`, w / 2, y + 4, { align: 'center' });
 
   // ------------------------------------------------------------ assinaturas
-  const signers: Array<{ image: string; name: string; l2: string; l3?: string }> = [];
-  for (const ins of cert.instructors.slice(0, L.maxInstructors)) {
-    signers.push({ image: await safeImage(ins.signatureUrl, true), name: ins.name, l2: [L.instructorLabel, ins.qualification].filter(Boolean).join(' – '), l3: ins.registration });
+  // stampKey: carimbo da assinatura digital do papel (o participante não assina digitalmente)
+  const signers: Array<{ image: string; name: string; l2: string; l3?: string; stampKey?: string }> = [];
+  for (const [i, ins] of cert.instructors.slice(0, L.maxInstructors).entries()) {
+    signers.push({ image: await safeImage(ins.signatureUrl, true), name: ins.name, l2: [L.instructorLabel, ins.qualification].filter(Boolean).join(' – '), l3: ins.registration, stampKey: cert.instructorIds[i] ? `ins:${cert.instructorIds[i]}` : undefined });
   }
   if (L.showTechnicalResponsible && cert.technicalResponsibleName) {
     signers.push({
       image: await safeImage(cert.technicalResponsibleSignature, true),
       name: cert.technicalResponsibleName,
       l2: [L.technicalResponsibleLabel, cert.technicalResponsibleTitle].filter(Boolean).join(' – '),
-      l3: cert.technicalResponsibleRegistration
+      l3: cert.technicalResponsibleRegistration,
+      stampKey: 'rt'
     });
   }
   if (L.showParticipant) signers.push({ image: '', name: cert.participantName, l2: L.participantLabel });
@@ -430,7 +433,7 @@ async function drawCertificate(
   const areaW = w - 18 - 60; // à direita fica o QR Code
   const colW = signers.length ? areaW / signers.length : areaW;
   signers.forEach((s, i) => {
-    const st = stamps[s.name];
+    const st = s.stampKey ? stamps[s.stampKey] : undefined;
     // assinado digitalmente: nome e documento conforme o certificado cadastrado
     drawSignature(doc, NAVY, areaX + i * colW, sigY, colW, s.image, st?.person || s.name, s.l2, s.l3,
       st ? { cn: st.cn, dn: st.dn, reason: st.reason, location: cert.participantBranch?.trim() || stampLocation, at: signedAt } : undefined,

@@ -165,7 +165,8 @@ export function stampFromDetails(d: CertDetails, reason: string, fallbackName: s
     cn: d.commonName || fallbackName,
     dn: d.subjectDn,
     reason,
-    person: (isCompany ? d.responsibleName : holder) || fallbackName,
+    // e-CNPJ: quem assina é a pessoa cadastrada (instrutor/RT), não o responsável legal da empresa
+    person: (isCompany ? fallbackName : holder) || fallbackName,
     docLine: isCompany
       ? [`e-CNPJ ${holder}`, d.cnpj ? `CNPJ ${d.cnpj}` : ''].filter(Boolean).join(' · ')
       : (d.cpf ? `e-CPF · CPF ${maskCpf(d.cpf)}` : 'Certificado ICP-Brasil')
@@ -176,7 +177,11 @@ export interface SignaturePlan {
   signers: PdfSigner[];
   /** Nomes impressos com "Assinado digitalmente" */
   names: string[];
-  /** Carimbo visível acima do nome de cada assinante (dados lidos do certificado) */
+  /**
+   * Carimbo visível acima do nome de cada assinante (dados lidos do certificado),
+   * por papel: "rt" ou "ins:<id do instrutor>" (nunca pelo nome: o participante
+   * pode ter o mesmo nome de um instrutor).
+   */
   stamps: Record<string, SignatureStamp>;
   /** Avisos (certificado vencido, sem internet...) */
   warnings: string[];
@@ -189,6 +194,7 @@ export async function planSignatures(
 ): Promise<SignaturePlan> {
   const plan: SignaturePlan = { signers: [], names: [], stamps: {}, warnings: [] };
   const wanted: Array<{ type: SigningOwnerType; id: string; label: string }> = [];
+  const stampKey = (w: { type: SigningOwnerType; id: string }) => (w.type === 'rt' ? 'rt' : `ins:${w.id}`);
   const includeRt = options.includeTechnicalResponsible !== false;
   if (includeRt && cert.technicalResponsibleName && findSigningCert('rt', 'rt')) wanted.push({ type: 'rt', id: 'rt', label: cert.technicalResponsibleName });
   const instructors = getInstructors();
@@ -218,7 +224,7 @@ export async function planSignatures(
       : { cn: m.holderName || w.label, dn: '', reason, person: w.label, docLine: '' };
     plan.signers.push({ p12: m.p12, password: m.password, name: stamp.cn, reason });
     plan.names.push(w.label);
-    plan.stamps[w.label] = stamp;
+    plan.stamps[stampKey(w)] = stamp;
   }
   return plan;
 }

@@ -54,6 +54,11 @@
   prática; nova **Reciclagem NR-35** (8 h, a cada dois anos, 35.4.2.2). O curso NR-35 que o sistema
   criou nas empresas é atualizado sozinho; se a empresa editou o curso, ele não é alterado.
   Certificados já emitidos não mudam.
+- **Correção (10/10/2026): assinatura digital no lugar errado.** O selo da assinatura digital era
+  ligado pelo nome: quando o participante tinha o mesmo nome do instrutor, a coluna "Participante"
+  recebia o selo do instrutor. Agora o selo é ligado ao papel (instrutor ou RT) e o participante
+  nunca recebe selo. Com **e-CNPJ**, o nome impresso é o do instrutor/RT cadastrado (antes, o do
+  responsável legal da empresa); a linha "e-CNPJ … · CNPJ …" e o selo identificam a empresa.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
