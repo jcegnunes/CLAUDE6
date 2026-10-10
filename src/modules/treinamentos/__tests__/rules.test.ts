@@ -83,11 +83,11 @@ describe('Treinamentos — cursos padrão', () => {
     expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'nr35-reciclagem', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
       'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem',
       ...DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-')).map(c => c.key),
-      'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi']);
+      'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi', 'nr12-elevadores', 'nr12-elevadores-reciclagem']);
     DEFAULT_COURSES.forEach(c => {
       expect(totalTopicHours(c.topics), c.name).toBe(c.workloadHours);
       // NR-20: Iniciação e Específico não têm atualização periódica (Anexo I, Tabela 2)
-      if (/^nr20-(iniciacao|especifico)|^nr06-/.test(c.key)) expect(c.validityMonths).toBe(0);
+      if (/^nr20-(iniciacao|especifico)|^nr06-|^nr12-/.test(c.key)) expect(c.validityMonths).toBe(0);
       else expect(c.validityMonths).toBeGreaterThan(0);
     });
     expect(DEFAULT_COURSES.find(c => c.key === 'nr10-basico')!.workloadHours).toBe(40);
@@ -192,5 +192,15 @@ describe('Treinamentos — NR-35 atualizada (Portaria MTE nº 1.259/2026)', () =
     expect(ini.notes).toMatch(/35\.4\.5/);
     expect(ini.topics.some(t => /escada/i.test(t.title))).toBe(true);
     [ini, rec].forEach(c => expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true));
+  });
+});
+
+describe('Treinamentos — NR-12 elevadores (Anexo II)', () => {
+  it('cobre os itens a–i do Anexo II, ferramentas portáteis, talhas e bloqueio, com prática', () => {
+    const c = DEFAULT_COURSES.find(x => x.key === 'nr12-elevadores')!;
+    const all = c.topics.map(t => t.title).join(' ');
+    ['"a"', '"b", "c" e "d"', '"e" e "f"', '"g" e "h"', '"i"', 'furadeira', 'lixadeira', 'talha', '12.11.3'].forEach(t => expect(all).toContain(t));
+    expect(c.topics.filter(t => t.title.startsWith('Prática')).reduce((a, t) => a + t.hours, 0)).toBe(8);
+    expect(c.notes).toMatch(/12.1.4/);
   });
 });

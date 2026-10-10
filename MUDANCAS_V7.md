@@ -59,6 +59,10 @@
   recebia o selo do instrutor. Agora o selo é ligado ao papel (instrutor ou RT) e o participante
   nunca recebe selo. Com **e-CNPJ**, o nome impresso é o do instrutor/RT cadastrado (antes, o do
   responsável legal da empresa); a linha "e-CNPJ … · CNPJ …" e o selo identificam a empresa.
+- **Curso NR-12 – Instalação e Manutenção de Elevadores (ferramentas elétricas portáteis e talhas)**
+  (texto atualizado 2022): 16 h (8 h de prática) com o conteúdo do Anexo II (itens a–i), bloqueio e
+  etiquetagem (item 12.11.3), furadeira, lixadeira e talhas; e Reciclagem de 4 h (item 12.16.8,
+  quando houver mudanças). A NR-12 não fixa carga horária nem periodicidade (item 12.16.3 "c").
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

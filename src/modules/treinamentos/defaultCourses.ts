@@ -8,6 +8,7 @@ import type { TrainingCourse } from './types';
 import { NR20_COURSES } from './defaultCoursesNr20';
 import { NR18_COURSES } from './defaultCoursesNr18';
 import { NR06_COURSES } from './defaultCoursesNr06';
+import { NR12_COURSES } from './defaultCoursesNr12';
 
 type CourseSeed = Omit<TrainingCourse, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'serverUpdatedAt'>;
 
@@ -297,5 +298,7 @@ export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
   // NR-18: instalação, montagem, desmontagem e manutenção de elevadores de passageiros
   ...NR18_COURSES,
   // NR-06: seleção, uso, guarda e conservação de EPI
-  ...NR06_COURSES
+  ...NR06_COURSES,
+  // NR-12: instalação e manutenção de elevadores (ferramentas elétricas portáteis e talhas)
+  ...NR12_COURSES
 ];
