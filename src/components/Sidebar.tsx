@@ -16,7 +16,6 @@ import {
   Smartphone,
   Download,
   FileSpreadsheet,
-  Users,
   Briefcase,
   Settings,
   ChevronDown,
@@ -103,7 +102,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'sistema', label: 'Configuração do Sistema', icon: Settings, items: [
       { id: 'sync', label: 'Sincronização & Conflitos', icon: RefreshCw, badge: pendingSyncCount > 0 ? String(pendingSyncCount) : undefined, roles: STAFF },
       { id: 'audit', label: 'Auditoria & Logs', icon: History, roles: MANAGERS },
-      { id: 'usuarios', label: 'Usuários & Técnicos', icon: Users, roles: MANAGERS },
       { id: 'backup', label: 'Configurações & Backup', icon: Sliders, roles: MANAGERS },
       ...moduleSettingsItems
     ] },

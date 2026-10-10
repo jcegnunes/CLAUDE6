@@ -17,6 +17,12 @@
 - **Empresa não escolhida** não aparece no certificado: a linha "Empresa:" (e o campo
   `{empresa}`, o validador e a lista de presença) some quando o campo está vazio, só com espaços
   ou com marcadores como "-", "N/A", "Não informado" ou "Selecione".
+- **Menu:** "Usuários & Técnicos" saiu de Configuração do Sistema (o cadastro de usuários
+  e técnicos continua em **Configurações & Backup**).
+- **Meu perfil e assinatura** (menu do usuário, no topo; no app instalado, botão "Meu perfil"):
+  cada usuário edita os próprios dados (nome, cargo, CREA/CFT, registro, telefone) e desenha ou
+  envia a **própria assinatura**, usada nos laudos e certificados. E-mail, perfil, empresa e
+  módulos continuam só com o administrador (o banco também protege esses campos).
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

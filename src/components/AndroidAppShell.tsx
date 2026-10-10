@@ -38,6 +38,7 @@ import {
   FolderArchive
 } from 'lucide-react';
 import { SwitchUserDialog } from './SwitchUserDialog';
+import { MyProfileDialog } from './MyProfileDialog';
 import { User, TestRecord, Equipment } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
 
@@ -94,6 +95,7 @@ export const AndroidAppShell: React.FC<AndroidAppShellProps> = ({
 
   const users = DielectricStorageService.getUsers();
   const [switchingUser, setSwitchingUser] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const company = DielectricStorageService.getCompanyInfo();
 
   // Keep time updated
@@ -377,6 +379,13 @@ export const AndroidAppShell: React.FC<AndroidAppShellProps> = ({
                     <span className="text-[10px] text-slate-400 font-mono">{currentUser.creaOrCft || currentUser.cargo}</span>
                   </div>
                   <button
+                    onClick={() => { setProfileOpen(true); setIsDrawerOpen(false); }}
+                    className="p-1.5 mr-1 bg-slate-700/60 hover:bg-slate-700 text-slate-200 rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
+                    title="Editar meus dados e minha assinatura"
+                  >
+                    Meu perfil
+                  </button>
+                  <button
                     onClick={() => setSwitchingUser(true)}
                     className="p-1.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
                     title="Trocar operador ativo (pede a senha)"
@@ -527,6 +536,9 @@ export const AndroidAppShell: React.FC<AndroidAppShellProps> = ({
           <div className="w-28 h-1 bg-slate-600/70 rounded-full" />
         </div>
       </div>
+      {profileOpen && (
+        <MyProfileDialog currentUser={currentUser} onClose={() => setProfileOpen(false)} onSaved={onUserChange} />
+      )}
       {switchingUser && (
         <SwitchUserDialog
           currentUser={currentUser}

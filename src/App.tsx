@@ -37,7 +37,6 @@ const ReportEmissionView = lazyView(() => import('./views/ReportEmissionView'), 
 const AndroidFieldModeView = lazyView(() => import('./views/AndroidFieldModeView'), 'AndroidFieldModeView');
 const MobileCameraCompanionView = lazyView(() => import('./views/MobileCameraCompanionView'), 'MobileCameraCompanionView');
 const CertificateValidationView = lazyView(() => import('./components/CertificateValidationView'), 'CertificateValidationView');
-const UsersView = lazyView(() => import('./views/UsersView'), 'UsersView');
 // Janelas (PDF, QR Code, câmera, instalação): baixadas só quando abertas
 const QRCodeScannerModal = lazyView(() => import('./components/QRCodeScannerModal'), 'QRCodeScannerModal');
 const LaudoViewModal = lazyView(() => import('./components/LaudoViewModal'), 'LaudoViewModal');
@@ -555,7 +554,6 @@ export default function App() {
           {activeView === 'audit' && <AuditLogsView key={`android_audit_${dataVersion}`} />}
 
           {activeView === 'backup' && <BackupSettingsView key={`android_backup_${dataVersion}`} />}
-          {activeView === 'usuarios' && <UsersView key={`android_users_${dataVersion}`} />}
           {renderModuleView('android')}
           </Suspense>
           </ViewErrorBoundary>
@@ -799,7 +797,6 @@ export default function App() {
           {activeView === 'audit' && <AuditLogsView key={`desk_audit_${dataVersion}`} />}
 
           {activeView === 'backup' && <BackupSettingsView key={`desk_backup_${dataVersion}`} />}
-          {activeView === 'usuarios' && <UsersView key={`desk_users_${dataVersion}`} />}
           {renderModuleView('desk')}
           </Suspense>
           </ViewErrorBoundary>

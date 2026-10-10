@@ -8,6 +8,7 @@ import {
   Smartphone,
   Monitor,
   UserCircle,
+  UserCircle2,
   Check,
   ChevronDown,
   Bell,
@@ -19,6 +20,7 @@ import {
   Lock
 } from 'lucide-react';
 import { SwitchUserDialog, switchableUsers } from './SwitchUserDialog';
+import { MyProfileDialog } from './MyProfileDialog';
 import { User, Company } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
 import { AuthService } from '../services/authService';
@@ -70,6 +72,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [activeCompany, setActiveCompany] = useState<Company>(() => DielectricStorageService.getActiveCompany());
   const [users, setUsers] = useState<User[]>(() => DielectricStorageService.getUsers());
   const [switchTarget, setSwitchTarget] = useState<User | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const refreshData = () => {
     setCompanies(DielectricStorageService.getCompanies());
@@ -350,6 +353,16 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                 {/* Bottom Actions */}
                 <div className="p-2 border-t border-slate-100 space-y-1">
+                  <button
+                    onClick={() => {
+                      setProfileOpen(true);
+                      setUserDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer"
+                  >
+                    <UserCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Meu perfil e assinatura</span>
+                  </button>
                   {onOpenInstallModal && (
                     <button
                       onClick={() => {
@@ -394,6 +407,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         </div>
       </div>
+      {profileOpen && (
+        <MyProfileDialog currentUser={currentUser} onClose={() => setProfileOpen(false)} onSaved={onUserChange} />
+      )}
       {switchTarget && (
         <SwitchUserDialog
           currentUser={currentUser}
