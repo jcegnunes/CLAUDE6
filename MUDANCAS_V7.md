@@ -45,6 +45,10 @@
   conteúdo do item 18.11 (requisitos de instalação, dispositivos de segurança, elevador de
   passageiros, montagem/ascensão/desmontagem, documentação). Pelo Anexo I, a carga horária e o
   conteúdo são definidos pelo empregador e o periódico é anual.
+- **Curso NR-06 – EPI: Seleção, Uso, Guarda e Conservação** (texto atualizado 2025): 4 h (1 h de
+  prática), com CA, seleção do EPI, responsabilidades da organização e do trabalhador, tipos do
+  Anexo I e as informações do item 6.7.2. A NR-06 não fixa carga horária nem periodicidade
+  (segue a NR-01): o curso sai sem vencimento; repetir em troca de EPI, de riscos ou de atividade.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

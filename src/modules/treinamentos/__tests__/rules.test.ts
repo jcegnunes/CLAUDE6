@@ -83,11 +83,11 @@ describe('Treinamentos — cursos padrão', () => {
     expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
       'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem',
       ...DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-')).map(c => c.key),
-      'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem']);
+      'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi']);
     DEFAULT_COURSES.forEach(c => {
       expect(totalTopicHours(c.topics), c.name).toBe(c.workloadHours);
       // NR-20: Iniciação e Específico não têm atualização periódica (Anexo I, Tabela 2)
-      if (/^nr20-(iniciacao|especifico)/.test(c.key)) expect(c.validityMonths).toBe(0);
+      if (/^nr20-(iniciacao|especifico)|^nr06-/.test(c.key)) expect(c.validityMonths).toBe(0);
       else expect(c.validityMonths).toBeGreaterThan(0);
     });
     expect(DEFAULT_COURSES.find(c => c.key === 'nr10-basico')!.workloadHours).toBe(40);
@@ -171,5 +171,14 @@ describe('Treinamentos — NR-18 elevadores (Anexo I, Quadro 1)', () => {
     expect([ini.workloadHours, ini.validityMonths, rec.workloadHours, rec.validityMonths]).toEqual([24, 12, 8, 12]);
     [ini, rec].forEach(c => expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true));
     expect(ini.notes).toMatch(/18.11.5/);
+  });
+});
+
+describe('Treinamentos — NR-06 (EPI)', () => {
+  it('cobre as informações do item 6.7.2 e os tipos do Anexo I, com prática', () => {
+    const c = DEFAULT_COURSES.find(x => x.key === 'nr06-epi')!;
+    const all = c.topics.map(t => t.title).join(' ');
+    ['restrições e limitações', 'uso e ajuste', 'higienização', 'Certificado de Aprovação', 'respiratória', 'quedas'].forEach(t => expect(all).toContain(t));
+    expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true);
   });
 });
