@@ -49,6 +49,11 @@
   prática), com CA, seleção do EPI, responsabilidades da organização e do trabalhador, tipos do
   Anexo I e as informações do item 6.7.2. A NR-06 não fixa carga horária nem periodicidade
   (segue a NR-01): o curso sai sem vencimento; repetir em troca de EPI, de riscos ou de atividade.
+- **Curso NR-35 atualizado** (Portaria MTE nº 1.259/2026): referência ao item 35.4.2.1, treinamento
+  teórico e prático e presencial (35.4.5), escada de uso individual (Anexo III, 4.2.1.1), SPIQ e
+  prática; nova **Reciclagem NR-35** (8 h, a cada dois anos, 35.4.2.2). O curso NR-35 que o sistema
+  criou nas empresas é atualizado sozinho; se a empresa editou o curso, ele não é alterado.
+  Certificados já emitidos não mudam.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

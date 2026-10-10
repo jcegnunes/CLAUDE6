@@ -149,6 +149,15 @@ export function deleteCourseAndCancelCertificates(courseId: string, reason: stri
 }
 
 /** Cadastra os cursos padrão na primeira abertura do módulo (por empresa). */
+/**
+ * Atualizações de cursos padrão já cadastrados (ex.: norma revisada). Só altera
+ * o curso que continua como o sistema criou (mesma referência normativa antiga):
+ * curso editado pela empresa não é mexido. Certificados emitidos não mudam.
+ */
+export const DEFAULT_COURSE_UPDATES: Array<{ key: string; mark: string; previousNormReference: string }> = [
+  { key: 'nr35', mark: 'nr35@2026', previousNormReference: 'NR-35, item 35.3 – capacitação e treinamento' }
+];
+
 /** Cursos padrão da primeira versão: empresas marcadas só com "true" já receberam estes. */
 const FIRST_DEFAULT_KEYS = ['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes'];
 
@@ -164,9 +173,18 @@ export function ensureDefaultCourses(): number {
   const mark = seeded[company];
   const done = new Set<string>(mark === true ? FIRST_DEFAULT_KEYS : Array.isArray(mark) ? mark : []);
   const missing = DEFAULT_COURSES.filter(c => !done.has(c.key));
-  if (!missing.length) return 0;
+  const updates = DEFAULT_COURSE_UPDATES.filter(u => !done.has(u.mark));
+  if (!missing.length && !updates.length) return 0;
   const existing = getCourses();
   let created = 0;
+  updates.forEach(u => {
+    done.add(u.mark);
+    const current = existing.find(c => c.id === `crs-${company}-${u.key}`);
+    const seed = DEFAULT_COURSES.find(c => c.key === u.key);
+    if (!current || !seed || current.normReference !== u.previousNormReference) return;
+    const { key: _key, ...fields } = seed;
+    putRecord<TrainingCourse>('training_courses', { ...current, ...fields, active: current.active, topics: seed.topics.map(t => ({ ...t })) });
+  });
   missing.forEach(({ key, ...seed }) => {
     done.add(key);
     const id = `crs-${company}-${key}`;

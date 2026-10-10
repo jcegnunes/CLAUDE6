@@ -80,7 +80,7 @@ describe('Treinamentos — QR Code', () => {
 
 describe('Treinamentos — cursos padrão', () => {
   it('NR-10 Básico, NR-10 SEP, NR-35, EPI/EPC e NR-33 com a soma dos tópicos igual à carga horária', () => {
-    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
+    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'nr35-reciclagem', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
       'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem',
       ...DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-')).map(c => c.key),
       'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi']);
@@ -180,5 +180,17 @@ describe('Treinamentos — NR-06 (EPI)', () => {
     const all = c.topics.map(t => t.title).join(' ');
     ['restrições e limitações', 'uso e ajuste', 'higienização', 'Certificado de Aprovação', 'respiratória', 'quedas'].forEach(t => expect(all).toContain(t));
     expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true);
+  });
+});
+
+describe('Treinamentos — NR-35 atualizada (Portaria MTE nº 1.259/2026)', () => {
+  it('inicial 8 h teórico e prático, presencial, com escadas; reciclagem 8 h a cada 2 anos', () => {
+    const ini = DEFAULT_COURSES.find(c => c.key === 'nr35')!;
+    const rec = DEFAULT_COURSES.find(c => c.key === 'nr35-reciclagem')!;
+    expect([ini.workloadHours, ini.validityMonths, ini.modality, rec.workloadHours, rec.validityMonths]).toEqual([8, 24, 'presencial', 8, 24]);
+    expect(ini.normReference).toMatch(/35\.4\.2\.1/);
+    expect(ini.notes).toMatch(/35\.4\.5/);
+    expect(ini.topics.some(t => /escada/i.test(t.title))).toBe(true);
+    [ini, rec].forEach(c => expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true));
   });
 });

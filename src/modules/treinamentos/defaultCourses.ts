@@ -77,25 +77,52 @@ export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
     ]
   },
   {
+    // NR-35 atualizada (Portaria MTE nº 1.259/2026): item 35.4.2.1, 35.4.5 e Anexo III (escadas)
     key: 'nr35',
     code: 'NR-35',
     name: 'NR-35 – Trabalho em Altura',
-    normReference: 'NR-35, item 35.3 – capacitação e treinamento',
+    normReference: 'NR-35 (texto atualizado – Portaria MTE nº 1.259/2026), item 35.4.2.1 – treinamento inicial (mínimo 8 h, teórico e prático, presencial) e Anexo III, item 4.2.1.1 (escadas de uso individual)',
     workloadHours: 8,
     validityMonths: 24,
     modality: 'presencial',
     minAttendance: 100,
     minGrade: 7,
     active: true,
-    notes: 'Treinamento teórico e prático. Treinamento periódico bienal e nas situações previstas na NR-35.',
+    notes: 'Treinamento teórico e prático, obrigatoriamente presencial (item 35.4.5), realizado antes de o trabalhador iniciar a atividade. Treinamento periódico a cada dois anos, com mínimo de 8 h e conteúdo definido pelo empregador (item 35.4.2.2); eventual conforme a NR-01. Instrutores com comprovada proficiência, sob a responsabilidade de profissional qualificado ou legalmente habilitado em segurança no trabalho (item 35.4.3). O certificado comprova a capacitação; a autorização para trabalho em altura depende também da aptidão no ASO e da autorização formal da organização (item 35.4.1).',
     topics: [
-      { title: 'Normas e regulamentos aplicáveis ao trabalho em altura', hours: 1 },
-      { title: 'Análise de risco e condições impeditivas', hours: 1 },
-      { title: 'Riscos potenciais inerentes ao trabalho em altura e medidas de prevenção e controle', hours: 1 },
-      { title: 'Sistemas, equipamentos e procedimentos de proteção coletiva', hours: 1 },
-      { title: 'Equipamentos de proteção individual para trabalho em altura: seleção, inspeção, conservação e limitação de uso', hours: 2 },
-      { title: 'Acidentes típicos em trabalhos em altura', hours: 1 },
-      { title: 'Condutas em situações de emergência, incluindo noções de técnicas de resgate e de primeiros socorros', hours: 1 }
+      { title: 'Normas e regulamentos aplicáveis ao trabalho em altura (NR-35 e seus anexos, NR-01); hierarquia das medidas de prevenção (item 35.5.2)', hours: 1 },
+      { title: 'Análise de Risco (AR) e condições impeditivas', hours: 1 },
+      { title: 'Riscos potenciais inerentes ao trabalho em altura e medidas de prevenção e controle, inclusive riscos adicionais', hours: 1 },
+      { title: 'Sistemas, equipamentos e procedimentos de proteção coletiva', hours: 0.5 },
+      { title: 'EPI para trabalho em altura: seleção, inspeção, conservação e limitação de uso; sistemas de proteção individual contra quedas (SPIQ), ancoragens, fator de queda e zona livre de queda', hours: 1 },
+      { title: 'Acidentes típicos em trabalhos em altura', hours: 0.5 },
+      { title: 'Condutas em situações de emergência, incluindo noções básicas de técnicas de resgate e de primeiros socorros', hours: 0.5 },
+      { title: 'Utilização segura de escada de uso individual (Anexo III, item 4.2.1.1)', hours: 0.5 },
+      { title: 'Prática: inspeção, ajuste e uso do cinturão tipo paraquedista, talabartes e trava-quedas; conexão a ancoragens e linhas de vida; uso seguro de escadas', hours: 1.5 },
+      { title: 'Prática: noções básicas de resgate e primeiros socorros', hours: 0.5 }
+    ]
+  },
+  {
+    key: 'nr35-reciclagem',
+    code: 'NR-35 RECICLAGEM',
+    name: 'Reciclagem NR-35 – Trabalho em Altura (Treinamento Periódico)',
+    normReference: 'NR-35 (texto atualizado – Portaria MTE nº 1.259/2026), item 35.4.2.2 – treinamento periódico (a cada dois anos, mínimo 8 h, presencial)',
+    workloadHours: 8,
+    validityMonths: 24,
+    modality: 'presencial',
+    minAttendance: 100,
+    minGrade: 7,
+    active: true,
+    prerequisite: 'Treinamento inicial NR-35 (8 h).',
+    notes: 'Treinamento periódico a cada dois anos, com carga horária mínima de 8 h e conteúdo definido pelo empregador (item 35.4.2.2), teórico e prático (item 35.4.2) e presencial (item 35.4.5). A autorização para trabalho em altura depende também da aptidão no ASO e da autorização formal da organização (item 35.4.1).',
+    topics: [
+      { title: 'Revisão: normas e regulamentos, Análise de Risco, condições impeditivas e hierarquia das medidas de prevenção', hours: 1.5 },
+      { title: 'Revisão: riscos potenciais, proteção coletiva, SPIQ e EPI para trabalho em altura', hours: 1.5 },
+      { title: 'Análise de acidentes e incidentes; mudanças em procedimentos, equipamentos e na norma', hours: 1 },
+      { title: 'Utilização segura de escada de uso individual', hours: 0.5 },
+      { title: 'Condutas em emergência, resgate e primeiros socorros', hours: 0.5 },
+      { title: 'Prática: inspeção e uso dos EPI e dos sistemas de ancoragem', hours: 2 },
+      { title: 'Prática: simulado de resgate', hours: 1 }
     ]
   },
   {
