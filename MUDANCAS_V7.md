@@ -34,6 +34,12 @@
   Salvamento** (24 h; reciclagem bienal; ajustar para 32 h conforme o plano de emergência).
   Os cursos padrão agora são cadastrados um a um: cursos novos entram também em empresas que
   já usam o módulo, e um curso apagado de propósito não volta sozinho.
+- **Cursos NR-20 (texto atualizado 2025, Anexo I)**: Iniciação (3 h); Básico Classe I/II/III
+  (4/6/8 h, atualização trienal); Intermediário Classe I/II/III (12/14/16 h, atualização trienal
+  na Classe I e bienal nas II e III); Avançado I (20 h, bienal); Avançado II (32 h, anual);
+  Específico Classe II/III (14/16 h); complementações de 8 h (Básico→Intermediário,
+  Intermediário→Avançado I, Avançado I→Avançado II) e cursos de Atualização de 4 h. Conteúdo
+  programático da norma, parte prática nos cursos Básico, Intermediário e Avançados.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

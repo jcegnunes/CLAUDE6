@@ -5,6 +5,7 @@
  * sugestão: a norma define o conteúdo mínimo e a carga horária total.
  */
 import type { TrainingCourse } from './types';
+import { NR20_COURSES } from './defaultCoursesNr20';
 
 type CourseSeed = Omit<TrainingCourse, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'serverUpdatedAt'>;
 
@@ -261,5 +262,7 @@ export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
       { title: 'Prática: simulados de resgate em espaço confinado', hours: 10 },
       { title: 'Prática: primeiros socorros e transporte da vítima', hours: 2 }
     ]
-  }
+  },
+  // NR-20: iniciação, básico, intermediário, avançados, específico, complementações e atualizações
+  ...NR20_COURSES
 ];

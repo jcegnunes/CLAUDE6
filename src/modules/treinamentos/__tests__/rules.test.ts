@@ -81,10 +81,13 @@ describe('Treinamentos — QR Code', () => {
 describe('Treinamentos — cursos padrão', () => {
   it('NR-10 Básico, NR-10 SEP, NR-35, EPI/EPC e NR-33 com a soma dos tópicos igual à carga horária', () => {
     expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
-      'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem']);
+      'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem',
+      ...DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-')).map(c => c.key)]);
     DEFAULT_COURSES.forEach(c => {
       expect(totalTopicHours(c.topics), c.name).toBe(c.workloadHours);
-      expect(c.validityMonths).toBeGreaterThan(0);
+      // NR-20: Iniciação e Específico não têm atualização periódica (Anexo I, Tabela 2)
+      if (/^nr20-(iniciacao|especifico)/.test(c.key)) expect(c.validityMonths).toBe(0);
+      else expect(c.validityMonths).toBeGreaterThan(0);
     });
     expect(DEFAULT_COURSES.find(c => c.key === 'nr10-basico')!.workloadHours).toBe(40);
     expect(DEFAULT_COURSES.find(c => c.key === 'nr10-sep')!.workloadHours).toBe(40);
@@ -137,5 +140,25 @@ describe('Treinamentos — NR-33 (Anexo III, 2022)', () => {
       const { c, pratica } = prat(k);
       expect(pratica, k).toBeGreaterThanOrEqual(c.workloadHours / 2);
     });
+  });
+});
+
+describe('Treinamentos — NR-20 (Anexo I, Tabelas 1 e 2)', () => {
+  const get = (key: string) => DEFAULT_COURSES.find(c => c.key === key)!;
+  it('carga horária e atualização conforme a classe da instalação', () => {
+    const h = (k: string) => [get(k).workloadHours, get(k).validityMonths];
+    expect(h('nr20-iniciacao')).toEqual([3, 0]);
+    expect([h('nr20-basico-classe-i'), h('nr20-basico-classe-ii'), h('nr20-basico-classe-iii')]).toEqual([[4, 36], [6, 36], [8, 36]]);
+    expect([h('nr20-intermediario-classe-i'), h('nr20-intermediario-classe-ii'), h('nr20-intermediario-classe-iii')]).toEqual([[12, 36], [14, 24], [16, 24]]);
+    expect([h('nr20-avancado-1'), h('nr20-avancado-2')]).toEqual([[20, 24], [32, 12]]);
+    expect([h('nr20-especifico-classe-ii'), h('nr20-especifico-classe-iii')]).toEqual([[14, 0], [16, 0]]);
+    expect(DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-complementacao')).every(c => c.workloadHours === 8)).toBe(true);
+    expect(DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-atualizacao')).map(c => [c.workloadHours, c.validityMonths])).toEqual([[4, 36], [4, 36], [4, 24], [4, 24], [4, 12]]);
+  });
+  it('básico, intermediário e avançados têm parte prática; códigos únicos', () => {
+    DEFAULT_COURSES.filter(c => /^nr20-(basico|intermediario|avancado)/.test(c.key))
+      .forEach(c => expect(c.topics.some(t => t.title.startsWith('Prática')), c.key).toBe(true));
+    const codes = DEFAULT_COURSES.map(c => c.code);
+    expect(new Set(codes).size).toBe(codes.length);
   });
 });
