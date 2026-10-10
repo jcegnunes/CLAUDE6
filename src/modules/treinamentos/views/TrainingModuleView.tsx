@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { GraduationCap, RefreshCw, AlertTriangle, CloudOff, LayoutDashboard, Users, Award, BookOpen, UserCheck } from 'lucide-react';
+import { GraduationCap, RefreshCw, AlertTriangle, CloudOff } from 'lucide-react';
+import { navigateTo } from '../../registry';
 import { ensureDefaultCourses, getTrainingConflicts, pendingTrainingCount, subscribeTraining } from '../repository';
 import {
   getTrainingSyncStatus, resolveConflictKeepMine, resolveConflictUseServer, startTrainingSync, subscribeTrainingSync, syncTraining
@@ -12,19 +13,22 @@ import { InstructorsPanel } from './InstructorsPanel';
 import { alertError, btnSecondary, cardCls } from './ui';
 
 type Tab = 'painel' | 'turmas' | 'certificados' | 'cursos' | 'instrutores';
+type CertFilter = 'todos' | 'vencendo' | 'vencido';
 
-const TABS: Array<{ id: Tab; label: string; icon: React.ElementType }> = [
-  { id: 'painel', label: 'Painel', icon: LayoutDashboard },
-  { id: 'turmas', label: 'Turmas', icon: Users },
-  { id: 'certificados', label: 'Certificados', icon: Award },
-  { id: 'cursos', label: 'Cursos', icon: BookOpen },
-  { id: 'instrutores', label: 'Instrutores', icon: UserCheck }
-];
+const TAB_TITLE: Record<Tab, string> = {
+  painel: 'Treinamentos',
+  turmas: 'Turmas',
+  certificados: 'Certificados de treinamento',
+  cursos: 'Cursos',
+  instrutores: 'Instrutores'
+};
 
-/** Tela principal do módulo Treinamentos. */
-export const TrainingModuleView: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('painel');
-  const [certFilter, setCertFilter] = useState<'todos' | 'vencendo' | 'vencido'>('todos');
+// filtro pedido pelo atalho do Painel ("vencem em 60 dias", "vencidos") para a tela Certificados
+let pendingCertFilter: CertFilter = 'todos';
+
+/** Telas do módulo Treinamentos (cada uma é um subitem do menu). */
+const TrainingScreen: React.FC<{ tab: Tab }> = ({ tab }) => {
+  const [certFilter] = useState<CertFilter>(() => { const f = pendingCertFilter; pendingCertFilter = 'todos'; return f; });
   const [, setVersion] = useState(0);
   const [sync, setSync] = useState(getTrainingSyncStatus());
 
@@ -40,8 +44,8 @@ export const TrainingModuleView: React.FC = () => {
   const conflicts = getTrainingConflicts();
 
   const openTab = (t: 'turmas' | 'certificados', filter?: 'vencendo' | 'vencido') => {
-    setCertFilter(filter || 'todos');
-    setTab(t);
+    pendingCertFilter = filter || 'todos';
+    navigateTo(t === 'turmas' ? 'treinamentos_turmas' : 'treinamentos_certificados');
   };
 
   return (
@@ -50,7 +54,7 @@ export const TrainingModuleView: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center"><GraduationCap className="w-5 h-5" /></div>
           <div>
-            <h2 className="text-lg font-black text-slate-900">Treinamentos</h2>
+            <h2 className="text-lg font-black text-slate-900">{TAB_TITLE[tab]}</h2>
             <p className="text-xs text-slate-500">Turmas, certificados com QR Code de validação e controle de reciclagem</p>
           </div>
         </div>
@@ -84,19 +88,6 @@ export const TrainingModuleView: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-1">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => { setTab(t.id); if (t.id === 'certificados') setCertFilter('todos'); }}
-            className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${tab === t.id ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-          >
-            <t.icon className="w-3.5 h-3.5" /> {t.label}
-          </button>
-        ))}
-      </div>
-
       {tab === 'painel' && <TrainingDashboard onOpen={openTab} />}
       {tab === 'turmas' && <ClassesPanel />}
       {tab === 'certificados' && <CertificatesPanel key={certFilter} initialFilter={certFilter} />}
@@ -105,5 +96,12 @@ export const TrainingModuleView: React.FC = () => {
     </div>
   );
 };
+
+/** Painel (tela principal do módulo) e demais subitens do menu. */
+export const TrainingModuleView: React.FC = () => <TrainingScreen tab="painel" />;
+export const TrainingClassesView: React.FC = () => <TrainingScreen tab="turmas" />;
+export const TrainingCertificatesView: React.FC = () => <TrainingScreen tab="certificados" />;
+export const TrainingCoursesView: React.FC = () => <TrainingScreen tab="cursos" />;
+export const TrainingInstructorsView: React.FC = () => <TrainingScreen tab="instrutores" />;
 
 export default TrainingModuleView;

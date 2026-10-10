@@ -1,5 +1,5 @@
 /** Manifesto do módulo Treinamentos (lido pelo registro de módulos). */
-import { GraduationCap, Palette } from 'lucide-react';
+import { GraduationCap, Palette, LayoutDashboard, Users, Award, BookOpen, UserCheck } from 'lucide-react';
 import { lazyView } from '../../utils/lazyView';
 import type { PlatformModule } from '../types';
 
@@ -12,6 +12,14 @@ export const treinamentosModule: PlatformModule = {
   // Clientes (empresa contratante da turma), validação e configuração; OS são dos ensaios
   workspace: { sharedGroups: ['clientes', 'validacao', 'sistema'], hiddenItems: ['service_orders'] },
   View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingModuleView'),
+  // Subitens do menu Treinamentos (antes eram abas dentro da tela)
+  menuItems: [
+    { id: 'treinamentos', label: 'Painel', icon: LayoutDashboard, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'] },
+    { id: 'treinamentos_turmas', label: 'Turmas', icon: Users, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingClassesView') },
+    { id: 'treinamentos_certificados', label: 'Certificados', icon: Award, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingCertificatesView') },
+    { id: 'treinamentos_cursos', label: 'Cursos', icon: BookOpen, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingCoursesView') },
+    { id: 'treinamentos_instrutores', label: 'Instrutores', icon: UserCheck, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingInstructorsView') }
+  ],
   // Configuração do Sistema → Modelo do Certificado (alterar: só administrador ou RT)
   settingsItems: [{
     id: 'treinamentos_modelo',

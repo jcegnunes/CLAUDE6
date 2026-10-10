@@ -75,7 +75,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const companyInfo = DielectricStorageService.getCompanyInfo();
   const moduleGroups: NavGroup[] = PLATFORM_MODULES
     .filter(m => isModuleEnabled(companyInfo, m.id))
-    .map(m => ({ id: `mod-${m.id}`, label: m.label, icon: m.icon, items: [{ id: m.id, label: m.label, icon: m.icon, roles: m.roles }] }));
+    .map(m => ({
+      id: `mod-${m.id}`, label: m.label, icon: m.icon,
+      items: m.menuItems?.length
+        ? m.menuItems.map(it => ({ id: it.id, label: it.label, icon: it.icon, roles: it.roles }))
+        : [{ id: m.id, label: m.label, icon: m.icon, roles: m.roles }]
+    }));
 
   // Telas de configuração dos módulos: só com o módulo ligado e (com módulo escolhido) aberto
   const moduleSettingsItems: NavItem[] = PLATFORM_MODULES

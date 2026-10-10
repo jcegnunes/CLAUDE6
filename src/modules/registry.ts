@@ -17,3 +17,8 @@ export function isModuleEnabled(info: Pick<CompanyLabInfo, 'enabledModules'> | n
 export function getModule(id: string): PlatformModule | undefined {
   return PLATFORM_MODULES.find(m => m.id === id);
 }
+
+/** Abre outra tela do app a partir de um módulo (ex.: atalho do painel para "Certificados"). */
+export function navigateTo(view: string): void {
+  window.dispatchEvent(new CustomEvent<string>('jvm-navigate', { detail: view }));
+}

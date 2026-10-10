@@ -235,6 +235,9 @@ export default function App() {
     window.addEventListener('jvm-data-changed', handleDataChanged);
     window.addEventListener('jvm-auth-changed', handleAuthChanged);
     window.addEventListener('jvm-storage-quota', handleStorageQuota);
+    // atalhos dos módulos (ex.: Painel do Treinamentos → Certificados)
+    const handleNavigate = (e: Event) => { const view = (e as CustomEvent<string>).detail; if (view) setActiveView(view); };
+    window.addEventListener('jvm-navigate', handleNavigate);
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -242,6 +245,7 @@ export default function App() {
       window.removeEventListener('jvm-data-changed', handleDataChanged);
       window.removeEventListener('jvm-auth-changed', handleAuthChanged);
       window.removeEventListener('jvm-storage-quota', handleStorageQuota);
+      window.removeEventListener('jvm-navigate', handleNavigate);
     };
   }, []);
 
@@ -335,8 +339,9 @@ export default function App() {
     .map(m => <m.View key={`${prefix}_${m.id}`} />)
     .concat(PLATFORM_MODULES
       .filter(m => isModuleEnabled(DielectricStorageService.getCompanyInfo(), m.id) && canUseModule(currentUser, m.id))
-      .flatMap(m => (m.settingsItems || []).filter(it => it.id === activeView && it.roles.includes(currentUser.role)))
-      .map(it => <it.View key={`${prefix}_${it.id}`} />));
+      .flatMap(m => [...(m.settingsItems || []), ...(m.menuItems || [])]
+        .filter(it => it.id === activeView && it.id !== m.id && it.roles.includes(currentUser.role)))
+      .map(it => (it.View ? <it.View key={`${prefix}_${it.id}`} /> : null)));
 
   // If this device was opened by scanning the remote camera QR code on a mobile phone
   if (mobileCamSessionId) {

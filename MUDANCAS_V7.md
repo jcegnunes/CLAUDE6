@@ -23,6 +23,9 @@
   cada usuário edita os próprios dados (nome, cargo, CREA/CFT, registro, telefone) e desenha ou
   envia a **própria assinatura**, usada nos laudos e certificados. E-mail, perfil, empresa e
   módulos continuam só com o administrador (o banco também protege esses campos).
+- **Menu Treinamentos com subitens:** Painel, Turmas, Certificados, Cursos e Instrutores saíram
+  das abas da tela e viraram itens do bloco **Treinamentos** no menu lateral. Os atalhos do
+  Painel (vencendo, vencidos, turmas abertas) abrem o subitem certo, já filtrado.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

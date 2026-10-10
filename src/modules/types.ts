@@ -25,6 +25,11 @@ export interface PlatformModule {
    * quando este módulo está aberto). O id também é o da tela (activeView).
    */
   settingsItems?: ModuleSettingsItem[];
+  /**
+   * Subitens do bloco do módulo no menu (cada um é uma tela). O item com o
+   * mesmo id do módulo usa a tela principal (View) e abre ao escolher o módulo.
+   */
+  menuItems?: Array<Omit<ModuleSettingsItem, 'View'> & { View?: ComponentType<Record<string, never>> }>;
 }
 
 export interface ModuleSettingsItem {
