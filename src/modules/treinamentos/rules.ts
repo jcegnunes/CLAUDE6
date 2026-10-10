@@ -140,6 +140,18 @@ export function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Array.from(random, b => b.toString(36).padStart(2, '0')).join('').slice(0, 8)}`;
 }
 
+/**
+ * NR do curso para o nome do arquivo (ex.: "NR-12 ELEVADORES" → "NR12", "NR-06 EPI" → "NR06").
+ * Lida do código e, se não houver, do nome do curso; vazio quando o curso não é de uma NR.
+ */
+export function courseNrTag(course: { code?: string; courseName?: string; name?: string }): string {
+  for (const text of [course.code, course.courseName, course.name]) {
+    const m = (text || '').match(/\bNR[\s-]*0*(\d{1,2})\b/i);
+    if (m) return `NR${m[1].padStart(2, '0')}`;
+  }
+  return '';
+}
+
 export function formatDateBr(iso?: string): string {
   if (!iso) return '';
   const [y, m, d] = iso.slice(0, 10).split('-');

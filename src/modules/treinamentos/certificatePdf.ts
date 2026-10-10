@@ -11,7 +11,7 @@ import { saveDocLocally, saveFileLocally } from '../../utils/nativeFileSaver';
 import { buildValidationUrl } from '../../config/validationPortalConfig';
 import { DielectricStorageService } from '../../services/syncEngine';
 import type { CompanyLabInfo } from '../../types';
-import { displayCompany, formatCpf, formatDateBr, formatHours, totalTopicHours, onlyDigits } from './rules';
+import { courseNrTag, displayCompany, formatCpf, formatDateBr, formatHours, totalTopicHours, onlyDigits } from './rules';
 import type { TrainingCertificate, TrainingClass, TrainingInstructor } from './types';
 import { companyHeaderLines, fillTemplate, getTrainingLayout, hexToRgb, type TrainingCertificateLayout } from './layout';
 
@@ -550,9 +550,10 @@ function newCertificateDoc(): jsPDF {
   return hardenPdfText(new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }));
 }
 
-export function certificateFileName(cert: TrainingCertificate): string {
+/** Ex.: Certificado_TRE-2610-0027_NR12_Vanessa_Araujo_Martins.pdf (sem a NR quando o curso não é de uma NR). */
+export function certificateFileName(cert: Pick<TrainingCertificate, 'certificateNumber' | 'participantName' | 'courseName'> & { code?: string }): string {
   const name = cert.participantName.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  return `Certificado_${cert.certificateNumber}_${name}.pdf`;
+  return ['Certificado', cert.certificateNumber, courseNrTag(cert), name].filter(Boolean).join('_') + '.pdf';
 }
 
 /** Gera um PDF com um ou vários certificados (frente e verso cada). */
@@ -575,7 +576,10 @@ export async function renderTrainingCertificates(
  */
 export async function exportTrainingCertificates(certs: TrainingCertificate[], fileName?: string): Promise<void> {
   if (!certs.length) return;
-  const name = fileName || (certs.length === 1 ? certificateFileName(certs[0]) : `Certificados_${certs[0].classNumber || 'treinamento'}.pdf`);
+  // vários certificados da mesma NR: a NR também vai no nome do arquivo (ex.: Certificados_TUR-2610-0033_NR33.zip)
+  const tags = Array.from(new Set(certs.map(c => courseNrTag(c))));
+  const groupName = ['Certificados', certs[0].classNumber || 'treinamento', tags.length === 1 ? tags[0] : ''].filter(Boolean).join('_') + '.pdf';
+  const name = fileName || (certs.length === 1 ? certificateFileName(certs[0]) : groupName);
 
   // carregado só aqui: o validador público também gera o PDF e não precisa disso
   const signing = await import('./signingCerts');

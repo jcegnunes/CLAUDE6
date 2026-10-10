@@ -68,6 +68,9 @@
   (1.5.3.1.4, 1.5.3.2.1, 1.5.4.4.5.3), participação dos trabalhadores e da CIPA (1.5.3.3), ordem de
   prioridade das medidas (1.4.1 "g") e prevenção ao assédio e à violência (1.4.1.1, anual nas
   empresas com CIPA). Aprovação por presença (sem nota).
+- **Nome do PDF com a NR do curso:** `Certificado_TRE-2610-0027_NR12_Vanessa_Araujo_Martins.pdf`; vários
+  certificados da mesma NR saem como `Certificados_TUR-2610-0033_NR33.zip`. Cursos que não são de
+  uma NR mantêm o nome de antes.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

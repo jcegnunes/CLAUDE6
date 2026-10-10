@@ -213,3 +213,17 @@ describe('Treinamentos — NR-01 psicossocial', () => {
     expect([c.workloadHours, c.validityMonths, c.minGrade]).toEqual([4, 12, undefined]);
   });
 });
+
+describe('Treinamentos — nome do arquivo do certificado', () => {
+  it('inclui a NR do curso: Certificado_TRE-2610-0027_NR12_Vanessa_Araujo_Martins.pdf', async () => {
+    const { certificateFileName } = await import('../certificatePdf');
+    const { courseNrTag } = await import('../rules');
+    expect(certificateFileName({ certificateNumber: 'TRE-2610-0027', participantName: 'Vanessa Araújo Martins', courseName: 'NR-12 – Segurança em Máquinas e Equipamentos na Instalação e Manutenção de Elevadores' }))
+      .toBe('Certificado_TRE-2610-0027_NR12_Vanessa_Araujo_Martins.pdf');
+    expect(courseNrTag({ courseName: 'Reciclagem NR-33 – Supervisor de Entrada' })).toBe('NR33');
+    expect(courseNrTag({ courseName: 'NR-6 – EPI' })).toBe('NR06');
+    expect(courseNrTag({ code: 'NR-01 PSICOSSOCIAL' })).toBe('NR01');
+    // curso que não é de uma NR: o nome fica como antes
+    expect(certificateFileName({ certificateNumber: 'TRE-1', participantName: 'Ana', courseName: 'Uso, Inspeção e Cuidados com EPI e EPC Isolantes' })).toBe('Certificado_TRE-1_Ana.pdf');
+  });
+});
