@@ -158,6 +158,15 @@ export const DEFAULT_COURSE_UPDATES: Array<{ key: string; mark: string; previous
   { key: 'nr35', mark: 'nr35@2026', previousNormReference: 'NR-35, item 35.3 – capacitação e treinamento' }
 ];
 
+/**
+ * Cursos padrão retirados: o curso que o sistema cadastrou (id padrão) é
+ * excluído uma única vez. Certificados emitidos continuam válidos (guardam os
+ * dados do curso); turmas com o curso passam a mostrar "Curso excluído".
+ */
+export const DEFAULT_COURSE_REMOVALS: Array<{ key: string; mark: string }> = [
+  { key: 'epi-epc-isolantes', mark: 'remover:epi-epc-isolantes' }
+];
+
 /** Cursos padrão da primeira versão: empresas marcadas só com "true" já receberam estes. */
 const FIRST_DEFAULT_KEYS = ['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes'];
 
@@ -174,8 +183,18 @@ export function ensureDefaultCourses(): number {
   const done = new Set<string>(mark === true ? FIRST_DEFAULT_KEYS : Array.isArray(mark) ? mark : []);
   const missing = DEFAULT_COURSES.filter(c => !done.has(c.key));
   const updates = DEFAULT_COURSE_UPDATES.filter(u => !done.has(u.mark));
-  if (!missing.length && !updates.length) return 0;
+  const removals = DEFAULT_COURSE_REMOVALS.filter(r => !done.has(r.mark));
+  if (!missing.length && !updates.length && !removals.length) {
+    write(TRAINING_KEYS.SEEDED, { ...seeded, [company]: Array.from(done) });
+    return 0;
+  }
   const existing = getCourses();
+  removals.forEach(r => {
+    done.add(r.mark);
+    done.add(r.key); // não volta a ser cadastrado
+    const id = `crs-${company}-${r.key}`;
+    if (existing.some(c => c.id === id)) removeRecord('training_courses', id);
+  });
   let created = 0;
   updates.forEach(u => {
     done.add(u.mark);

@@ -79,8 +79,8 @@ describe('Treinamentos — QR Code', () => {
 });
 
 describe('Treinamentos — cursos padrão', () => {
-  it('NR-10 Básico, NR-10 SEP, NR-35, EPI/EPC e NR-33 com a soma dos tópicos igual à carga horária', () => {
-    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'nr35-reciclagem', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
+  it('cursos padrão das NR com a soma dos tópicos igual à carga horária', () => {
+    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'nr35-reciclagem', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
       'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem',
       ...DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-')).map(c => c.key),
       'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi', 'nr12-elevadores', 'nr12-elevadores-reciclagem', 'nr01-psicossocial']);

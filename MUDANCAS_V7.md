@@ -71,6 +71,10 @@
 - **Nome do PDF com a NR do curso:** `Certificado_TRE-2610-0027_NR12_Vanessa_Araujo_Martins.pdf`; vários
   certificados da mesma NR saem como `Certificados_TUR-2610-0033_NR33.zip`. Cursos que não são de
   uma NR mantêm o nome de antes.
+- **Curso "Uso, Inspeção e Cuidados com EPI e EPC Isolantes" retirado:** saiu dos cursos padrão e é
+  excluído (uma única vez) nas empresas onde o sistema o cadastrou, na próxima abertura do módulo
+  por um usuário que edita treinamentos. Certificados já emitidos continuam válidos; turmas com
+  esse curso mostram "Curso excluído". "Recolocar cursos padrão" não o traz de volta.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

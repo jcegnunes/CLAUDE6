@@ -58,3 +58,18 @@ describe('Cursos padrão em empresa que já usa o módulo', () => {
     expect(ensureDefaultCourses()).toBe(DEFAULT_COURSES.length);
   });
 });
+
+describe('Curso padrão retirado (EPI/EPC Isolantes)', () => {
+  it('exclui o curso cadastrado pelo sistema uma única vez e não o recria', async () => {
+    const epi = { ...OLD_NR35, id: 'crs-c1-epi-epc-isolantes', code: 'EPI/EPC ISOLANTES', name: 'Uso, Inspeção e Cuidados com EPI e EPC Isolantes', normReference: 'NR-6 e NR-10' };
+    await storeSet(TRAINING_KEYS.COURSES, [epi]);
+    localStorage.setItem(TRAINING_KEYS.SEEDED, JSON.stringify({ c1: true }));
+    ensureDefaultCourses();
+    expect(courses().some(c => c.id === 'crs-c1-epi-epc-isolantes')).toBe(false);
+    expect(DEFAULT_COURSES.some(c => c.key === 'epi-epc-isolantes')).toBe(false);
+    // novo cadastro manual com outro id não é apagado depois
+    await storeSet(TRAINING_KEYS.COURSES, [...courses(), { ...epi, id: 'crs-manual' }]);
+    ensureDefaultCourses();
+    expect(courses().some(c => c.id === 'crs-manual')).toBe(true);
+  });
+});

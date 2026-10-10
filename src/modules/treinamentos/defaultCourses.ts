@@ -128,27 +128,6 @@ export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
     ]
   },
   {
-    key: 'epi-epc-isolantes',
-    code: 'EPI/EPC ISOLANTES',
-    name: 'Uso, Inspeção e Cuidados com EPI e EPC Isolantes',
-    normReference: 'NR-6 e NR-10 – treinamento sobre uso adequado, guarda e conservação',
-    workloadHours: 4,
-    validityMonths: 24,
-    modality: 'presencial',
-    minAttendance: 75,
-    minGrade: 7,
-    active: true,
-    notes: 'Luvas, mangas, tapetes, mantas, ferramentas isoladas e demais equipamentos isolantes.',
-    topics: [
-      { title: 'Classes de tensão e seleção de EPI/EPC isolantes (luvas, mangas, tapetes, mantas e ferramentas isoladas)', hours: 1 },
-      { title: 'Inspeção visual antes do uso e teste de inflação das luvas', hours: 1 },
-      { title: 'Uso correto: luvas de cobertura, limites de uso e incompatibilidades', hours: 0.5 },
-      { title: 'Guarda, transporte, limpeza e conservação', hours: 0.5 },
-      { title: 'Ensaios dielétricos periódicos, rastreabilidade e descarte', hours: 0.5 },
-      { title: 'Atividade prática de inspeção', hours: 0.5 }
-    ]
-  },
-  {
     // NR-33 (Portaria MTP nº 1.690/2022): Anexo III, Quadro 1 e item 2.1 b
     key: 'nr33-vigia-ta',
     code: 'NR-33 VIGIA/TA',
