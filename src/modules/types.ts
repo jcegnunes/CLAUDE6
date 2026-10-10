@@ -20,4 +20,17 @@ export interface PlatformModule {
    * aparecem (ex.: clientes, validação, configuração) e itens a esconder.
    */
   workspace?: { sharedGroups: string[]; hiddenItems?: string[] };
+  /**
+   * Telas do módulo no bloco "Configuração do Sistema" do menu (aparecem só
+   * quando este módulo está aberto). O id também é o da tela (activeView).
+   */
+  settingsItems?: ModuleSettingsItem[];
+}
+
+export interface ModuleSettingsItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  roles: UserRole[];
+  View: ComponentType<Record<string, never>>;
 }

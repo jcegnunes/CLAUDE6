@@ -2,7 +2,7 @@
 
 ## Versão 7.4.0 (08/10/2026) — resumo
 
-- **Treinamentos:** aba **Modelo do certificado** (logo e segundo logo, dados da empresa na
+- **Treinamentos:** tela **Modelo do Certificado** em Configuração do Sistema (logo e segundo logo, dados da empresa na
   frente/verso, textos com campos, assinaturas, cores, 6 modelos de moldura, importação de
   modelo em PDF/JPG/PNG, pré-visualização); excluir turma ou curso cancela os certificados;
   turma sem Função e Nota; validador sem botão de baixar o PDF.
@@ -150,7 +150,8 @@ e mostra o aviso para executar o script.
   certificados, edite a turma e escolha outro curso.
 - **Validador**: a tela de validação do certificado de treinamento não mostra mais o botão
   "Baixar certificado (PDF)"; o PDF é baixado só pelo módulo Treinamentos.
-- **Modelo do certificado** (aba em Treinamentos; administrador ou RT altera):
+- **Modelo do Certificado** (menu **Configuração do Sistema → Modelo do Certificado**, no módulo
+  Treinamentos; administrador ou RT altera):
   logo (da empresa, próprio do certificado ou nenhum; posição esquerda/centro/direita e
   tamanho, sem distorcer), dados da empresa no cabeçalho, título, subtítulo, frase antes do
   nome, **texto padrão** com campos ({curso}, {norma}, {periodo}, {local}, {carga_horaria},
@@ -159,17 +160,17 @@ e mostra o aviso para executar o script.
   moldura e verso (título e aproveitamento). Pré-visualização do PDF ao lado. Fica nos dados
   da empresa: sincroniza entre aparelhos e entra no backup. A assinatura digital ICP-Brasil é
   aplicada só para quem aparece no certificado. O padrão reproduz o certificado anterior.
-- **Importar modelo do certificado** (Treinamentos → aba Modelo do certificado → Importar modelo): arte em **PDF, JPG ou
+- **Importar modelo do certificado** (Configuração do Sistema → Modelo do Certificado → Importar modelo): arte em **PDF, JPG ou
   PNG** usada como fundo da página; o sistema escreve por cima nome, texto, assinaturas e QR
   Code. PDF com 2 páginas: 1ª = frente, 2ª = verso (dá para trocar cada uma). Ajustes de
   posição dos textos e das assinaturas para encaixar na arte. Ao importar, oferece desligar a
   moldura, o logo e os dados da empresa do sistema. Use A4 deitado (paisagem). A imagem é
   reduzida (~150 dpi, JPEG) e fica no layout da empresa. Nova dependência: `pdfjs-dist`.
-- **Molduras** (aba Modelo do certificado → Moldura): 6 modelos — Clássica, Arredondada,
+- **Molduras** (Modelo do Certificado → Moldura): 6 modelos — Clássica, Arredondada,
   Tracejada, Cantoneiras, Faixa larga e Geométrica — além de "Sem moldura"; uma ou duas
   linhas, com cor e espessura de cada linha (na Faixa larga a espessura é a largura da faixa).
   Layouts já salvos continuam com a moldura dupla de antes.
-- **Logo e dados da empresa por página** (aba Modelo do certificado → Logo e cabeçalho):
+- **Logo e dados da empresa por página** (Modelo do Certificado → Logo e cabeçalho):
   caixas de seleção para mostrar o logo e os dados da empresa na **frente** e/ou no **verso**,
   e escolha de **quais dados** aparecem (razão social, nome fantasia, CNPJ, CREA, endereço,
   telefone, e-mail, site, Instagram). O padrão mostra o mesmo de antes (razão social, CNPJ,

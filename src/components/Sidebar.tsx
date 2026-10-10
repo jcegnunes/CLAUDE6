@@ -78,6 +78,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .filter(m => isModuleEnabled(companyInfo, m.id))
     .map(m => ({ id: `mod-${m.id}`, label: m.label, icon: m.icon, items: [{ id: m.id, label: m.label, icon: m.icon, roles: m.roles }] }));
 
+  // Telas de configuração dos módulos: só com o módulo ligado e (com módulo escolhido) aberto
+  const moduleSettingsItems: NavItem[] = PLATFORM_MODULES
+    .filter(m => isModuleEnabled(companyInfo, m.id) && (!workspace || workspace.id === m.id))
+    .flatMap(m => (m.settingsItems || []).map(it => ({ id: it.id, label: it.label, icon: it.icon, roles: it.roles })));
+
   const groupDefs: NavGroup[] = [
     { id: 'inicio', items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ALL }
@@ -99,7 +104,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       { id: 'sync', label: 'Sincronização & Conflitos', icon: RefreshCw, badge: pendingSyncCount > 0 ? String(pendingSyncCount) : undefined, roles: STAFF },
       { id: 'audit', label: 'Auditoria & Logs', icon: History, roles: MANAGERS },
       { id: 'usuarios', label: 'Usuários & Técnicos', icon: Users, roles: MANAGERS },
-      { id: 'backup', label: 'Configurações & Backup', icon: Sliders, roles: MANAGERS }
+      { id: 'backup', label: 'Configurações & Backup', icon: Sliders, roles: MANAGERS },
+      ...moduleSettingsItems
     ] },
     { id: 'validacao', items: [
       { id: 'validar', label: 'Validação de QR Code', icon: QrCode, roles: ALL }

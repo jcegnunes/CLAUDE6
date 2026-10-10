@@ -333,7 +333,11 @@ export default function App() {
       && m.roles.includes(currentUser.role)
       && canUseModule(currentUser, m.id))
     // sem dataVersion na chave: a sincronização dos ensaios não fecha o que está sendo editado
-    .map(m => <m.View key={`${prefix}_${m.id}`} />);
+    .map(m => <m.View key={`${prefix}_${m.id}`} />)
+    .concat(PLATFORM_MODULES
+      .filter(m => isModuleEnabled(DielectricStorageService.getCompanyInfo(), m.id) && canUseModule(currentUser, m.id))
+      .flatMap(m => (m.settingsItems || []).filter(it => it.id === activeView && it.roles.includes(currentUser.role)))
+      .map(it => <it.View key={`${prefix}_${it.id}`} />));
 
   // If this device was opened by scanning the remote camera QR code on a mobile phone
   if (mobileCamSessionId) {
