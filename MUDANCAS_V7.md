@@ -26,6 +26,8 @@
 - **Menu Treinamentos com subitens:** Painel, Turmas, Certificados, Cursos e Instrutores saíram
   das abas da tela e viraram itens do bloco **Treinamentos** no menu lateral. Os atalhos do
   Painel (vencendo, vencidos, turmas abertas) abrem o subitem certo, já filtrado.
+  No módulo Treinamentos, **Dashboard** (antes "Painel") e **Clientes** ficam soltos no topo do
+  menu, fora do bloco Treinamentos.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

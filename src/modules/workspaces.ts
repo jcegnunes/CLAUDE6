@@ -60,7 +60,8 @@ export function getAvailableWorkspaces(
       description: m.description,
       icon: m.icon,
       home: m.id,
-      groups: [`mod-${m.id}`, ...(m.workspace?.sharedGroups || ['validacao', 'sistema'])],
+      // Dashboard do módulo e blocos do topo (ex.: Clientes) vêm antes do bloco do módulo
+      groups: [`mod-${m.id}-inicio`, ...(m.workspace?.topGroups || []), `mod-${m.id}`, ...(m.workspace?.sharedGroups || ['validacao', 'sistema'])],
       hiddenItems: m.workspace?.hiddenItems || [],
       roles: m.roles
     }));

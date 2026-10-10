@@ -10,11 +10,11 @@ export const treinamentosModule: PlatformModule = {
   icon: GraduationCap,
   roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'],
   // Clientes (empresa contratante da turma), validação e configuração; OS são dos ensaios
-  workspace: { sharedGroups: ['clientes', 'validacao', 'sistema'], hiddenItems: ['service_orders'] },
+  workspace: { topGroups: ['clientes'], sharedGroups: ['validacao', 'sistema'], hiddenItems: ['service_orders'] },
   View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingModuleView'),
   // Subitens do menu Treinamentos (antes eram abas dentro da tela)
   menuItems: [
-    { id: 'treinamentos', label: 'Painel', icon: LayoutDashboard, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'] },
+    { id: 'treinamentos', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], top: true },
     { id: 'treinamentos_turmas', label: 'Turmas', icon: Users, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingClassesView') },
     { id: 'treinamentos_certificados', label: 'Certificados', icon: Award, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingCertificatesView') },
     { id: 'treinamentos_cursos', label: 'Cursos', icon: BookOpen, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingCoursesView') },

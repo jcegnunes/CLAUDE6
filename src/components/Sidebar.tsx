@@ -73,14 +73,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Módulos (src/modules): cada um vira um bloco do menu quando ligado para a empresa
   const companyInfo = DielectricStorageService.getCompanyInfo();
+  // Com o módulo escolhido, itens "top" (ex.: Dashboard) ficam soltos no topo do menu
   const moduleGroups: NavGroup[] = PLATFORM_MODULES
     .filter(m => isModuleEnabled(companyInfo, m.id))
-    .map(m => ({
-      id: `mod-${m.id}`, label: m.label, icon: m.icon,
-      items: m.menuItems?.length
-        ? m.menuItems.map(it => ({ id: it.id, label: it.label, icon: it.icon, roles: it.roles }))
-        : [{ id: m.id, label: m.label, icon: m.icon, roles: m.roles }]
-    }));
+    .flatMap(m => {
+      const asNav = (it: { id: string; label: string; icon: React.ElementType; roles: UserRole[] }) => ({ id: it.id, label: it.label, icon: it.icon, roles: it.roles });
+      if (!m.menuItems?.length) return [{ id: `mod-${m.id}`, label: m.label, icon: m.icon, items: [{ id: m.id, label: m.label, icon: m.icon, roles: m.roles }] }];
+      const top = workspace?.id === m.id ? m.menuItems.filter(it => it.top) : [];
+      return [
+        { id: `mod-${m.id}-inicio`, items: top.map(asNav) },
+        { id: `mod-${m.id}`, label: m.label, icon: m.icon, items: m.menuItems.filter(it => !top.includes(it)).map(asNav) }
+      ];
+    });
 
   // Telas de configuração dos módulos: só com o módulo ligado e (com módulo escolhido) aberto
   const moduleSettingsItems: NavItem[] = PLATFORM_MODULES

@@ -16,7 +16,7 @@ type Tab = 'painel' | 'turmas' | 'certificados' | 'cursos' | 'instrutores';
 type CertFilter = 'todos' | 'vencendo' | 'vencido';
 
 const TAB_TITLE: Record<Tab, string> = {
-  painel: 'Treinamentos',
+  painel: 'Dashboard — Treinamentos',
   turmas: 'Turmas',
   certificados: 'Certificados de treinamento',
   cursos: 'Cursos',

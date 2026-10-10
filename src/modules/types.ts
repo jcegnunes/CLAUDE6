@@ -19,7 +19,12 @@ export interface PlatformModule {
    * Ao escolher este módulo depois do login: blocos comuns do menu que também
    * aparecem (ex.: clientes, validação, configuração) e itens a esconder.
    */
-  workspace?: { sharedGroups: string[]; hiddenItems?: string[] };
+  workspace?: {
+    sharedGroups: string[];
+    hiddenItems?: string[];
+    /** Blocos comuns mostrados no topo, logo após o Dashboard do módulo (ex.: clientes) */
+    topGroups?: string[];
+  };
   /**
    * Telas do módulo no bloco "Configuração do Sistema" do menu (aparecem só
    * quando este módulo está aberto). O id também é o da tela (activeView).
@@ -29,7 +34,11 @@ export interface PlatformModule {
    * Subitens do bloco do módulo no menu (cada um é uma tela). O item com o
    * mesmo id do módulo usa a tela principal (View) e abre ao escolher o módulo.
    */
-  menuItems?: Array<Omit<ModuleSettingsItem, 'View'> & { View?: ComponentType<Record<string, never>> }>;
+  menuItems?: Array<Omit<ModuleSettingsItem, 'View'> & {
+    View?: ComponentType<Record<string, never>>;
+    /** Item solto no topo do menu (fora do bloco do módulo), ex.: Dashboard */
+    top?: boolean;
+  }>;
 }
 
 export interface ModuleSettingsItem {
