@@ -149,27 +149,39 @@ export function deleteCourseAndCancelCertificates(courseId: string, reason: stri
 }
 
 /** Cadastra os cursos padrão na primeira abertura do módulo (por empresa). */
+/** Cursos padrão da primeira versão: empresas marcadas só com "true" já receberam estes. */
+const FIRST_DEFAULT_KEYS = ['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes'];
+
+/**
+ * Cadastra cada curso padrão uma única vez por empresa: cursos padrão novos
+ * (ex.: NR-33) entram também em quem já usa o módulo, e um curso apagado de
+ * propósito não volta (só pelo botão "Recolocar cursos padrão").
+ */
 export function ensureDefaultCourses(): number {
   const company = currentCompanyId();
   if (!company || !canEditTraining()) return 0;
-  const seeded = read<Record<string, boolean>>(TRAINING_KEYS.SEEDED, {});
-  if (seeded[company]) return 0;
+  const seeded = read<Record<string, boolean | string[]>>(TRAINING_KEYS.SEEDED, {});
+  const mark = seeded[company];
+  const done = new Set<string>(mark === true ? FIRST_DEFAULT_KEYS : Array.isArray(mark) ? mark : []);
+  const missing = DEFAULT_COURSES.filter(c => !done.has(c.key));
+  if (!missing.length) return 0;
   const existing = getCourses();
   let created = 0;
-  DEFAULT_COURSES.forEach(({ key, ...seed }) => {
+  missing.forEach(({ key, ...seed }) => {
+    done.add(key);
     const id = `crs-${company}-${key}`;
     if (existing.some(c => c.id === id || c.code === seed.code)) return;
     putRecord<TrainingCourse>('training_courses', { ...seed, topics: seed.topics.map(t => ({ ...t })), id, companyId: company, createdAt: '', updatedAt: '' });
     created++;
   });
-  write(TRAINING_KEYS.SEEDED, { ...seeded, [company]: true });
+  write(TRAINING_KEYS.SEEDED, { ...seeded, [company]: Array.from(done) });
   return created;
 }
 
 /** Recoloca os cursos padrão que foram apagados (botão na tela de cursos). */
 export function restoreDefaultCourses(): number {
   const company = currentCompanyId();
-  const seeded = read<Record<string, boolean>>(TRAINING_KEYS.SEEDED, {});
+  const seeded = read<Record<string, boolean | string[]>>(TRAINING_KEYS.SEEDED, {});
   delete seeded[company];
   write(TRAINING_KEYS.SEEDED, seeded);
   return ensureDefaultCourses();

@@ -28,6 +28,12 @@
   Painel (vencendo, vencidos, turmas abertas) abrem o subitem certo, já filtrado.
   No módulo Treinamentos, **Dashboard** (antes "Painel") e **Clientes** ficam soltos no topo do
   menu, fora do bloco Treinamentos.
+- **Cursos NR-33 (Portaria MTP nº 1.690/2022, Anexo III)**, iniciais e de reciclagem, com
+  conteúdo da norma e ao menos 50% de prática: **Trabalhador Autorizado e Vigia** (16 h; reciclagem
+  8 h anual), **Supervisor de Entrada** (40 h; reciclagem 8 h anual) e **Equipe de Emergência e
+  Salvamento** (24 h; reciclagem bienal; ajustar para 32 h conforme o plano de emergência).
+  Os cursos padrão agora são cadastrados um a um: cursos novos entram também em empresas que
+  já usam o módulo, e um curso apagado de propósito não volta sozinho.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

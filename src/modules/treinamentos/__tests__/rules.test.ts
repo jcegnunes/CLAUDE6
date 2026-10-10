@@ -79,8 +79,9 @@ describe('Treinamentos — QR Code', () => {
 });
 
 describe('Treinamentos — cursos padrão', () => {
-  it('NR-10 Básico, NR-10 SEP, NR-35 e EPI/EPC com a soma dos tópicos igual à carga horária', () => {
-    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes']);
+  it('NR-10 Básico, NR-10 SEP, NR-35, EPI/EPC e NR-33 com a soma dos tópicos igual à carga horária', () => {
+    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
+      'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem']);
     DEFAULT_COURSES.forEach(c => {
       expect(totalTopicHours(c.topics), c.name).toBe(c.workloadHours);
       expect(c.validityMonths).toBeGreaterThan(0);
@@ -110,5 +111,31 @@ describe('Treinamentos — empresa não escolhida', () => {
     expect(displayCompany('Empresa Cliente Ltda')).toBe('Empresa Cliente Ltda');
     expect(displayCompany('  ACME   Ltda ')).toBe('ACME Ltda');
     ['', '   ', '-', '—', 'N/A', 'Não informado', 'Selecione', undefined, null].forEach(v => expect(displayCompany(v as string)).toBe(''));
+  });
+});
+
+describe('Treinamentos — NR-33 (Anexo III, 2022)', () => {
+  const prat = (key: string) => {
+    const c = DEFAULT_COURSES.find(x => x.key === key)!;
+    return { c, pratica: c.topics.filter(t => t.title.startsWith('Prática')).reduce((a, t) => a + t.hours, 0) };
+  };
+  it('inicial: 16 h, anual, ao menos 50% de prática', () => {
+    const { c, pratica } = prat('nr33-vigia-ta');
+    expect([c.workloadHours, c.validityMonths]).toEqual([16, 12]);
+    expect(pratica).toBeGreaterThanOrEqual(c.workloadHours / 2);
+  });
+  it('reciclagem: 8 h, anual, ao menos 50% de prática, exige o inicial', () => {
+    const { c, pratica } = prat('nr33-vigia-ta-reciclagem');
+    expect([c.workloadHours, c.validityMonths]).toEqual([8, 12]);
+    expect(pratica).toBeGreaterThanOrEqual(c.workloadHours / 2);
+    expect(c.prerequisite).toMatch(/16 h/);
+  });
+  it('supervisor 40 h + 8 h anual; equipe de emergência 24 h bienal; todos com ao menos 50% de prática', () => {
+    expect([prat('nr33-supervisor').c.workloadHours, prat('nr33-supervisor-reciclagem').c.workloadHours]).toEqual([40, 8]);
+    expect([prat('nr33-resgate').c.validityMonths, prat('nr33-resgate-reciclagem').c.validityMonths]).toEqual([24, 24]);
+    ['nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem'].forEach(k => {
+      const { c, pratica } = prat(k);
+      expect(pratica, k).toBeGreaterThanOrEqual(c.workloadHours / 2);
+    });
   });
 });

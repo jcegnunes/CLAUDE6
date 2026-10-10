@@ -115,5 +115,151 @@ export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
       { title: 'Ensaios dielétricos periódicos, rastreabilidade e descarte', hours: 0.5 },
       { title: 'Atividade prática de inspeção', hours: 0.5 }
     ]
+  },
+  {
+    // NR-33 (Portaria MTP nº 1.690/2022): Anexo III, Quadro 1 e item 2.1 b
+    key: 'nr33-vigia-ta',
+    code: 'NR-33 VIGIA/TA',
+    name: 'NR-33 – Segurança e Saúde nos Trabalhos em Espaços Confinados: Trabalhador Autorizado e Vigia',
+    normReference: 'NR-33 (Portaria MTP nº 1.690/2022), item 33.6 e Anexo III – Quadro 1 e item 2.1 "b" (vigia e trabalhador autorizado)',
+    workloadHours: 16,
+    validityMonths: 12,
+    modality: 'presencial',
+    minAttendance: 100,
+    minGrade: 7,
+    active: true,
+    notes: 'Treinamento inicial de 16 h com, no mínimo, 50% de prática (Anexo III, item 1.2). Treinamento periódico anual de 8 h; treinamento eventual conforme a NR-01 ou quando houver desvios na utilização de equipamentos ou nos procedimentos de entrada. Conhecimentos avaliados (item 33.6.3). Conforme o item 33.6.5, informar no certificado o tipo de espaço confinado e as atividades desenvolvidas, com a anuência do responsável técnico (item 33.3.2).',
+    topics: [
+      { title: 'Definições: espaço confinado, Permissão de Entrada e Trabalho (PET), supervisor de entrada, vigia, trabalhador autorizado e equipe de emergência e salvamento', hours: 1 },
+      { title: 'Reconhecimento, avaliação e controle de riscos: atmosferas perigosas (deficiência ou enriquecimento de oxigênio, gases inflamáveis e tóxicos), riscos físicos, químicos, biológicos, mecânicos e de afogamento; ventilação, isolamento, bloqueio e etiquetagem', hours: 3 },
+      { title: 'Funcionamento dos equipamentos utilizados: detectores de gases (teste de resposta, ajuste, sondagem inicial e monitoramento contínuo), ventilação e exaustão, EPI, proteção respiratória, iluminação e comunicação', hours: 2 },
+      { title: 'Procedimentos e utilização da PET: emissão, preenchimento, validade, encerramento e cancelamento; atribuições do vigia e do trabalhador autorizado', hours: 1 },
+      { title: 'Noções de resgate e primeiros socorros', hours: 1 },
+      { title: 'Prática: uso dos equipamentos – avaliação atmosférica com detector de gases, ventilação/exaustão, EPI e proteção respiratória', hours: 3 },
+      { title: 'Prática: simulação de entrada com PET, vigilância e comunicação entre vigia e trabalhadores autorizados', hours: 3 },
+      { title: 'Prática: simulado de resgate e primeiros socorros', hours: 2 }
+    ]
+  },
+  {
+    // NR-33 (2022): treinamento periódico anual de 8 h; conteúdo definido pela organização (Anexo III, item 2.3)
+    key: 'nr33-vigia-ta-reciclagem',
+    code: 'NR-33 VIGIA/TA RECICLAGEM',
+    name: 'Reciclagem NR-33 – Trabalhador Autorizado e Vigia em Espaços Confinados (Treinamento Periódico)',
+    normReference: 'NR-33 (Portaria MTP nº 1.690/2022), item 33.6.2 e Anexo III – Quadro 1 (periódico: 8 h/anual) e item 2.3',
+    workloadHours: 8,
+    validityMonths: 12,
+    modality: 'presencial',
+    minAttendance: 100,
+    minGrade: 7,
+    active: true,
+    prerequisite: 'Treinamento inicial NR-33 de Trabalhador Autorizado e Vigia (16 h).',
+    notes: 'Treinamento periódico anual com, no mínimo, 50% de prática (Anexo III, item 1.2). Conteúdo definido pela organização, com os princípios básicos de segurança compatíveis com o tipo de espaço confinado e as atividades desenvolvidas (Anexo III, item 2.3). Informar no certificado o tipo de espaço confinado e as atividades desenvolvidas, com a anuência do responsável técnico (item 33.6.5).',
+    topics: [
+      { title: 'Revisão: definições, riscos em espaços confinados e medidas de controle', hours: 2 },
+      { title: 'Revisão dos procedimentos de entrada e da PET; análise de ocorrências e desvios', hours: 1 },
+      { title: 'Atualização sobre os equipamentos: detectores de gases, ventilação, EPI e proteção respiratória', hours: 1 },
+      { title: 'Prática: avaliação atmosférica e uso dos equipamentos', hours: 2 },
+      { title: 'Prática: simulado de entrada com PET, vigilância, comunicação, resgate e primeiros socorros', hours: 2 }
+    ]
+  },
+  {
+    // NR-33 (2022): Anexo III, Quadro 1 (40 h) e item 2.1 "a"
+    key: 'nr33-supervisor',
+    code: 'NR-33 SUPERVISOR',
+    name: 'NR-33 – Segurança e Saúde nos Trabalhos em Espaços Confinados: Supervisor de Entrada',
+    normReference: 'NR-33 (Portaria MTP nº 1.690/2022), item 33.6 e Anexo III – Quadro 1 e item 2.1 "a" (supervisor de entrada)',
+    workloadHours: 40,
+    validityMonths: 12,
+    modality: 'presencial',
+    minAttendance: 100,
+    minGrade: 7,
+    active: true,
+    notes: 'Treinamento inicial de 40 h com, no mínimo, 50% de prática (Anexo III, item 1.2). Treinamento periódico anual de 8 h; treinamento eventual conforme a NR-01 ou quando houver desvios na utilização de equipamentos ou nos procedimentos de entrada. Conhecimentos avaliados (item 33.6.3). Conforme o item 33.6.5, informar no certificado o tipo de espaço confinado e as atividades desenvolvidas, com a anuência do responsável técnico (item 33.3.2).',
+    topics: [
+      { title: 'Definições', hours: 1 },
+      { title: 'Identificação dos espaços confinados', hours: 2 },
+      { title: 'Reconhecimento, avaliação e controle de riscos', hours: 4 },
+      { title: 'Funcionamento de equipamentos utilizados', hours: 2 },
+      { title: 'Procedimentos e utilização da PET', hours: 2 },
+      { title: 'Critérios de indicação e uso de equipamentos para controle de riscos', hours: 2 },
+      { title: 'Conhecimento sobre práticas seguras em espaços confinados', hours: 2 },
+      { title: 'Legislação de segurança e saúde no trabalho', hours: 1 },
+      { title: 'Programa de Proteção Respiratória', hours: 1 },
+      { title: 'Área classificada', hours: 1 },
+      { title: 'Noções de resgate e primeiros socorros', hours: 1 },
+      { title: 'Operações de salvamento', hours: 1 },
+      { title: 'Prática: identificação de espaços confinados e avaliação e controle de riscos no local', hours: 4 },
+      { title: 'Prática: detectores de gases, ventilação e exaustão, EPI e proteção respiratória', hours: 5 },
+      { title: 'Prática: emissão, operação e encerramento da PET; coordenação da entrada com vigia e trabalhadores autorizados', hours: 6 },
+      { title: 'Prática: simulados de resgate, salvamento e primeiros socorros', hours: 5 }
+    ]
+  },
+  {
+    key: 'nr33-supervisor-reciclagem',
+    code: 'NR-33 SUPERVISOR RECICLAGEM',
+    name: 'Reciclagem NR-33 – Supervisor de Entrada em Espaços Confinados (Treinamento Periódico)',
+    normReference: 'NR-33 (Portaria MTP nº 1.690/2022), item 33.6.2 e Anexo III – Quadro 1 (periódico: 8 h/anual) e item 2.3',
+    workloadHours: 8,
+    validityMonths: 12,
+    modality: 'presencial',
+    minAttendance: 100,
+    minGrade: 7,
+    active: true,
+    prerequisite: 'Treinamento inicial NR-33 de Supervisor de Entrada (40 h).',
+    notes: 'Treinamento periódico anual com, no mínimo, 50% de prática (Anexo III, item 1.2). Conteúdo definido pela organização, com os princípios básicos de segurança compatíveis com o tipo de espaço confinado e as atividades desenvolvidas (Anexo III, item 2.3). Informar no certificado o tipo de espaço confinado e as atividades desenvolvidas, com a anuência do responsável técnico (item 33.6.5).',
+    topics: [
+      { title: 'Revisão: identificação dos espaços confinados, riscos e medidas de controle', hours: 2 },
+      { title: 'Revisão da PET e da legislação; análise de ocorrências e desvios', hours: 1 },
+      { title: 'Atualização: equipamentos, proteção respiratória e área classificada', hours: 1 },
+      { title: 'Prática: avaliação atmosférica e controle de riscos', hours: 2 },
+      { title: 'Prática: operação da PET e simulado de entrada e resgate', hours: 2 }
+    ]
+  },
+  {
+    // NR-33 (2022): Anexo III, Quadro 1 (24 h ou 32 h) e item 2.1 "c"
+    key: 'nr33-resgate',
+    code: 'NR-33 RESGATE',
+    name: 'NR-33 – Equipe de Emergência e Salvamento em Espaços Confinados',
+    normReference: 'NR-33 (Portaria MTP nº 1.690/2022), item 33.6 e Anexo III – Quadro 1 e item 2.1 "c"; ABNT NBR 16710 (resgate técnico industrial) e ABNT NBR 16577',
+    workloadHours: 24,
+    validityMonths: 24,
+    modality: 'presencial',
+    minAttendance: 100,
+    minGrade: 7,
+    active: true,
+    notes: 'Carga horária de 24 h ou 32 h conforme o plano de emergência e o nível profissional do resgatista (ajuste a carga e os tópicos para 32 h quando aplicável), com, no mínimo, 50% de prática (Anexo III, item 1.2). Conteúdo conforme as normas técnicas nacionais de resgate técnico em espaços confinados (Anexo III, item 2.1 "c"). Treinamento periódico bienal com a mesma carga horária. Informar no certificado o tipo de espaço confinado e as atividades desenvolvidas, com a anuência do responsável técnico (item 33.6.5).',
+    topics: [
+      { title: 'Legislação e normas técnicas de resgate em espaços confinados (ABNT NBR 16710 e NBR 16577); plano de emergência e salvamento', hours: 2 },
+      { title: 'Riscos em espaços confinados e avaliação da cena de resgate', hours: 2 },
+      { title: 'Equipamentos de resgate: ancoragens, cordas, tripé, guinchos, descensores, macas e EPI', hours: 3 },
+      { title: 'Técnicas de acesso, estabilização, imobilização e remoção de vítimas', hours: 2 },
+      { title: 'Proteção respiratória e atmosferas perigosas durante o resgate', hours: 1 },
+      { title: 'Primeiros socorros e suporte básico de vida', hours: 2 },
+      { title: 'Prática: montagem de sistemas de ancoragem, tripé e vantagem mecânica', hours: 4 },
+      { title: 'Prática: simulados de resgate vertical e horizontal em espaço confinado', hours: 6 },
+      { title: 'Prática: primeiros socorros e transporte da vítima', hours: 2 }
+    ]
+  },
+  {
+    key: 'nr33-resgate-reciclagem',
+    code: 'NR-33 RESGATE RECICLAGEM',
+    name: 'Reciclagem NR-33 – Equipe de Emergência e Salvamento em Espaços Confinados (Treinamento Periódico)',
+    normReference: 'NR-33 (Portaria MTP nº 1.690/2022), item 33.6.2 e Anexo III – Quadro 1 (periódico bienal: 24 h ou 32 h) e item 2.3; ABNT NBR 16710',
+    workloadHours: 24,
+    validityMonths: 24,
+    modality: 'presencial',
+    minAttendance: 100,
+    minGrade: 7,
+    active: true,
+    prerequisite: 'Treinamento inicial NR-33 de Equipe de Emergência e Salvamento.',
+    notes: 'Treinamento periódico bienal de 24 h ou 32 h conforme o plano de emergência e o nível profissional do resgatista, com, no mínimo, 50% de prática (Anexo III, item 1.2). Informar no certificado o tipo de espaço confinado e as atividades desenvolvidas, com a anuência do responsável técnico (item 33.6.5).',
+    topics: [
+      { title: 'Revisão: plano de emergência, normas técnicas de resgate e riscos em espaços confinados', hours: 2 },
+      { title: 'Revisão: equipamentos de resgate, inspeção e conservação', hours: 2 },
+      { title: 'Revisão: técnicas de resgate e primeiros socorros; lições de simulados e ocorrências', hours: 4 },
+      { title: 'Prática: sistemas de ancoragem e vantagem mecânica', hours: 4 },
+      { title: 'Prática: simulados de resgate em espaço confinado', hours: 10 },
+      { title: 'Prática: primeiros socorros e transporte da vítima', hours: 2 }
+    ]
   }
 ];
