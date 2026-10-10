@@ -40,6 +40,11 @@
   Específico Classe II/III (14/16 h); complementações de 8 h (Básico→Intermediário,
   Intermediário→Avançado I, Avançado I→Avançado II) e cursos de Atualização de 4 h. Conteúdo
   programático da norma, parte prática nos cursos Básico, Intermediário e Avançados.
+- **Curso NR-18 – Instalação, Montagem, Desmontagem e Manutenção de Elevadores de Passageiros**
+  (texto atualizado 2026): inicial de 24 h (10 h de prática) e reciclagem anual de 8 h, com o
+  conteúdo do item 18.11 (requisitos de instalação, dispositivos de segurança, elevador de
+  passageiros, montagem/ascensão/desmontagem, documentação). Pelo Anexo I, a carga horária e o
+  conteúdo são definidos pelo empregador e o periódico é anual.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

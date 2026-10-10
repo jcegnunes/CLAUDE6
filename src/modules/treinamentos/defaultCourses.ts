@@ -6,6 +6,7 @@
  */
 import type { TrainingCourse } from './types';
 import { NR20_COURSES } from './defaultCoursesNr20';
+import { NR18_COURSES } from './defaultCoursesNr18';
 
 type CourseSeed = Omit<TrainingCourse, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'serverUpdatedAt'>;
 
@@ -264,5 +265,7 @@ export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
     ]
   },
   // NR-20: iniciação, básico, intermediário, avançados, específico, complementações e atualizações
-  ...NR20_COURSES
+  ...NR20_COURSES,
+  // NR-18: instalação, montagem, desmontagem e manutenção de elevadores de passageiros
+  ...NR18_COURSES
 ];
