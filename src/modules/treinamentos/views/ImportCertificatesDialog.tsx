@@ -120,7 +120,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
     >
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-start">
         <div className="text-xs text-slate-600 space-y-1">
-          <p>1. Baixe o modelo e preencha uma pessoa por linha: <b>Nome, CPF e Colaborador da Empresa</b>.</p>
+          <p>1. Baixe o modelo e preencha uma pessoa por linha: <b>Nome, CPF, Colaborador da Empresa e Filial</b>.</p>
           <p>2. Escolha abaixo o curso, as datas, o local, o instrutor e a nota (valem para todos).</p>
           <p>3. Envie a planilha: a prévia mostra o que será emitido, quem foi reprovado e as linhas com erro.</p>
         </div>
@@ -147,6 +147,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
           <Field label="Início"><input type="date" className={inputCls} value={defaults.startDate} onChange={e => setDefaults({ ...defaults, startDate: e.target.value })} /></Field>
           <Field label="Término"><input type="date" className={inputCls} value={defaults.endDate} min={defaults.startDate} onChange={e => setDefaults({ ...defaults, endDate: e.target.value })} /></Field>
           <Field label="Local" className="sm:col-span-2"><input className={inputCls} value={defaults.location} onChange={e => setDefaults({ ...defaults, location: e.target.value })} placeholder="Cidade/UF ou endereço" /></Field>
+          <Field label="Filial (se vazia na planilha)" className="sm:col-span-2"><input className={inputCls} value={defaults.branch || ''} onChange={e => setDefaults({ ...defaults, branch: e.target.value })} placeholder="Cidade/UF — local junto à data do certificado" /></Field>
           <Field label="Presença (%)"><input type="number" min={0} max={100} className={inputCls} value={defaults.attendance ?? ''} onChange={e => setDefaults({ ...defaults, attendance: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
           <Field label={defaultCourse?.minGrade !== undefined ? `Nota * (mínima ${defaultCourse.minGrade})` : 'Nota'} hint="0 a 10">
             <input type="number" min={0} max={10} step={0.1}
@@ -211,7 +212,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
                   return (
                     <tr key={r.line} className="align-top">
                       <td className="p-2 text-slate-400">{r.line}</td>
-                      <td className="p-2 font-semibold text-slate-800">{r.name || '—'}<div className="font-normal text-slate-500">{[r.role, r.company].filter(Boolean).join(' · ')}</div></td>
+                      <td className="p-2 font-semibold text-slate-800">{r.name || '—'}<div className="font-normal text-slate-500">{[r.role, r.company, r.branch].filter(Boolean).join(' · ')}</div></td>
                       <td className="p-2 font-mono whitespace-nowrap">{r.cpf || '—'}</td>
                       <td className="p-2">{r.course ? (r.course.code || r.course.name) : '—'}</td>
                       <td className="p-2 whitespace-nowrap">{formatDateBr(r.startDate)}{r.endDate && r.endDate !== r.startDate ? ` a ${formatDateBr(r.endDate)}` : ''}</td>

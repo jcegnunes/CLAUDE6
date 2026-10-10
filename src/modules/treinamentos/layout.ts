@@ -163,6 +163,7 @@ export const TEMPLATE_FIELDS: Array<{ key: string; label: string }> = [
   { key: 'nome', label: 'nome do participante' },
   { key: 'cpf', label: 'CPF do participante' },
   { key: 'empresa', label: 'empresa do participante' },
+  { key: 'filial', label: 'filial do participante' },
   { key: 'data_inicio', label: 'data de início' },
   { key: 'data_fim', label: 'data de término' },
   { key: 'validade', label: 'data de vencimento' },
@@ -246,7 +247,7 @@ export function hexToRgb(hex: string): [number, number, number] {
 
 type TemplateCert = Pick<TrainingCertificate,
   'courseName' | 'normReference' | 'startDate' | 'endDate' | 'modality' | 'location' | 'workloadHours'
-  | 'participantName' | 'participantCpf' | 'participantCompany' | 'expiryDate' | 'classNumber'>;
+  | 'participantName' | 'participantCpf' | 'participantCompany' | 'expiryDate' | 'classNumber'> & { participantBranch?: string };
 
 export function certificatePeriod(cert: Pick<TrainingCertificate, 'startDate' | 'endDate'>): string {
   if (!cert.endDate || cert.startDate === cert.endDate) return `em ${formatDateBr(cert.startDate)}`;
@@ -265,6 +266,7 @@ export function fillTemplate(template: string, cert: TemplateCert): string {
     nome: cert.participantName || '',
     cpf: cert.participantCpf ? formatCpf(cert.participantCpf) : '',
     empresa: cert.participantCompany || '',
+    filial: cert.participantBranch || '',
     data_inicio: formatDateBr(cert.startDate),
     data_fim: formatDateBr(cert.endDate || cert.startDate),
     validade: cert.expiryDate ? formatDateBr(cert.expiryDate) : 'sem vencimento',

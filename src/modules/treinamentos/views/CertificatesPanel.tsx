@@ -143,6 +143,7 @@ const IndividualIssue: React.FC<{ onClose: () => void; onIssued: (c: TrainingCer
   const [cpf, setCpf] = useState('');
   const [role, setRole] = useState('');
   const [company, setCompany] = useState('');
+  const [branch, setBranch] = useState('');
   const [startDate, setStartDate] = useState(todayIso());
   const [endDate, setEndDate] = useState(todayIso());
   const [location, setLocation] = useState('');
@@ -159,7 +160,7 @@ const IndividualIssue: React.FC<{ onClose: () => void; onIssued: (c: TrainingCer
       && !window.confirm('Já existe certificado válido deste curso para este CPF com a mesma data. Emitir outro?')) return;
     try {
       const cert = issueIndividualCertificate({
-        courseId, participant: { name, cpf: cpf ? formatCpf(cpf) : '', role, company, grade: grade === '' ? undefined : Number(grade) },
+        courseId, participant: { name, cpf: cpf ? formatCpf(cpf) : '', role, company, branch, grade: grade === '' ? undefined : Number(grade) },
         startDate, endDate, location, instructorIds
       });
       onClose();
@@ -187,10 +188,11 @@ const IndividualIssue: React.FC<{ onClose: () => void; onIssued: (c: TrainingCer
         <Field label="Nome do participante *" className="sm:col-span-2"><input className={inputCls} value={name} onChange={e => setName(e.target.value)} /></Field>
         <Field label="CPF"><input className={inputCls} value={cpf} onChange={e => setCpf(e.target.value)} onBlur={e => setCpf(formatCpf(e.target.value))} inputMode="numeric" /></Field>
         <Field label="Função"><input className={inputCls} value={role} onChange={e => setRole(e.target.value)} /></Field>
-        <Field label="Empresa" className="sm:col-span-2">
+        <Field label="Empresa">
           <input className={inputCls} value={company} onChange={e => setCompany(e.target.value)} list="trn-clientes" />
           <datalist id="trn-clientes">{clients.map(c => <option key={c.id} value={c.nomeFantasia || c.razaoSocial} />)}</datalist>
         </Field>
+        <Field label="Filial" hint="Local impresso junto à data do certificado"><input className={inputCls} value={branch} onChange={e => setBranch(e.target.value)} placeholder="Cidade/UF" /></Field>
         <Field label="Início *"><input type="date" className={inputCls} value={startDate} onChange={e => { setStartDate(e.target.value); if (endDate < e.target.value) setEndDate(e.target.value); }} /></Field>
         <Field label="Término *"><input type="date" className={inputCls} value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} /></Field>
         <Field label="Local"><input className={inputCls} value={location} onChange={e => setLocation(e.target.value)} /></Field>

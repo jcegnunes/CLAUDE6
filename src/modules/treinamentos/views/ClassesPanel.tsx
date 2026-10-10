@@ -162,7 +162,7 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
   const [readingSheet, setReadingSheet] = useState(false);
   const sheetRef = useRef<HTMLInputElement | null>(null);
 
-  /** Planilha com Nome, CPF e Colaborador da Empresa: inclui os alunos na turma. */
+  /** Planilha com Nome, CPF, Colaborador da Empresa e Filial: inclui os alunos na turma. */
   const importSheet = async (file?: File | null) => {
     if (!file) return;
     setReadingSheet(true);
@@ -178,7 +178,7 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
         if (r.error) return skipped.push(`linha ${r.line} (${r.name || 'sem nome'}): ${r.error}`);
         if (digits ? cpfs.has(digits) : names.has(normalizeText(r.name))) return skipped.push(`linha ${r.line} (${r.name}): já está na turma`);
         if (digits) cpfs.add(digits); else names.add(normalizeText(r.name));
-        added.push({ ...emptyParticipant(r.company), name: r.name, cpf: r.cpf, role: r.role, company: r.company, attendance: r.attendance, grade: r.grade });
+        added.push({ ...emptyParticipant(r.company), name: r.name, cpf: r.cpf, role: r.role, company: r.company, branch: r.branch, attendance: r.attendance, grade: r.grade });
       });
       set('participants', [...current, ...added]);
       window.alert(`${added.length} aluno(s) incluído(s) da planilha.`
@@ -245,8 +245,9 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
         continue;
       }
       const changed = cert.participantName !== p.name || cert.participantCpf !== p.cpf || (cert.participantRole || '') !== (p.role || '')
-        || (cert.participantCompany || '') !== (p.company || '') || cert.attendance !== p.attendance || cert.grade !== p.grade;
-      if (changed) toUpdate.push({ ...cert, participantName: p.name, participantCpf: p.cpf, participantRole: p.role, participantCompany: p.company, attendance: p.attendance, grade: p.grade });
+        || (cert.participantCompany || '') !== (p.company || '') || (cert.participantBranch || '') !== (p.branch || '')
+        || cert.attendance !== p.attendance || cert.grade !== p.grade;
+      if (changed) toUpdate.push({ ...cert, participantName: p.name, participantCpf: p.cpf, participantRole: p.role, participantCompany: p.company, participantBranch: p.branch?.trim() || undefined, attendance: p.attendance, grade: p.grade });
     }
     if (toCancel.length && !window.confirm(`Salvar a turma e cancelar ${toCancel.length} certificado(s)? O validador do QR Code passará a mostrá-lo(s) como CANCELADO.`)) return;
 
@@ -331,7 +332,7 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
             {course && <span className="font-normal text-slate-500"> · aprovação: presença ≥ {course.minAttendance}%</span>}
           </h4>
           <div className="flex gap-2">
-            <button type="button" className={btnSecondary} title="Baixar planilha modelo (Nome, CPF, Colaborador da Empresa)" onClick={() => downloadParticipantsTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}><Download className="w-3.5 h-3.5" /> Modelo</button>
+            <button type="button" className={btnSecondary} title="Baixar planilha modelo (Nome, CPF, Colaborador da Empresa, Filial)" onClick={() => downloadParticipantsTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}><Download className="w-3.5 h-3.5" /> Modelo</button>
             <button type="button" className={btnSecondary} disabled={readingSheet} onClick={() => sheetRef.current?.click()}>
               {readingSheet ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />} Importar planilha
             </button>
@@ -349,9 +350,10 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
               const cpfBad = !!p.cpf && !isValidCpf(p.cpf);
               return (
                 <div key={p.id} className={`grid grid-cols-2 sm:grid-cols-12 gap-2 items-end p-2 rounded-xl border ${p.certificateId ? 'border-emerald-200 bg-emerald-50/40' : 'border-slate-200'}`}>
-                  <Field label={`${idx + 1}. Nome`} className="col-span-2 sm:col-span-4"><input className={inputCls} value={p.name} onChange={e => setP(p.id, { name: e.target.value })} /></Field>
-                  <Field label="CPF" className="sm:col-span-3"><input className={`${inputCls} ${cpfBad ? 'border-red-400' : ''}`} value={p.cpf} onChange={e => setP(p.id, { cpf: e.target.value })} onBlur={e => setP(p.id, { cpf: formatCpf(e.target.value) })} inputMode="numeric" /></Field>
+                  <Field label={`${idx + 1}. Nome`} className="col-span-2 sm:col-span-3"><input className={inputCls} value={p.name} onChange={e => setP(p.id, { name: e.target.value })} /></Field>
+                  <Field label="CPF" className="sm:col-span-2"><input className={`${inputCls} ${cpfBad ? 'border-red-400' : ''}`} value={p.cpf} onChange={e => setP(p.id, { cpf: e.target.value })} onBlur={e => setP(p.id, { cpf: formatCpf(e.target.value) })} inputMode="numeric" /></Field>
                   <Field label="Empresa" className="sm:col-span-3"><input className={inputCls} value={p.company || ''} onChange={e => setP(p.id, { company: e.target.value })} /></Field>
+                  <Field label="Filial" className="sm:col-span-2"><input className={inputCls} value={p.branch || ''} placeholder="Cidade/UF" onChange={e => setP(p.id, { branch: e.target.value })} /></Field>
                   <Field label="Presença %" className="sm:col-span-2"><input type="number" min={0} max={100} className={inputCls} value={p.attendance} onChange={e => setP(p.id, { attendance: Number(e.target.value) })} /></Field>
                   <div className="col-span-2 sm:col-span-12 flex items-center gap-1 justify-end -mt-1">
                     {p.certificateId ? (
@@ -403,12 +405,12 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
   );
 };
 
-/** Lista copiada da planilha: Nome; CPF; Função; Empresa (separados por TAB, ; ou ,). */
+/** Lista copiada da planilha: Nome; CPF; Empresa; Filial; Função (separados por TAB, ; ou ,). */
 const PasteParticipants: React.FC<{ defaultCompany: string; onClose: () => void; onAdd: (list: TrainingParticipant[]) => void }> = ({ defaultCompany, onClose, onAdd }) => {
   const [text, setText] = useState('');
   const parsed = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
     const cols = line.split(line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',').map(c => c.trim());
-    return { ...emptyParticipant(defaultCompany), name: cols[0] || '', cpf: cols[1] ? formatCpf(cols[1]) : '', company: cols[2] || defaultCompany, role: cols[3] || '' };
+    return { ...emptyParticipant(defaultCompany), name: cols[0] || '', cpf: cols[1] ? formatCpf(cols[1]) : '', company: cols[2] || defaultCompany, branch: cols[3] || '', role: cols[4] || '' };
   }).filter(p => p.name && !/^nome$/i.test(p.name) && !/^cpf$/i.test(p.cpf));
 
   return (
@@ -420,8 +422,8 @@ const PasteParticipants: React.FC<{ defaultCompany: string; onClose: () => void;
         <button type="button" className={btnPrimary} disabled={!parsed.length} onClick={() => { onAdd(parsed); onClose(); }}>Incluir {parsed.length || ''} aluno(s)</button>
       </>}
     >
-      <p className="text-xs text-slate-500 mb-2">Uma pessoa por linha, nas colunas <b>Nome, CPF, Colaborador da Empresa</b> (e, se quiser, Função). Copie direto do Excel ou separe por ponto e vírgula.</p>
-      <textarea rows={10} className={`${inputCls} font-mono`} value={text} onChange={e => setText(e.target.value)} placeholder={'Maria Souza;529.982.247-25;Cliente X\nJoão Lima;11144477735;Cliente X'} />
+      <p className="text-xs text-slate-500 mb-2">Uma pessoa por linha, nas colunas <b>Nome, CPF, Colaborador da Empresa, Filial</b> (e, se quiser, Função). Copie direto do Excel ou separe por ponto e vírgula.</p>
+      <textarea rows={10} className={`${inputCls} font-mono`} value={text} onChange={e => setText(e.target.value)} placeholder={'Maria Souza;529.982.247-25;Cliente X;Campinas/SP\nJoão Lima;11144477735;Cliente X;São Paulo/SP'} />
       {parsed.length > 0 && (
         <p className="text-[11px] text-slate-600 mt-2">
           {parsed.length} aluno(s) reconhecido(s){parsed.some(p => p.cpf && !isValidCpf(p.cpf)) ? ' — há CPF inválido; corrija antes de salvar a turma.' : '.'}

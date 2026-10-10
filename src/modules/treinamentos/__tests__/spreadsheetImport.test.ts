@@ -142,3 +142,27 @@ describe('Planilha de alunos — Nome, CPF e Colaborador da Empresa', () => {
     expect(rows[2]).toMatchObject({ company: 'Cliente da Turma', error: undefined });
   });
 });
+
+describe('Filial do aluno', () => {
+  it('modelo tem a coluna Filial; a planilha lê a filial e usa a padrão da tela quando vazia', async () => {
+    const { TEMPLATE_HEADERS, parseParticipantRows } = await import('../spreadsheetImport');
+    expect(TEMPLATE_HEADERS).toEqual(['Nome', 'CPF', 'Colaborador da Empresa', 'Filial']);
+    const rows = buildImportRows([
+      { Nome: 'Rogerio', CPF: '702.409.145-20', 'Colaborador da Empresa': 'Empresa A', Filial: 'Campinas/SP' },
+      { Nome: 'Jorge', CPF: '049.384.421-08', 'Colaborador da Empresa': 'Empresa A', Filial: '' }
+    ], ctx({ defaults: { courseId: 'crs-nr10', startDate: '2026-09-21', endDate: '2026-09-25', location: 'SP', grade: 9, branch: 'Sorocaba/SP', instructorIds: ['ins-ana'] } }));
+    expect(rows.map(r => r.branch)).toEqual(['Campinas/SP', 'Sorocaba/SP']);
+    // coluna "Unidade" também é reconhecida como filial
+    const alunos = parseParticipantRows([{ Nome: 'Maria', CPF: '', 'Colaborador da Empresa': 'X', Unidade: 'Jundiaí/SP' }]);
+    expect(alunos[0].branch).toBe('Jundiaí/SP');
+  });
+
+  it('texto do certificado aceita o campo {filial}', async () => {
+    const { fillTemplate } = await import('../layout');
+    const cert = {
+      courseName: 'NR-35', normReference: 'NR-35', startDate: '2026-10-01', endDate: '2026-10-01', modality: 'presencial' as const,
+      location: '', workloadHours: 8, participantName: 'Ana', participantCpf: '', participantBranch: 'Campinas/SP'
+    };
+    expect(fillTemplate('Filial {filial}.', cert)).toBe('Filial Campinas/SP.');
+  });
+});

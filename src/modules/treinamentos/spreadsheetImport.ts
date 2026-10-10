@@ -6,24 +6,25 @@ import { formatCpf, isParticipantApproved, isValidCpf, onlyDigits } from './rule
 import type { TrainingCertificate, TrainingCourse, TrainingInstructor } from './types';
 
 /**
- * Colunas do modelo: Nome, CPF e Colaborador da Empresa. Curso, datas, local,
+ * Colunas do modelo: Nome, CPF, Colaborador da Empresa e Filial. Curso, datas, local,
  * instrutor, presença e nota são escolhidos na tela. Colunas extras (Função,
  * Curso, Início, Término, Carga horária, Local, Presença, Nota, Instrutor)
  * continuam aceitas e valem para a linha. A ordem e acentos não importam.
  */
-export const TEMPLATE_HEADERS = ['Nome', 'CPF', 'Colaborador da Empresa'];
+export const TEMPLATE_HEADERS = ['Nome', 'CPF', 'Colaborador da Empresa', 'Filial'];
 
 export const OPTIONAL_HEADERS = ['Função', 'Curso', 'Início', 'Término', 'Carga horária', 'Local', 'Presença (%)', 'Nota', 'Instrutor'];
 
 export const MAX_IMPORT_ROWS = 1000;
 
-type Field = 'name' | 'cpf' | 'role' | 'company' | 'course' | 'start' | 'end' | 'hours' | 'location' | 'attendance' | 'grade' | 'instructor';
+type Field = 'name' | 'cpf' | 'role' | 'company' | 'branch' | 'course' | 'start' | 'end' | 'hours' | 'location' | 'attendance' | 'grade' | 'instructor';
 
 const ALIASES: Record<Field, string[]> = {
   name: ['nome', 'nome completo', 'participante', 'aluno', 'colaborador', 'funcionario'],
   cpf: ['cpf', 'documento'],
   role: ['funcao', 'cargo'],
   company: ['colaborador da empresa', 'empresa do colaborador', 'empresa', 'cliente', 'contratante'],
+  branch: ['filial', 'unidade', 'filial/unidade', 'filial / unidade', 'filial do colaborador'],
   course: ['curso', 'treinamento', 'sigla', 'codigo do curso'],
   start: ['inicio', 'data inicio', 'data de inicio', 'data', 'data do treinamento'],
   end: ['termino', 'fim', 'data termino', 'data de termino', 'data final', 'conclusao'],
@@ -111,6 +112,8 @@ export interface ImportDefaults {
   startDate?: string;
   endDate?: string;
   location?: string;
+  /** Filial padrão (quando a coluna Filial está vazia) */
+  branch?: string;
   instructorIds: string[];
 }
 
@@ -121,6 +124,7 @@ export interface ImportRow {
   cpf: string;
   role: string;
   company: string;
+  branch: string;
   course?: TrainingCourse;
   startDate: string;
   endDate: string;
@@ -203,6 +207,7 @@ export function buildImportRows(
     const approved = !!course && isParticipantApproved({ id: '', name, cpf, attendance, grade }, course);
     rows.push({
       line: idx + 2, name, cpf, role: String(v.role ?? '').trim(), company: String(v.company ?? '').trim(),
+      branch: String(v.branch ?? '').trim() || ctx.defaults.branch || '',
       course, startDate, endDate, workloadHours, location, attendance, grade, instructorIds: ins.ids,
       errors, warnings, approved
     });
@@ -244,6 +249,7 @@ export interface ParticipantImport {
   cpf: string;
   role: string;
   company: string;
+  branch: string;
   attendance: number;
   grade?: number;
   error?: string;
@@ -272,7 +278,7 @@ export function parseParticipantRows(raw: Array<Record<string, unknown>>, defaul
     else if (grade !== undefined && (grade < 0 || grade > 10)) error = 'Nota deve ficar entre 0 e 10';
     out.push({
       line: idx + 2, name, cpf, role: String(v.role ?? '').trim(),
-      company: String(v.company ?? '').trim() || defaultCompany, attendance, grade, error
+      company: String(v.company ?? '').trim() || defaultCompany, branch: String(v.branch ?? '').trim(), attendance, grade, error
     });
   });
   return out;

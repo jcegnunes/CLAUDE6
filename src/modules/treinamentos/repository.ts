@@ -245,7 +245,7 @@ function instructorSnapshot(ids: string[]) {
 }
 
 function buildCertificate(course: TrainingCourse, data: {
-  participant: Pick<TrainingParticipant, 'name' | 'cpf' | 'role' | 'company' | 'attendance' | 'grade'>;
+  participant: Pick<TrainingParticipant, 'name' | 'cpf' | 'role' | 'company' | 'branch' | 'attendance' | 'grade'>;
   startDate: string; endDate: string; location: string; workloadHours: number;
   modality: TrainingCourse['modality']; instructorIds: string[]; classId?: string; classNumber?: string; issueDate?: string;
 }): TrainingCertificate {
@@ -271,6 +271,7 @@ function buildCertificate(course: TrainingCourse, data: {
     participantCpf: data.participant.cpf,
     participantRole: data.participant.role,
     participantCompany: data.participant.company,
+    participantBranch: data.participant.branch?.trim() || undefined,
     attendance: data.participant.attendance,
     grade: data.participant.grade,
     startDate: data.startDate,
@@ -331,7 +332,7 @@ export function issueFromImport(groups: ImportGroup[], createClasses: boolean): 
         workloadHours: g.workloadHours, instructorIds: g.instructorIds, status: 'concluida',
         notes: 'Turma criada pela importação de planilha.',
         participants: g.rows.map(r => ({
-          id: newId('alu'), name: r.name, cpf: r.cpf, role: r.role, company: r.company, attendance: r.attendance, grade: r.grade,
+          id: newId('alu'), name: r.name, cpf: r.cpf, role: r.role, company: r.company, branch: r.branch, attendance: r.attendance, grade: r.grade,
           approvedOverride: r.approved ? undefined : false
         }))
       });
@@ -341,7 +342,7 @@ export function issueFromImport(groups: ImportGroup[], createClasses: boolean): 
       g.rows.filter(r => r.approved).forEach(r => {
         certificates.push(issueIndividualCertificate({
           courseId: g.course.id,
-          participant: { name: r.name, cpf: r.cpf, role: r.role, company: r.company, attendance: r.attendance, grade: r.grade },
+          participant: { name: r.name, cpf: r.cpf, role: r.role, company: r.company, branch: r.branch, attendance: r.attendance, grade: r.grade },
           startDate: g.startDate, endDate: g.endDate, location: g.location, instructorIds: g.instructorIds, workloadHours: g.workloadHours
         }));
       });
@@ -352,7 +353,7 @@ export function issueFromImport(groups: ImportGroup[], createClasses: boolean): 
 
 /** Emissão individual (sem turma). */
 export function issueIndividualCertificate(data: {
-  courseId: string; participant: Pick<TrainingParticipant, 'name' | 'cpf' | 'role' | 'company'> & { attendance?: number; grade?: number };
+  courseId: string; participant: Pick<TrainingParticipant, 'name' | 'cpf' | 'role' | 'company' | 'branch'> & { attendance?: number; grade?: number };
   startDate: string; endDate: string; location: string; instructorIds: string[]; workloadHours?: number;
 }): TrainingCertificate {
   const course = getCourse(data.courseId);

@@ -56,6 +56,8 @@ export interface TrainingParticipant {
   cpf: string;
   role?: string;
   company?: string;
+  /** Filial do aluno: é o local impresso junto à data do certificado */
+  branch?: string;
   /** Presença (%) */
   attendance: number;
   /** Nota (0 a 10) */
@@ -103,6 +105,8 @@ export interface TrainingCertificate extends TrainingRecordBase {
   participantCpf: string;
   participantRole?: string;
   participantCompany?: string;
+  /** Filial do aluno (local junto à data de assinatura) */
+  participantBranch?: string;
   attendance?: number;
   grade?: number;
   startDate: string;

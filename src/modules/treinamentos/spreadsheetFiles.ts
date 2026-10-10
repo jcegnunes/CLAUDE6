@@ -5,15 +5,15 @@ import { MAX_IMPORT_ROWS, OPTIONAL_HEADERS, TEMPLATE_HEADERS } from './spreadshe
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-/** Modelo .xlsx: Nome, CPF e Colaborador da Empresa (+ cursos/instrutores e instruções). */
+/** Modelo .xlsx: Nome, CPF, Colaborador da Empresa e Filial (+ cursos/instrutores e instruções). */
 export async function downloadParticipantsTemplate(): Promise<void> {
   const XLSX = await import('xlsx');
   const ws = XLSX.utils.aoa_to_sheet([
     TEMPLATE_HEADERS,
-    ['Maria da Silva', '529.982.247-25', 'Empresa Cliente Ltda'],
-    ['João Souza', '111.444.777-35', 'Empresa Cliente Ltda']
+    ['Maria da Silva', '529.982.247-25', 'Empresa Cliente Ltda', 'Campinas/SP'],
+    ['João Souza', '111.444.777-35', 'Empresa Cliente Ltda', 'São Paulo/SP']
   ]);
-  ws['!cols'] = [{ wch: 40 }, { wch: 18 }, { wch: 36 }];
+  ws['!cols'] = [{ wch: 40 }, { wch: 18 }, { wch: 36 }, { wch: 26 }];
   // CPF como texto: o Excel não remove o zero inicial
   for (let r = 2; r <= 3; r++) { const c = ws[`B${r}`]; if (c) c.t = 's'; }
 
@@ -30,7 +30,8 @@ export async function downloadParticipantsTemplate(): Promise<void> {
 
   const help = XLSX.utils.aoa_to_sheet([
     ['Como preencher'],
-    ['• Uma pessoa por linha, com Nome, CPF e Colaborador da Empresa (empresa onde a pessoa trabalha).'],
+    ['• Uma pessoa por linha, com Nome, CPF, Colaborador da Empresa (empresa onde a pessoa trabalha) e Filial.'],
+    ['• Filial: cidade/unidade da pessoa (ex.: Campinas/SP). É o local impresso junto à data do certificado; vazia = cidade do laboratório.'],
     ['• CPF é recomendado: aparece mascarado no validador do QR Code e evita certificado repetido.'],
     ['• Curso, datas, local, instrutor, presença e nota são escolhidos na tela de importação e valem para todos.'],
     [`• Se precisar, acrescente colunas opcionais (valem só para a linha): ${OPTIONAL_HEADERS.join(', ')}.`],
@@ -54,6 +55,6 @@ export async function readSpreadsheet(file: File): Promise<Array<Record<string, 
   const sheetName = wb.SheetNames.find(n => /alunos|certificad/i.test(n)) || wb.SheetNames[0];
   if (!sheetName) throw new Error('A planilha está vazia.');
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[sheetName], { defval: '', raw: true });
-  if (!rows.length) throw new Error('Nenhuma linha encontrada. Use a primeira linha para os títulos das colunas (Nome, CPF, Colaborador da Empresa).');
+  if (!rows.length) throw new Error('Nenhuma linha encontrada. Use a primeira linha para os títulos das colunas (Nome, CPF, Colaborador da Empresa, Filial).');
   return rows;
 }

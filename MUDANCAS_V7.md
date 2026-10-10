@@ -8,6 +8,12 @@
   turma sem Função e Nota; validador sem botão de baixar o PDF.
 - **Validador** (`jvmlab.com.br/validador`): mostra só a validação do documento na tela, sem
   os botões de exportar certificado ou laudo em PDF (fica o "Imprimir" da própria tela).
+- **Filial do aluno** (Treinamentos): novo campo **Filial** nos alunos da turma, na emissão
+  individual, na importação por planilha (coluna **Filial** no modelo; "Unidade" também é aceita;
+  filial padrão na tela) e no "Colar lista" (Nome; CPF; Empresa; Filial; Função). A filial é o
+  **local impresso junto à data** do certificado e o local da assinatura digital; sem filial,
+  vale a cidade do laboratório. Novo campo de texto `{filial}`. Alterar a filial na turma
+  atualiza o certificado já emitido.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

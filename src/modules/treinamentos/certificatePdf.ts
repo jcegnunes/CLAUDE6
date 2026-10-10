@@ -407,7 +407,8 @@ async function drawCertificate(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(...GRAY);
-  const city = cityOf(company);
+  // local junto à data: a filial do aluno; sem filial, a cidade do laboratório
+  const city = cert.participantBranch?.trim() || cityOf(company);
   doc.text(`${city ? `${city}, ` : ''}${longDate(cert.issueDate)}.`, w / 2, y + 4, { align: 'center' });
 
   // ------------------------------------------------------------ assinaturas
@@ -432,7 +433,7 @@ async function drawCertificate(
     const st = stamps[s.name];
     // assinado digitalmente: nome e documento conforme o certificado cadastrado
     drawSignature(doc, NAVY, areaX + i * colW, sigY, colW, s.image, st?.person || s.name, s.l2, s.l3,
-      st ? { cn: st.cn, dn: st.dn, reason: st.reason, location: stampLocation, at: signedAt } : undefined,
+      st ? { cn: st.cn, dn: st.dn, reason: st.reason, location: cert.participantBranch?.trim() || stampLocation, at: signedAt } : undefined,
       st?.docLine);
   });
 
@@ -594,7 +595,7 @@ export async function exportTrainingCertificates(certs: TrainingCertificate[], f
     plan.warnings.forEach(w => warnings.add(w));
     const doc = newCertificateDoc();
     const location = [company.city, company.state].filter(Boolean).join('/') || 'Brasil';
-    plan.signers.forEach(sg => { sg.location = location; });
+    plan.signers.forEach(sg => { sg.location = cert.participantBranch?.trim() || location; });
     await drawCertificate(doc, cert, company, assets, plan.stamps, new Date());
     let bytes: Uint8Array = new Uint8Array(doc.output('arraybuffer'));
     if (plan.signers.length) {
@@ -665,7 +666,7 @@ export async function exportAttendanceList(turma: TrainingClass, instructors: Tr
     }
   }
   const signCols = days.length ? days.map(d => `Assinatura ${d}`) : ['Assinatura'];
-  const rows = turma.participants.map((p, i) => [String(i + 1), p.name, formatCpf(p.cpf), [p.company, p.role].filter(Boolean).join(' / '), ...signCols.map(() => '')]);
+  const rows = turma.participants.map((p, i) => [String(i + 1), p.name, formatCpf(p.cpf), [p.company, p.branch, p.role].filter(Boolean).join(' / '), ...signCols.map(() => '')]);
   for (let i = rows.length; i < Math.max(rows.length, 10); i++) rows.push([String(i + 1), '', '', '', ...signCols.map(() => '')]);
 
   autoTable(doc, {
