@@ -166,3 +166,23 @@ describe('Filial do aluno', () => {
     expect(fillTemplate('Filial {filial}.', cert)).toBe('Filial Campinas/SP.');
   });
 });
+
+describe('Colar lista na emissão de certificados', () => {
+  it('sem títulos: Nome; CPF; Empresa; Filial; Função (TAB, ; ou ,) e vai para a prévia', async () => {
+    const { parsePastedList } = await import('../spreadsheetImport');
+    const list = parsePastedList('Maria Souza;529.982.247-25;Cliente X;Campinas/SP\n\nJoão Lima\t11144477735\tCliente Y\tSão Paulo/SP\tEletricista');
+    expect(list).toEqual([
+      { Nome: 'Maria Souza', CPF: '529.982.247-25', 'Colaborador da Empresa': 'Cliente X', Filial: 'Campinas/SP' },
+      { Nome: 'João Lima', CPF: '11144477735', 'Colaborador da Empresa': 'Cliente Y', Filial: 'São Paulo/SP', 'Função': 'Eletricista' }
+    ]);
+    const rows = buildImportRows(list, ctx({ defaults: { courseId: 'crs-nr35', startDate: '2026-10-01', endDate: '2026-10-01', location: '', grade: 9, instructorIds: ['ins-ana'] } }));
+    expect(rows.map(rowStatus)).toEqual(['ok', 'ok']);
+    expect(rows.map(r => [r.company, r.branch])).toEqual([['Cliente X', 'Campinas/SP'], ['Cliente Y', 'São Paulo/SP']]);
+  });
+
+  it('com a linha de títulos copiada do Excel, as colunas seguem os títulos', async () => {
+    const { parsePastedList } = await import('../spreadsheetImport');
+    const list = parsePastedList('CPF\tNome\tNota\n529.982.247-25\tMaria\t8');
+    expect(list).toEqual([{ CPF: '529.982.247-25', Nome: 'Maria', Nota: '8' }]);
+  });
+});

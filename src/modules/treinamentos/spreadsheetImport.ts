@@ -283,3 +283,27 @@ export function parseParticipantRows(raw: Array<Record<string, unknown>>, defaul
   });
   return out;
 }
+
+/** Colunas da lista colada sem cabeçalho (mesma ordem do "Colar lista" das turmas). */
+export const PASTE_COLUMNS = ['Nome', 'CPF', 'Colaborador da Empresa', 'Filial', 'Função'];
+
+/**
+ * Lista copiada do Excel ou digitada (uma pessoa por linha, colunas separadas
+ * por TAB, ";" ou ","). Com a linha de títulos (ex.: Nome, CPF, Empresa, Filial,
+ * Curso…) as colunas seguem os títulos; sem ela: Nome; CPF; Empresa; Filial; Função.
+ * Devolve linhas no mesmo formato da leitura da planilha.
+ */
+export function parsePastedList(text: string): Array<Record<string, string>> {
+  const lines = (text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+  const split = (line: string) => line.split(line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',').map(c => c.trim());
+  const first = split(lines[0]);
+  const hasHeader = first.some(c => fieldOf(c) === 'name');
+  const headers = hasHeader ? first : PASTE_COLUMNS;
+  return (hasHeader ? lines.slice(1) : lines).map(line => {
+    const cols = split(line);
+    const row: Record<string, string> = {};
+    headers.forEach((h, i) => { if (h && cols[i] !== undefined && cols[i] !== '') row[h] = cols[i]; });
+    return row;
+  }).filter(r => Object.keys(r).length > 0);
+}

@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { FileSpreadsheet, Download, Upload, Loader2, CheckCircle2, AlertTriangle, XCircle, Award } from 'lucide-react';
+import { FileSpreadsheet, Download, Upload, Loader2, CheckCircle2, AlertTriangle, XCircle, Award, ClipboardPaste } from 'lucide-react';
 import { downloadParticipantsTemplate, readSpreadsheet } from '../spreadsheetFiles';
 import { getCertificates, getCourses, getInstructors, issueFromImport } from '../repository';
 import { exportTrainingCertificates } from '../certificatePdf';
 import {
-  MAX_IMPORT_ROWS, buildImportRows, groupImportRows, rowStatus, type ImportDefaults
+  MAX_IMPORT_ROWS, buildImportRows, groupImportRows, parsePastedList, rowStatus, type ImportDefaults
 } from '../spreadsheetImport';
 import { formatDateBr, todayIso } from '../rules';
 import type { TrainingCertificate } from '../types';
@@ -22,6 +22,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [raw, setRaw] = useState<Array<Record<string, unknown>> | null>(null);
   const [fileName, setFileName] = useState('');
+  const [pasting, setPasting] = useState(false);
   const [reading, setReading] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [createClasses, setCreateClasses] = useState(true);
@@ -50,6 +51,13 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
       setReading(false);
       if (fileRef.current) fileRef.current.value = '';
     }
+  };
+
+  /** Lista colada (igual ao "Colar lista" das turmas): entra como se fosse a planilha. */
+  const handlePasted = (list: Array<Record<string, string>>) => {
+    setRaw(list);
+    setFileName('Lista colada');
+    setFilter('todas');
   };
 
   const handleIssue = async () => {
@@ -122,7 +130,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
         <div className="text-xs text-slate-600 space-y-1">
           <p>1. Baixe o modelo e preencha uma pessoa por linha: <b>Nome, CPF, Colaborador da Empresa e Filial</b>.</p>
           <p>2. Escolha abaixo o curso, as datas, o local, o instrutor e a nota (valem para todos).</p>
-          <p>3. Envie a planilha: a prévia mostra o que será emitido, quem foi reprovado e as linhas com erro.</p>
+          <p>3. Envie a planilha ou <b>cole a lista</b>: a prévia mostra o que será emitido, quem foi reprovado e as linhas com erro.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className={btnSecondary} onClick={() => downloadParticipantsTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}>
@@ -130,6 +138,9 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
           </button>
           <button type="button" className={btnPrimary} disabled={reading} onClick={() => fileRef.current?.click()}>
             {reading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} {raw ? 'Trocar planilha' : 'Enviar planilha'}
+          </button>
+          <button type="button" className={btnSecondary} disabled={reading} onClick={() => setPasting(true)}>
+            <ClipboardPaste className="w-3.5 h-3.5" /> Colar lista
           </button>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.ods" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
         </div>
@@ -180,7 +191,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
           onDragOver={e => e.preventDefault()}
           onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files?.[0]); }}>
           <FileSpreadsheet className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
-          <p className="text-sm font-bold text-slate-700">Arraste a planilha aqui ou use "Enviar planilha"</p>
+          <p className="text-sm font-bold text-slate-700">Arraste a planilha aqui, use "Enviar planilha" ou "Colar lista"</p>
           <p className="text-[11px] text-slate-500 mt-1">Excel (.xlsx, .xls), CSV ou ODS · até {MAX_IMPORT_ROWS} linhas</p>
         </div>
       ) : (
@@ -233,6 +244,31 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
           </div>
         </div>
       )}
+      {pasting && <PasteList onClose={() => setPasting(false)} onUse={handlePasted} />}
+    </Modal>
+  );
+};
+
+/** Colar lista de alunos copiada do Excel ou digitada (igual à aba Turmas). */
+const PasteList: React.FC<{ onClose: () => void; onUse: (list: Array<Record<string, string>>) => void }> = ({ onClose, onUse }) => {
+  const [text, setText] = useState('');
+  const list = useMemo(() => parsePastedList(text), [text]);
+  return (
+    <Modal
+      title="Colar lista de alunos"
+      onClose={onClose}
+      footer={<>
+        <button type="button" className={btnSecondary} onClick={onClose}>Cancelar</button>
+        <button type="button" className={btnPrimary} disabled={!list.length} onClick={() => { onUse(list); onClose(); }}>Usar {list.length || ''} aluno(s)</button>
+      </>}
+    >
+      <p className="text-xs text-slate-500 mb-2">
+        Uma pessoa por linha, nas colunas <b>Nome, CPF, Colaborador da Empresa, Filial</b> (e, se quiser, Função). Copie direto do Excel
+        ou separe por ponto e vírgula. Se copiar junto a linha de títulos, as colunas extras (Curso, Início, Nota…) também valem.
+      </p>
+      <textarea rows={10} className={`${inputCls} font-mono`} value={text} onChange={e => setText(e.target.value)}
+        placeholder={'Maria Souza;529.982.247-25;Cliente X;Campinas/SP\nJoão Lima;11144477735;Cliente X;São Paulo/SP'} />
+      {list.length > 0 && <p className="text-[11px] text-slate-600 mt-2">{list.length} aluno(s) reconhecido(s). A prévia mostra CPF inválido, repetidos e reprovados.</p>}
     </Modal>
   );
 };
