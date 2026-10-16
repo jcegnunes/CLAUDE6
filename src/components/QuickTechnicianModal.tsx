@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { UserCheck, X, User as UserIcon, Mail, Phone, Award, Check, Upload, Image as ImageIcon, Trash2, PenTool } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
@@ -85,8 +86,9 @@ export const QuickTechnicianModal: React.FC<QuickTechnicianModalProps> = ({
     setErrorMsg('');
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+  // fora da página (portal): pode ser aberto de dentro de outro formulário (Configurações & Backup)
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200" onSubmit={e => e.stopPropagation()}>
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-blue-700 to-indigo-800 text-white flex items-center justify-between">
@@ -303,5 +305,5 @@ export const QuickTechnicianModal: React.FC<QuickTechnicianModalProps> = ({
         </form>
       </div>
     </div>
-  );
+  , document.body);
 };

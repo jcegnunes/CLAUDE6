@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Users, UserPlus, KeyRound, Pencil, UserX, UserCheck, X, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
@@ -249,8 +250,14 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
 // ---------------------------------------------------------------------------
 // Diálogos
 // ---------------------------------------------------------------------------
-const DialogShell: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60" role="dialog" aria-modal="true" aria-label={title}>
+/**
+ * Janela aberta fora da página (portal): o painel fica dentro do formulário da
+ * empresa em "Configurações & Backup", e um formulário dentro de outro faz o
+ * navegador recarregar a página em vez de cadastrar. O envio também não chega
+ * ao formulário da empresa (stopPropagation).
+ */
+const DialogShell: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => createPortal(
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60" role="dialog" aria-modal="true" aria-label={title} onSubmit={e => e.stopPropagation()}>
     <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
       <div className="px-5 py-3 bg-[#0A2540] text-white rounded-t-2xl flex items-center justify-between">
         <h3 className="font-bold text-sm">{title}</h3>
@@ -260,7 +267,8 @@ const DialogShell: React.FC<{ title: string; onClose: () => void; children: Reac
       </div>
       <div className="p-5 overflow-y-auto">{children}</div>
     </div>
-  </div>
+  </div>,
+  document.body
 );
 
 /** Valor do formulário -> cadastro: todos marcados = null (inclui módulos futuros). */

@@ -79,6 +79,10 @@
   digitada (Nome; CPF; Empresa; Filial; Função), igual ao "Colar lista" das turmas; com a linha de
   títulos copiada junto, as colunas seguem os títulos (inclusive Curso, Início, Nota…). A lista
   passa pela mesma prévia da planilha (CPF inválido, repetidos, reprovados).
+- **Correção (15/10/2026): cadastro de usuários em Configurações & Backup.** As janelas "Novo usuário
+  com acesso", "Novo técnico executor", "Dar acesso / Trocar senha" e "Editar" ficavam dentro do
+  formulário da empresa; o "Cadastrar" recarregava a página sem cadastrar nada (sem mensagem de
+  erro). Agora elas abrem fora do formulário e o envio não aciona o "Salvar" da empresa.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
