@@ -83,6 +83,11 @@
   com acesso", "Novo técnico executor", "Dar acesso / Trocar senha" e "Editar" ficavam dentro do
   formulário da empresa; o "Cadastrar" recarregava a página sem cadastrar nada (sem mensagem de
   erro). Agora elas abrem fora do formulário e o envio não aciona o "Salvar" da empresa.
+- **Excluir usuários** (Configurações & Backup → Usuários e técnicos; só o administrador): o usuário sai
+  da lista e dos cadastros e o login é bloqueado na hora (exclusão lógica, sincronizada). Não é possível
+  excluir a si mesmo, o administrador da plataforma nem o último administrador ativo. Ensaios, laudos e
+  certificados já emitidos mantêm o nome. O e-mail de login fica reservado: para reaproveitá-lo, use
+  "Desativar" em vez de excluir.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Users, UserPlus, KeyRound, Pencil, UserX, UserCheck, X, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { Users, UserPlus, KeyRound, Pencil, UserX, UserCheck, X, Loader2, Wifi, WifiOff, Trash2 } from 'lucide-react';
 import { User, UserRole } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
 import { SupabaseService } from '../services/supabaseService';
@@ -15,6 +15,19 @@ export const ROLE_LABEL: Record<UserRole, string> = {
   administrativo: 'Administrativo',
   cliente: 'Cliente (só consulta)'
 };
+
+/**
+ * Pode excluir este usuário? Só o administrador; nunca a si mesmo, o
+ * administrador da plataforma nem o último administrador ativo da empresa.
+ */
+export function canDeleteUser(me: Pick<User, 'id' | 'role' | 'isMasterAdmin'> | null | undefined, target: User, companyUsers: User[]): string | null {
+  if (!me || (me.role !== 'admin' && !me.isMasterAdmin)) return 'Somente o administrador pode excluir usuários.';
+  if (target.id === me.id) return 'Você não pode excluir o seu próprio usuário.';
+  if (target.isMasterAdmin) return 'O administrador da plataforma não pode ser excluído.';
+  const otherAdmins = companyUsers.filter(u => u.id !== target.id && u.role === 'admin' && u.active !== false && !(u as any).deletedAt);
+  if (target.role === 'admin' && otherAdmins.length === 0) return 'É o único administrador ativo da empresa: cadastre outro administrador antes de excluí-lo.';
+  return null;
+}
 
 /** Regras de senha iguais às do servidor (jvm_validate_new_password). */
 export function validatePassword(password: string, confirm: string): string | null {
@@ -85,6 +98,18 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
     setUsers(loadUsers());
     if (message) setNotice(message);
     onChange?.();
+  };
+
+  const removeUser = (user: User) => {
+    const blocked = canDeleteUser(me, user, users);
+    if (blocked) return window.alert(blocked);
+    const text = `Excluir ${user.name}${user.email && user.hasLogin ? ` (${user.email})` : ''}?\n\n`
+      + (user.hasLogin ? 'O acesso ao sistema é bloqueado imediatamente. ' : '')
+      + 'O usuário sai da lista e dos cadastros; ensaios, laudos e certificados já emitidos continuam com o nome dele.\n\n'
+      + (user.hasLogin ? 'O e-mail de login continua reservado: para voltar a usar o mesmo e-mail, prefira "Desativar".\n\n' : '')
+      + 'Esta ação não pode ser desfeita pelo sistema.';
+    if (!window.confirm(text)) return;
+    if (DielectricStorageService.deleteUser(user.id)) refresh(`${user.name} excluído.`);
   };
 
   const toggleActive = (user: User) => {
@@ -213,6 +238,16 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
                     >
                       {inactive ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
                       {inactive ? 'Reativar' : 'Desativar'}
+                    </button>
+                  )}
+                  {!isMe && !user.isMasterAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => removeUser(user)}
+                      title="Excluir usuário"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border border-red-300 bg-white text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Excluir
                     </button>
                   )}
                 </div>
