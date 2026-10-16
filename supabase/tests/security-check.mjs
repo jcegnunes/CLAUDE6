@@ -315,6 +315,39 @@ async function main() {
   r = await as(db, user(b), `SELECT public.jvm_training_delete_signing_cert('instructor', 'ins-dig') AS v`);
   ok(!!r.error, 'técnico NÃO remove certificado digital');
 
+  // ------------------------------------------ certificado digital em nuvem (PSC)
+  const cloudSql = (owner, provider = 'birdid') => `SELECT public.jvm_training_save_cloud_cert('instructor', '${owner}', '${provider}', 'INSTRUTOR DIGITAL:22222222222',
+    '-----BEGIN CERTIFICATE-----MIIB-----END CERTIFICATE-----', 'TokenSessao987', now() + interval '7 days',
+    'INSTRUTOR DIGITAL', '22222222222', 'AC NUVEM', '02', now(), now() + interval '1 year', '{"kind":"e-CPF","level":"A3"}'::jsonb) AS v`;
+  r = await as(db, user(b), cloudSql('ins-dig'));
+  ok(!!r.error, 'técnico NÃO cadastra certificado em nuvem');
+  await db.exec(`UPDATE public.users SET role = 'responsavel_tecnico' WHERE id = 'usr-b'`);
+  r = await as(db, user(b), cloudSql('ins-dig', 'Birdid; DROP'));
+  ok(!!r.error, 'provedor de certificado em nuvem inválido é recusado');
+  r = await as(db, user(b), cloudSql('ins-outra'));
+  ok(!!r.error, 'NÃO cadastra certificado em nuvem para instrutor de outra empresa/inexistente');
+  r = await as(db, user(b), cloudSql('ins-dig'));
+  ok(!r.error, `Responsável Técnico troca o A1 pelo certificado em nuvem ${r.error || ''}`);
+  const cloudRow = (await db.query(`SELECT kind, pfx_enc, password_enc, encode(token_enc, 'escape') AS t FROM public.training_signing_certs WHERE owner_id = 'ins-dig'`)).rows[0];
+  ok(cloudRow.kind === 'cloud' && cloudRow.pfx_enc === null && cloudRow.password_enc === null, 'ao passar para a nuvem, arquivo e senha do A1 são apagados');
+  ok(!cloudRow.t.includes('TokenSessao987'), 'token da sessão de assinatura fica criptografado no banco');
+  r = await as(db, user(b), `SELECT public.jvm_training_signing_certs() AS v`);
+  const cl = typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v;
+  ok(cl?.[0]?.kind === 'cloud' && cl?.[0]?.provider === 'birdid' && !!cl?.[0]?.tokenExpiresAt && !JSON.stringify(cl).includes('TokenSessao987'),
+    'lista mostra provedor e validade da autorização, sem o token');
+  await db.exec(`UPDATE public.users SET role = 'tecnico' WHERE id = 'usr-b'`);
+  r = await as(db, user(b), `SELECT public.jvm_training_signing_material('instructor', 'ins-dig') AS v`);
+  const cm = typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v;
+  ok(cm?.kind === 'cloud' && cm?.token === 'TokenSessao987' && cm?.alias === 'INSTRUTOR DIGITAL:22222222222' && !!cm?.certPem && !('pfx' in cm),
+    'quem emite certificados recebe a autorização da nuvem para assinar');
+  r = await as(db, user(a), `SELECT public.jvm_training_signing_material('instructor', 'ins-dig') AS v`);
+  ok(!r.error && r.rows[0].v === null, 'outra empresa NÃO obtém a autorização da nuvem');
+  await db.exec(`UPDATE public.users SET role = 'responsavel_tecnico' WHERE id = 'usr-b'`);
+  r = await as(db, user(b), saveSql);
+  const backToA1 = (await db.query(`SELECT kind, token_enc, cert_pem FROM public.training_signing_certs WHERE owner_id = 'ins-dig'`)).rows[0];
+  ok(!r.error && backToA1.kind === 'a1' && backToA1.token_enc === null && backToA1.cert_pem === null, 'voltar para o A1 apaga a autorização da nuvem');
+  await db.exec(`UPDATE public.users SET role = 'tecnico' WHERE id = 'usr-b'`);
+
   // ---------------------------------------------------------------- perfis
   await db.exec(`INSERT INTO public.users (id, company_id, name, email, role, password_hash) VALUES ('usr-c', 'comp-2', 'Cli', 'cli@x.com', 'cliente', 'Senha@C1')`);
   const c = await uidOf(db, 'usr-c');
