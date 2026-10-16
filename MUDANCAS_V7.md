@@ -350,10 +350,16 @@ faixas dos ensaios (sem número repetido entre aparelhos).
   endereço de testes, se houver).
 - **2. Banco:** execute de novo `supabase/modules/treinamentos.sql` no SQL Editor (colunas da
   nuvem e a função `jvm_training_save_cloud_cert`; não apaga dados).
-- **3. Função do servidor:** Supabase → **Edge Functions** → *Deploy a new function* → *Via
-  Editor*, nome **`psc-assinatura`**, cole o conteúdo de
-  `supabase/functions/psc-assinatura/index.ts` e publique (ou, com o Supabase CLI:
-  `supabase functions deploy psc-assinatura`). Deixe ligada a verificação de JWT.
+- **3. Função do servidor:** no painel do Supabase (projeto do JVM Lab), menu lateral
+  **Edge Functions** → botão **Deploy a new function** → **Via Editor**. No editor, apague todo
+  o exemplo que vem pronto no `index.ts` e cole o arquivo inteiro
+  `supabase/functions/psc-assinatura/index.ts` (não usa bibliotecas externas). Embaixo, em
+  *Function name*, troque o nome sugerido por **`psc-assinatura`** (exatamente assim) e clique em
+  **Deploy function**. Na página da função, em *Details*, deixe **Enforce JWT verification**
+  ligado. Teste: no app, o quadro "Certificado em nuvem" passa de "O servidor ainda não tem a
+  função" para "Nenhum provedor configurado" (até cadastrar os segredos do passo 4).
+  Alternativa pelo terminal: `npx supabase login` e
+  `npx supabase functions deploy psc-assinatura --project-ref cdtbzbshylrcprvmjpgc`.
 - **4. Segredos:** Edge Functions → **Secrets**, um par por provedor:
   `PSC_BIRDID_CLIENT_ID` / `PSC_BIRDID_CLIENT_SECRET`, `PSC_VAULTID_…`, `PSC_VIDAAS_…`,
   `PSC_SAFEID_…`, `PSC_NEOID_…`. Só os provedores com o par configurado aparecem no app.

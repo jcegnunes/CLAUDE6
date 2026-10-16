@@ -9,7 +9,9 @@
 //
 // Só aceita usuários logados no JVM Lab. Nenhum documento passa por aqui: só
 // o hash (SHA-256) dos atributos assinados do PDF.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+//
+// Sem bibliotecas externas: dá para colar este arquivo inteiro no editor do
+// painel do Supabase (Edge Functions → Deploy a new function → Via Editor).
 
 type Provider = { label: string; url: string; hash: 'hex' | 'base64'; token: 'json' | 'form'; otp: boolean };
 
@@ -84,9 +86,14 @@ Deno.serve(async req => {
 
   // só usuários logados (a chave pública "anon" sozinha não basta)
   const auth = req.headers.get('Authorization') || '';
-  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: auth } } });
-  const { data: who } = await supabase.auth.getUser();
-  if (!who?.user) return reply({ error: 'Faça login no JVM Lab.' }, 401);
+  let loggedIn = false;
+  try {
+    const who = await fetch(`${Deno.env.get('SUPABASE_URL')}/auth/v1/user`, {
+      headers: { Authorization: auth, apikey: Deno.env.get('SUPABASE_ANON_KEY') || '' }
+    });
+    loggedIn = who.ok && !!(await who.json())?.id;
+  } catch { loggedIn = false; }
+  if (!loggedIn) return reply({ error: 'Faça login no JVM Lab.' }, 401);
 
   let body: any;
   try { body = await req.json(); } catch { return fail('Requisição inválida.'); }
