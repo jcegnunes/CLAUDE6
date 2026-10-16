@@ -875,6 +875,24 @@ export class DielectricStorageService {
     return updatedClient;
   }
 
+  /**
+   * Exclusão lógica do usuário (deleted_at), propagada aos aparelhos. No banco o
+   * login é bloqueado na hora; só o administrador consegue gravar a exclusão.
+   * Ensaios, laudos e certificados já emitidos continuam com o nome gravado.
+   */
+  static deleteUser(id: string): boolean {
+    const allUsers = getLocal<User[]>(STORAGE_KEYS.USERS, INITIAL_USERS);
+    const user = allUsers.find(u => u.id === id);
+    if (!user || user.isMasterAdmin) return false;
+    const now = new Date().toISOString();
+    Object.assign(user, { deletedAt: now, updatedAt: now, active: false, syncStatus: 'pending' });
+    setLocal(STORAGE_KEYS.USERS, allUsers);
+    this.addAuditLog('EXCLUSAO', 'Usuario', id, `Usuário excluído: ${user.name}${user.email ? ` (${user.email})` : ''}`, undefined, undefined, user.companyId);
+    this.enqueueSync('user', 'delete', id, user);
+    window.dispatchEvent(new Event('jvm-data-changed'));
+    return true;
+  }
+
   static deleteClient(id: string): void {
     // Exclusão lógica: propagada a todos os dispositivos via deleted_at
     const clients = getLocal<Client[]>(STORAGE_KEYS.CLIENTS, INITIAL_CLIENTS);
