@@ -1,10 +1,11 @@
-/** Quadro do certificado digital A1 (instrutor ou Responsável Técnico). */
+/** Quadro do certificado digital A1 ou em nuvem (instrutor ou Responsável Técnico). */
 import React, { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, ShieldAlert, Upload, Trash2, Loader2, KeyRound, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, Upload, Trash2, Loader2, KeyRound, Eye, EyeOff, Cloud, ExternalLink, Smartphone } from 'lucide-react';
 import {
-  canManageSigningCerts, deleteSigningCert, findSigningCert, loadSigningCerts, saveSigningCert, subscribeSigningCerts,
-  type SigningOwnerType
+  canManageSigningCerts, deleteSigningCert, findSigningCert, isCloudSessionExpired, loadSigningCerts, saveCloudSigningCert, saveSigningCert,
+  subscribeSigningCerts, type SigningOwnerType
 } from '../signingCerts';
+import { authorizeInPopup, authorizeWithOtp, listCloudProviders, providerLabel, type CloudProvider } from '../cloudSigning';
 import { syncTraining } from '../sync';
 import { inspectP12, isCertExpired, type CertDetails, type SigningCertInfo } from '../digitalSignature';
 import { btnPrimary, btnSecondary, inputCls } from './ui';
@@ -98,15 +99,22 @@ export const DigitalCertBadge: React.FC<{ ownerType: SigningOwnerType; ownerId: 
   if (!c) return null;
   const expired = new Date(c.validTo).getTime() < Date.now();
   const soon = !expired && new Date(c.validTo).getTime() - Date.now() < 30 * 864e5;
+  if (c.kind === 'cloud' && !expired && isCloudSessionExpired(c)) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold bg-amber-50 text-amber-700 border-amber-200">
+        <Cloud className="w-3 h-3" /> Nuvem: autorização vencida
+      </span>
+    );
+  }
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${expired ? 'bg-red-50 text-red-700 border-red-200' : soon ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
       {expired ? <ShieldAlert className="w-3 h-3" /> : <ShieldCheck className="w-3 h-3" />}
-      {expired ? `Cert. digital vencido (${fmt(c.validTo)})` : `Cert. digital até ${fmt(c.validTo)}`}
+      {expired ? `Cert. digital vencido (${fmt(c.validTo)})` : `Cert. digital${c.kind === 'cloud' ? ' em nuvem' : ''} até ${fmt(c.validTo)}`}
     </span>
   );
 };
 
-export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: string; ownerName: string }> = ({ ownerType, ownerId, ownerName }) => {
+export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: string; ownerName: string; ownerCpf?: string }> = ({ ownerType, ownerId, ownerName, ownerCpf }) => {
   useSigningCerts();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -119,6 +127,11 @@ export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: st
   const canManage = canManageSigningCerts();
   const { preview, previewError } = useCertPreview(file, password);
   const expired = cert ? new Date(cert.validTo).getTime() < Date.now() : false;
+  const isCloud = cert?.kind === 'cloud';
+  const sessionExpired = isCloud && cert ? isCloudSessionExpired(cert) : false;
+  const [mode, setMode] = useState<'a1' | 'cloud'>(isCloud ? 'cloud' : 'a1');
+  // a lista pode chegar do servidor depois de abrir: certificado em nuvem abre na aba da nuvem
+  useEffect(() => { if (isCloud) setMode('cloud'); }, [isCloud]);
 
   const handleSave = async () => {
     if (!file) return setError('Escolha o arquivo .pfx ou .p12.');
@@ -159,13 +172,23 @@ export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: st
     <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/60">
       <div className="flex items-center gap-2 mb-2">
         <KeyRound className="w-4 h-4 text-blue-700" />
-        <span className="text-xs font-bold text-slate-800">Certificado digital ICP-Brasil (A1)</span>
+        <span className="text-xs font-bold text-slate-800">Certificado digital ICP-Brasil</span>
       </div>
 
       {cert ? (
-        <div className={`text-[11px] rounded-lg border px-2 py-1.5 mb-2 ${expired ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
-          <b>{cert.holderName}</b>{cert.holderDoc ? ` · ${maskDoc(cert.holderDoc)}` : ''}<br />
+        <div className={`text-[11px] rounded-lg border px-2 py-1.5 mb-2 ${expired ? 'border-red-200 bg-red-50 text-red-800' : sessionExpired ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-emerald-200 bg-emerald-50 text-emerald-900'}`}>
+          <b>{cert.holderName}</b>{cert.holderDoc ? ` · ${maskDoc(cert.holderDoc)}` : ''}
+          <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-white/70 border border-slate-300 px-1.5 text-[10px] font-bold">
+            {isCloud ? <><Cloud className="w-3 h-3" /> Em nuvem · {providerLabel(cert.provider)}</> : 'A1 (arquivo)'}
+          </span><br />
           {cert.issuer ? `Emitido por ${cert.issuer} · ` : ''}válido de {fmt(cert.validFrom)} a {fmt(cert.validTo)}{expired ? ' — VENCIDO' : ''}
+          {isCloud && (
+            <><br /><span className={sessionExpired ? 'font-bold text-amber-800' : ''}>
+              {sessionExpired
+                ? `Autorização de assinatura vencida${cert.tokenExpiresAt ? ` em ${new Date(cert.tokenExpiresAt).toLocaleString('pt-BR')}` : ''}: renove abaixo para voltar a assinar.`
+                : `Assinatura autorizada até ${new Date(cert.tokenExpiresAt || '').toLocaleString('pt-BR')}`}
+            </span></>
+          )}
           {cert.lastUsedAt && <><br />Último uso: {new Date(cert.lastUsedAt).toLocaleString('pt-BR')}</>}
           {cert.details ? (
             <details className="mt-1.5">
@@ -182,6 +205,24 @@ export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: st
 
       {canManage ? (
         <>
+          <div className="flex gap-1 mb-2 p-0.5 bg-slate-200/70 rounded-lg w-fit" role="tablist" aria-label="Tipo de certificado">
+            {([['a1', 'Arquivo A1 (.pfx)'], ['cloud', 'Certificado em nuvem']] as const).map(([k, label]) => (
+              <button key={k} type="button" role="tab" aria-selected={mode === k}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold inline-flex items-center gap-1 ${mode === k ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}
+                onClick={() => { setMode(k); setError(null); setNotice(null); }}>
+                {k === 'cloud' ? <Cloud className="w-3 h-3" /> : <KeyRound className="w-3 h-3" />} {label}
+              </button>
+            ))}
+          </div>
+          {mode === 'cloud' ? (
+            <CloudCertForm
+              ownerType={ownerType} ownerId={ownerId} ownerName={ownerName} ownerCpf={ownerCpf || cert?.holderDoc || ''}
+              renewing={isCloud} defaultProvider={isCloud ? cert?.provider : undefined}
+              onDone={msg => { setError(null); setNotice(msg); }} onError={msg => { setNotice(null); setError(msg); }}
+              extra={cert && <button type="button" className={btnSecondary} disabled={busy} onClick={handleDelete} title="Remover certificado digital"><Trash2 className="w-3.5 h-3.5 text-red-600" /></button>}
+            />
+          ) : (
+          <>
           <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] items-end">
             <label className="block">
               <span className="block font-bold text-slate-700 mb-1 text-[11px]">{cert ? 'Trocar arquivo (.pfx/.p12)' : 'Arquivo (.pfx/.p12)'}</span>
@@ -208,6 +249,8 @@ export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: st
             Quem emite certificados de treinamento na empresa assina em nome do titular. Exige internet.
           </p>
           <PreviewPanel preview={preview} error={previewError} />
+          </>
+          )}
         </>
       ) : (
         <p className="text-[10px] text-slate-500">Somente o administrador ou o Responsável Técnico cadastra certificados digitais.</p>
@@ -215,6 +258,117 @@ export const DigitalCertBox: React.FC<{ ownerType: SigningOwnerType; ownerId: st
       {error && <p className="mt-2 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1" role="alert">{error}</p>}
       {notice && <p className="mt-2 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2 py-1" role="status">{notice}</p>}
     </div>
+  );
+};
+
+/**
+ * Certificado em nuvem: o titular autoriza no site/app do provedor (ou com o
+ * código OTP) uma sessão de assinatura; o certificado público e a autorização
+ * ficam guardados no servidor. Ao vencer a sessão, autorizar de novo.
+ */
+const CloudCertForm: React.FC<{
+  ownerType: SigningOwnerType; ownerId: string; ownerName: string; ownerCpf: string;
+  renewing: boolean; defaultProvider?: string;
+  onDone: (msg: string) => void; onError: (msg: string) => void; extra?: React.ReactNode;
+}> = ({ ownerType, ownerId, ownerName, ownerCpf, renewing, defaultProvider, onDone, onError, extra }) => {
+  const [providers, setProviders] = useState<CloudProvider[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [provider, setProvider] = useState(defaultProvider || '');
+  const [cpf, setCpf] = useState(ownerCpf);
+  const [otp, setOtp] = useState('');
+  const [busy, setBusy] = useState<'popup' | 'otp' | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    listCloudProviders()
+      .then(list => {
+        if (!alive) return;
+        setProviders(list);
+        setProvider(p => (p && list.some(x => x.id === p) ? p : list[0]?.id || ''));
+      })
+      .catch(err => { if (alive) { setProviders([]); setLoadError(err instanceof Error ? err.message : String(err)); } });
+    return () => { alive = false; abortRef.current?.abort(); };
+  }, []);
+
+  const current = providers?.find(p => p.id === provider);
+
+  const authorize = async (how: 'popup' | 'otp') => {
+    if (!provider) return onError('Escolha o provedor do certificado em nuvem.');
+    if (cpf.replace(/\D/g, '').length !== 11) return onError('Informe o CPF do titular do certificado (11 dígitos).');
+    setBusy(how);
+    try {
+      let auth;
+      if (how === 'otp') {
+        auth = await authorizeWithOtp(provider, cpf, otp);
+      } else {
+        abortRef.current = new AbortController();
+        auth = await authorizeInPopup(provider, cpf, abortRef.current.signal);
+      }
+      // o instrutor precisa estar no servidor antes do certificado
+      if (ownerType === 'instructor') await syncTraining();
+      const info = await saveCloudSigningCert(ownerType, ownerId, provider, cpf, auth);
+      setOtp('');
+      const nameDiff = ownerName && info.holderName && !info.holderName.toLowerCase().includes(ownerName.split(' ')[0].toLowerCase());
+      onDone(`Certificado em nuvem de ${info.holderName} ${renewing ? 'renovado' : 'cadastrado'}: assinatura autorizada até ${new Date(info.tokenExpiresAt || '').toLocaleString('pt-BR')}.${nameDiff ? ` Atenção: o titular é diferente de "${ownerName}".` : ''}`);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err));
+    } finally {
+      abortRef.current = null;
+      setBusy(null);
+    }
+  };
+
+  if (providers === null) {
+    return <p className="text-[11px] text-slate-500 inline-flex items-center gap-1.5"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Consultando os provedores de certificado em nuvem…</p>;
+  }
+  if (!providers.length) {
+    return (
+      <div className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+        {loadError || 'Nenhum provedor de certificado em nuvem configurado no servidor.'}
+        <br /><span className="text-[10px]">As credenciais de integração de cada provedor (BirdID, VIDaaS, SafeID...) são configuradas na função "psc-assinatura" do Supabase.</span>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="grid gap-2 sm:grid-cols-2 items-end">
+        <label className="block">
+          <span className="block font-bold text-slate-700 mb-1 text-[11px]">Provedor (PSC)</span>
+          <select className={inputCls} value={provider} onChange={e => setProvider(e.target.value)} disabled={!!busy}>
+            {providers.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="block font-bold text-slate-700 mb-1 text-[11px]">CPF do titular</span>
+          <input className={inputCls} value={cpf} onChange={e => setCpf(e.target.value)} inputMode="numeric" placeholder="000.000.000-00" disabled={!!busy} />
+        </label>
+      </div>
+      <div className="flex flex-wrap items-end gap-2 mt-2">
+        <button type="button" className={btnPrimary} disabled={!!busy} onClick={() => authorize('popup')}>
+          {busy === 'popup' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+          {renewing ? 'Renovar autorização' : 'Autorizar no site do provedor'}
+        </button>
+        {busy === 'popup' && <button type="button" className={btnSecondary} onClick={() => abortRef.current?.abort()}>Cancelar</button>}
+        {current?.otp && (
+          <div className="flex items-end gap-1.5">
+            <label className="block">
+              <span className="block font-bold text-slate-700 mb-1 text-[11px]">ou código OTP do app</span>
+              <input className={`${inputCls} w-28`} value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" disabled={!!busy} />
+            </label>
+            <button type="button" className={btnSecondary} disabled={!!busy || otp.length < 4} onClick={() => authorize('otp')}>
+              {busy === 'otp' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Smartphone className="w-3.5 h-3.5" />} Autorizar
+            </button>
+          </div>
+        )}
+        {extra}
+      </div>
+      <p className="text-[10px] text-slate-500 mt-1.5">
+        O titular ({ownerName || 'instrutor'}) entra na conta do provedor e aprova uma <b>sessão de assinatura de até 7 dias</b>.
+        Nesse período os PDFs são assinados automaticamente; depois, clique em "Renovar autorização". A chave privada nunca sai do provedor:
+        só o resumo (hash) de cada PDF é enviado. Exige internet.
+      </p>
+    </>
   );
 };
 
@@ -258,6 +412,7 @@ export const PendingCertFields: React.FC<{ value: PendingCert; onChange: (v: Pen
       </div>
       <p className="text-[10px] text-slate-500 mt-1.5">
         Gravado junto com o instrutor (exige internet), criptografado no servidor, e usado para assinar automaticamente os PDFs.
+        Certificado em nuvem (BirdID, VIDaaS, SafeID...): salve o instrutor e abra o cadastro de novo para autorizar.
       </p>
       <PreviewPanel preview={preview} error={error ? null : previewError} />
       {error && <p className="mt-2 text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1" role="alert">{error}</p>}

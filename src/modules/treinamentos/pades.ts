@@ -129,6 +129,32 @@ export function loadP12(p12: Uint8Array, password: string): LoadedP12 {
  */
 export function createIcpBrasilCms(content: Uint8Array, p12: LoadedP12): Uint8Array {
   const { key, cert, chain } = p12;
+  const attrs = signedAttributes(content, cert);
+  // assina o DER dos atributos codificados como SET
+  const md = forge.md.sha256.create();
+  md.update(der(attrs));
+  return assembleCms(attrs, key.sign(md), cert, chain);
+}
+
+/**
+ * Assinatura feita fora do navegador (certificado em nuvem, no PSC): recebe o
+ * SHA-256 dos atributos assinados e devolve a assinatura RSA PKCS#1 v1.5 (RAW).
+ */
+export type RemoteHashSigner = (sha256Digest: Uint8Array) => Promise<Uint8Array>;
+
+/** Igual a createIcpBrasilCms, com a chave privada no PSC (certificado em nuvem). */
+export async function createIcpBrasilCmsRemote(content: Uint8Array, cert: forge.pki.Certificate, chain: forge.pki.Certificate[], signHash: RemoteHashSigner): Promise<Uint8Array> {
+  const attrs = signedAttributes(content, cert);
+  const digest = sha256(der(attrs));
+  const signature = toBinary(await signHash(fromBinary(digest)));
+  let ok = false;
+  try { ok = verifyRsaPkcs1Strict(cert.publicKey as forge.pki.rsa.PublicKey, OID.sha256, digest, signature); } catch { ok = false; }
+  if (!ok) throw new Error('A assinatura devolvida pelo certificado em nuvem não confere com o certificado cadastrado. Renove a autorização no cadastro do instrutor.');
+  return assembleCms(attrs, signature, cert, chain);
+}
+
+/** Atributos assinados exigidos pela Política AD-RB (SET em DER). */
+function signedAttributes(content: Uint8Array, cert: forge.pki.Certificate): forge.asn1.Asn1 {
   const certDer = der(forge.pki.certificateToAsn1(cert));
   const { serial, issuer } = issuerAndSerial(cert);
 
@@ -146,18 +172,17 @@ export function createIcpBrasilCms(content: Uint8Array, p12: LoadedP12): Uint8Ar
     seq([seq([oid(OID.spqUri), A.create(C.UNIVERSAL, T.IA5STRING, false, ICP_POLICY.uri)])])
   ]);
 
-  const attrs = sortedSet([
+  return sortedSet([
     attribute(OID.contentType, oid(OID.data)),
     attribute(OID.messageDigest, octets(sha256(toBinary(content)))),
     attribute(OID.signingCertificateV2, signingCertV2),
     attribute(OID.sigPolicyId, sigPolicyId)
   ]);
+}
 
-  // assina o DER dos atributos codificados como SET
-  const md = forge.md.sha256.create();
-  md.update(der(attrs));
-  const signature = key.sign(md);
-
+/** CMS SignedData com os atributos assinados, a assinatura e os certificados. */
+function assembleCms(attrs: forge.asn1.Asn1, signature: string, cert: forge.pki.Certificate, chain: forge.pki.Certificate[]): Uint8Array {
+  const { serial, issuer } = issuerAndSerial(cert);
   const signedAttrs = A.create(C.CONTEXT_SPECIFIC, 0, true, attrs.value as forge.asn1.Asn1[]);
   const signerInfo = seq([
     int(String.fromCharCode(1)),

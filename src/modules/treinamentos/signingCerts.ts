@@ -6,7 +6,8 @@
  */
 import { SupabaseService } from '../../services/supabaseService';
 import { currentCompanyId, currentUser, getInstructors } from './repository';
-import { base64ToBytes, bytesToBase64, inspectP12, isCertExpired, type CertDetails, type PdfSigner } from './digitalSignature';
+import { base64ToBytes, bytesToBase64, inspectCertificatePem, inspectP12, isCertExpired, type CertDetails, type PdfSigner, type SigningCertInfo } from './digitalSignature';
+import { pickCertificate, signHashInCloud, type CloudAuthorization } from './cloudSigning';
 import type { TrainingCertificate } from './types';
 
 export type SigningOwnerType = 'instructor' | 'rt';
@@ -24,11 +25,20 @@ export interface SigningCertSummary {
   lastUsedAt?: string;
   /** Dados do certificado ligados à assinatura (lidos no cadastro) */
   details?: CertDetails | null;
+  /** "a1" (arquivo .pfx) ou "cloud" (certificado em nuvem, no PSC) */
+  kind?: 'a1' | 'cloud';
+  /** Certificado em nuvem: PSC (birdid, vidaas...) e fim da sessão de assinatura autorizada */
+  provider?: string;
+  tokenExpiresAt?: string;
 }
+
+type SigningMaterial =
+  | { kind: 'a1'; p12: Uint8Array; password: string; holderName: string; validTo: string }
+  | { kind: 'cloud'; provider: string; alias: string; certPem: string; token: string; tokenExpiresAt: string; holderName: string; validTo: string };
 
 const LIST_KEY = 'jvm_training_signing_list';
 const listeners = new Set<() => void>();
-const material = new Map<string, { p12: Uint8Array; password: string; holderName: string; validTo: string } | null>();
+const material = new Map<string, SigningMaterial | null>();
 
 const keyOf = (type: SigningOwnerType, id: string) => `${type}:${type === 'rt' ? 'rt' : id}`;
 
@@ -120,6 +130,43 @@ export async function saveSigningCert(type: SigningOwnerType, ownerId: string, f
   return { ownerType: type, ownerId: type === 'rt' ? 'rt' : ownerId, ...info };
 }
 
+/** Sessão de assinatura do certificado em nuvem vencida (ou sem data)? */
+export function isCloudSessionExpired(c: Pick<SigningCertSummary, 'tokenExpiresAt'>, now = Date.now()): boolean {
+  return !c.tokenExpiresAt || new Date(c.tokenExpiresAt).getTime() <= now;
+}
+
+/**
+ * Grava o certificado em nuvem autorizado pelo titular no PSC (certificado
+ * público + token da sessão de assinatura, criptografado no servidor).
+ */
+export async function saveCloudSigningCert(type: SigningOwnerType, ownerId: string, provider: string, cpf: string, auth: CloudAuthorization): Promise<SigningCertSummary> {
+  if (!online()) throw new Error('Cadastrar certificado digital exige internet.');
+  const chosen = pickCertificate(auth.certificates, cpf, inspectCertificatePem);
+  if (!chosen) throw new Error('Nenhum certificado encontrado nesta conta do provedor.');
+  const info: SigningCertInfo = inspectCertificatePem(chosen.certificate);
+  if (isCertExpired(info)) throw new Error(`Este certificado venceu em ${new Date(info.validTo).toLocaleDateString('pt-BR')}.`);
+  const { error } = await SupabaseService.getClient().rpc('jvm_training_save_cloud_cert', {
+    p_owner_type: type,
+    p_owner_id: type === 'rt' ? 'rt' : ownerId,
+    p_provider: provider,
+    p_alias: chosen.alias,
+    p_cert_pem: chosen.certificate,
+    p_token: auth.token,
+    p_token_expires_at: auth.expiresAt,
+    p_holder_name: info.holderName,
+    p_holder_doc: info.holderDoc,
+    p_issuer: info.issuer,
+    p_serial: info.serial,
+    p_valid_from: info.validFrom,
+    p_valid_to: info.validTo,
+    p_details: info.details
+  });
+  if (error) throw rpcError(error);
+  material.delete(keyOf(type, ownerId));
+  await loadSigningCerts();
+  return { ownerType: type, ownerId: type === 'rt' ? 'rt' : ownerId, ...info, kind: 'cloud', provider, tokenExpiresAt: auth.expiresAt };
+}
+
 export async function deleteSigningCert(type: SigningOwnerType, ownerId: string): Promise<void> {
   if (!online()) throw new Error('Remover certificado digital exige internet.');
   const { error } = await SupabaseService.getClient().rpc('jvm_training_delete_signing_cert', { p_owner_type: type, p_owner_id: ownerId });
@@ -134,7 +181,12 @@ async function getMaterial(type: SigningOwnerType, ownerId: string) {
   const { data, error } = await SupabaseService.getClient().rpc('jvm_training_signing_material', { p_owner_type: type, p_owner_id: ownerId });
   if (error) throw rpcError(error);
   const m: any = typeof data === 'string' ? JSON.parse(data) : data;
-  const value = m && m.pfx ? { p12: base64ToBytes(m.pfx), password: m.password, holderName: m.holderName || '', validTo: m.validTo || '' } : null;
+  let value: SigningMaterial | null = null;
+  if (m && m.kind === 'cloud' && m.token && m.certPem) {
+    value = { kind: 'cloud', provider: m.provider || '', alias: m.alias || '', certPem: m.certPem, token: m.token, tokenExpiresAt: m.tokenExpiresAt || '', holderName: m.holderName || '', validTo: m.validTo || '' };
+  } else if (m && m.pfx) {
+    value = { kind: 'a1', p12: base64ToBytes(m.pfx), password: m.password, holderName: m.holderName || '', validTo: m.validTo || '' };
+  }
   material.set(key, value);
   return value;
 }
@@ -213,16 +265,29 @@ export async function planSignatures(
       plan.warnings.push(`Certificado digital de ${w.label} vencido: não assinado.`);
       continue;
     }
+    if (m.kind === 'cloud' && isCloudSessionExpired(m)) {
+      plan.warnings.push(`Autorização do certificado em nuvem de ${w.label} venceu${m.tokenExpiresAt ? ` em ${new Date(m.tokenExpiresAt).toLocaleString('pt-BR')}` : ''}: renove em Instrutores. Não assinado.`);
+      continue;
+    }
     const reason = w.type === 'rt' ? 'Responsável Técnico – certificado de treinamento' : 'Instrutor – certificado de treinamento';
     // dados lidos no cadastro do certificado; cadastros antigos: lê do arquivo agora
     let details = findSigningCert(w.type, w.id)?.details || null;
     if (!details) {
-      try { details = inspectP12(m.p12, m.password).details; } catch { details = null; }
+      try { details = m.kind === 'cloud' ? inspectCertificatePem(m.certPem).details : inspectP12(m.p12, m.password).details; } catch { details = null; }
     }
     const stamp = details
       ? stampFromDetails(details, reason, w.label)
       : { cn: m.holderName || w.label, dn: '', reason, person: w.label, docLine: '' };
-    plan.signers.push({ p12: m.p12, password: m.password, name: stamp.cn, reason });
+    if (m.kind === 'cloud') {
+      const { provider, token, alias, certPem } = m;
+      const label = `Certificado de treinamento ${cert.certificateNumber || ''}`.trim();
+      plan.signers.push({
+        p12: new Uint8Array(), password: '', name: stamp.cn, reason,
+        remote: { certPem, signHash: digest => signHashInCloud(provider, token, alias, digest, label) }
+      });
+    } else {
+      plan.signers.push({ p12: m.p12, password: m.password, name: stamp.cn, reason });
+    }
     plan.names.push(w.label);
     plan.stamps[stampKey(w)] = stamp;
   }

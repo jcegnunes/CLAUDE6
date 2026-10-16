@@ -91,10 +91,17 @@
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
 - **Laudos:** no gráfico de corrente de fuga do PDF/Word, o valor do limite (ex.: "9mA") no alto da escala
   ficava escondido sob a faixa do título; o medidor desceu e o valor aparece inteiro.
+- **Certificado digital em nuvem** (Treinamentos → Instrutores e cartão do RT): além do arquivo A1,
+  o instrutor pode usar certificado em nuvem (BirdID, VaultID, VIDaaS, SafeID, NeoID). O titular
+  autoriza uma sessão de assinatura de até 7 dias no site do provedor (ou com o código OTP do app,
+  no BirdID/VaultID) e os PDFs são assinados automaticamente nesse período; só o hash vai ao
+  provedor. **Exige configuração**: veja "Certificado digital em nuvem (PSC) — configuração".
+  **Banco:** execute de novo `supabase/modules/treinamentos.sql`.
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
   assinaturas RSA no verificador de PDF (detalhes em "Vulnerabilidades das dependências").
-- **Banco:** nenhum script novo em relação à 7.2.
+- **Banco:** executar de novo `supabase/modules/treinamentos.sql` (certificado em nuvem); `schema.sql`
+  sem mudança em relação à 7.2.
 
 ## ⚠️ Passos obrigatórios (nesta ordem)
 
@@ -322,7 +329,47 @@ faixas dos ensaios (sem número repetido entre aparelhos).
   (âncoras extraídas do documento oficial da política). Mostra signatário, ND, emissor,
   cadeia e data, e o botão para consultar o código VAL-TRE impresso no PDF. O arquivo é
   conferido só no navegador. A revogação (LCR) não é consultada — para o laudo oficial use
-  validar.iti.gov.br. Certificado A3 (token/cartão) não é suportado no navegador.
+  validar.iti.gov.br. Certificado A3 (token/cartão) não é suportado no navegador; use o
+  certificado em nuvem (abaixo).
+
+**Certificado digital em nuvem (PSC) — configuração:**
+- **Como funciona:** no quadro "Certificado digital" do instrutor (ou do RT), aba
+  **Certificado em nuvem**: escolha o provedor, confira o CPF do titular e clique em
+  **Autorizar no site do provedor** (abre uma janela do PSC; o titular entra na conta, escolhe o
+  certificado e aprova) ou, no BirdID/VaultID, digite o **código OTP** do aplicativo. O sistema
+  lê o certificado público (mesmos dados do A1: titular, CPF, cadeia, validade...) e guarda a
+  autorização **criptografada no banco**, como o A1. Nos próximos 7 dias (limite do PSC para
+  e-CPF; e-CNPJ até 30) os PDFs são assinados sem nova confirmação: o app calcula o resumo
+  (SHA-256) dos atributos assinados, o PSC devolve a assinatura (RAW) e o sistema confere com o
+  certificado antes de montar o PAdES AD-RB — o mesmo padrão do A1. A chave privada nunca sai
+  do provedor. Vencida a sessão, o quadro e o selo avisam ("autorização vencida") e o PDF sai sem
+  a assinatura desse instrutor, com aviso: clique em **Renovar autorização**.
+- **1. Credenciais de integração:** contrate com cada provedor que for usar o acesso de
+  aplicação à API de assinatura em nuvem (padrão ITI): **client_id** e **client_secret**.
+  Cadastre no provedor o endereço de retorno `https://jvmlab.com.br/psc-retorno.html` (e o
+  endereço de testes, se houver).
+- **2. Banco:** execute de novo `supabase/modules/treinamentos.sql` no SQL Editor (colunas da
+  nuvem e a função `jvm_training_save_cloud_cert`; não apaga dados).
+- **3. Função do servidor:** Supabase → **Edge Functions** → *Deploy a new function* → *Via
+  Editor*, nome **`psc-assinatura`**, cole o conteúdo de
+  `supabase/functions/psc-assinatura/index.ts` e publique (ou, com o Supabase CLI:
+  `supabase functions deploy psc-assinatura`). Deixe ligada a verificação de JWT.
+- **4. Segredos:** Edge Functions → **Secrets**, um par por provedor:
+  `PSC_BIRDID_CLIENT_ID` / `PSC_BIRDID_CLIENT_SECRET`, `PSC_VAULTID_…`, `PSC_VIDAAS_…`,
+  `PSC_SAFEID_…`, `PSC_NEOID_…`. Só os provedores com o par configurado aparecem no app.
+  Opcionais: `PSC_<ID>_URL` (ex.: endereço de homologação ou o endereço indicado pelo provedor) e
+  `PSC_<ID>_HASH` (`hex` ou `base64`, formato do hash pedido pelo provedor). Endereços padrão:
+  BirdID `https://api.birdid.com.br/v0/oauth` e VaultID `https://apicloudid.vaultid.com.br/v0/oauth`
+  (confirmados na documentação), VIDaaS `https://certificado.vidaas.com.br/v0/oauth`, SafeID
+  `https://pscsafeweb.safewebpss.com.br/Service/Microservice/OAuth/v0/oauth` e NeoID
+  `https://neoid.estaleiro.serpro.gov.br/smartcert-api/v0/oauth` — **confira estes três com o
+  provedor** ao receber as credenciais.
+- **5. Teste:** cadastre o certificado em nuvem de um instrutor, emita um certificado e confira
+  o PDF em https://validar.iti.gov.br. Se o provedor devolver uma assinatura que não confere
+  (formato do hash diferente), o app recusa com aviso: ajuste `PSC_<ID>_HASH`.
+- Segurança: o client_secret fica só nos segredos da função; a função aceita apenas usuários
+  logados e só repassa o hash. Cadastrar/renovar: administrador ou RT. O token da sessão é
+  entregue, como o arquivo A1, só a quem emite certificados na própria empresa.
 - **Correção (01/10/2026):** a biblioteca que reserva o espaço da assinatura gravava o
   `startxref` da atualização 1 byte antes da tabela. Leitores (Adobe/Foxit) tratavam o PDF
   como danificado, "reparavam" e pediam para salvar — a cópia salva perdia a assinatura. O

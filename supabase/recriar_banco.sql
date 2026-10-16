@@ -2170,6 +2170,18 @@ CREATE TABLE IF NOT EXISTS public.training_signing_certs (
 );
 -- Dados do certificado ligados à assinatura (titular, ND, emissor, cadeia, política, usos...)
 ALTER TABLE public.training_signing_certs ADD COLUMN IF NOT EXISTS details JSONB;
+-- Certificado em nuvem (PSC: BirdID, VIDaaS, SafeID...): sem arquivo nem senha;
+-- guarda o certificado público, o apelido no PSC e o token da sessão de assinatura
+ALTER TABLE public.training_signing_certs ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'a1';
+ALTER TABLE public.training_signing_certs ADD COLUMN IF NOT EXISTS provider TEXT;
+ALTER TABLE public.training_signing_certs ADD COLUMN IF NOT EXISTS cert_alias TEXT;
+ALTER TABLE public.training_signing_certs ADD COLUMN IF NOT EXISTS cert_pem TEXT;
+ALTER TABLE public.training_signing_certs ADD COLUMN IF NOT EXISTS token_enc BYTEA;
+ALTER TABLE public.training_signing_certs ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ;
+ALTER TABLE public.training_signing_certs ALTER COLUMN pfx_enc DROP NOT NULL;
+ALTER TABLE public.training_signing_certs ALTER COLUMN password_enc DROP NOT NULL;
+ALTER TABLE public.training_signing_certs DROP CONSTRAINT IF EXISTS training_signing_certs_kind_check;
+ALTER TABLE public.training_signing_certs ADD CONSTRAINT training_signing_certs_kind_check CHECK (kind IN ('a1', 'cloud'));
 ALTER TABLE public.training_signing_certs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.training_signing_certs FROM PUBLIC, anon, authenticated;
 
@@ -2229,7 +2241,63 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET
     holder_name = EXCLUDED.holder_name, holder_doc = EXCLUDED.holder_doc, issuer = EXCLUDED.issuer, serial = EXCLUDED.serial,
     valid_from = EXCLUDED.valid_from, valid_to = EXCLUDED.valid_to, details = EXCLUDED.details, pfx_enc = EXCLUDED.pfx_enc,
-    password_enc = EXCLUDED.password_enc, updated_at = NOW(), updated_by = auth.uid();
+    password_enc = EXCLUDED.password_enc, updated_at = NOW(), updated_by = auth.uid(),
+    kind = 'a1', provider = NULL, cert_alias = NULL, cert_pem = NULL, token_enc = NULL, token_expires_at = NULL;
+  RETURN json_build_object('ok', true);
+END;
+$$;
+
+-- Certificado em nuvem: grava o certificado público e o token da sessão de
+-- assinatura autorizada pelo titular no PSC (renovar quando a sessão vencer)
+CREATE OR REPLACE FUNCTION public.jvm_training_save_cloud_cert(
+  p_owner_type TEXT, p_owner_id TEXT, p_provider TEXT, p_alias TEXT, p_cert_pem TEXT,
+  p_token TEXT, p_token_expires_at TIMESTAMPTZ,
+  p_holder_name TEXT, p_holder_doc TEXT, p_issuer TEXT, p_serial TEXT,
+  p_valid_from TIMESTAMPTZ, p_valid_to TIMESTAMPTZ, p_details JSONB DEFAULT NULL
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_company TEXT := public.jvm_my_company();
+  v_owner TEXT := CASE WHEN p_owner_type = 'rt' THEN 'rt' ELSE p_owner_id END;
+  v_key TEXT := public.jvm_training_signing_key();
+BEGIN
+  IF v_company IS NULL OR NOT (public.jvm_is_admin() OR public.jvm_my_role() = 'responsavel_tecnico')
+     OR NOT public.jvm_can_use_module('treinamentos') THEN
+    RAISE EXCEPTION 'Somente o administrador ou o Responsável Técnico cadastra certificados digitais.' USING ERRCODE = '42501';
+  END IF;
+  IF p_owner_type NOT IN ('instructor', 'rt') THEN
+    RAISE EXCEPTION 'Tipo inválido: %', p_owner_type USING ERRCODE = '22023';
+  END IF;
+  IF p_owner_type = 'instructor' AND NOT EXISTS (
+       SELECT 1 FROM public.training_instructors WHERE id = p_owner_id AND company_id = v_company AND deleted_at IS NULL) THEN
+    RAISE EXCEPTION 'Instrutor não encontrado nesta empresa (sincronize e tente de novo).' USING ERRCODE = '22023';
+  END IF;
+  IF COALESCE(p_provider, '') !~ '^[a-z0-9_-]{2,30}$' OR COALESCE(p_alias, '') = '' OR length(p_alias) > 500 THEN
+    RAISE EXCEPTION 'Provedor ou certificado em nuvem inválido.' USING ERRCODE = '22023';
+  END IF;
+  IF COALESCE(p_cert_pem, '') = '' OR length(p_cert_pem) > 20000 OR COALESCE(p_token, '') = '' OR length(p_token) > 8000 THEN
+    RAISE EXCEPTION 'Autorização do certificado em nuvem inválida.' USING ERRCODE = '22023';
+  END IF;
+  IF p_details IS NOT NULL AND (jsonb_typeof(p_details) <> 'object' OR length(p_details::text) > 20000) THEN
+    RAISE EXCEPTION 'Dados do certificado inválidos.' USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.training_signing_certs AS t (id, company_id, owner_type, owner_id, holder_name, holder_doc, issuer, serial,
+                                                   valid_from, valid_to, details, kind, provider, cert_alias, cert_pem, token_enc,
+                                                   token_expires_at, updated_at, updated_by)
+  VALUES (v_company || ':' || p_owner_type || ':' || v_owner, v_company, p_owner_type, v_owner, p_holder_name, p_holder_doc, p_issuer,
+          p_serial, p_valid_from, p_valid_to, p_details, 'cloud', p_provider, p_alias, p_cert_pem,
+          extensions.pgp_sym_encrypt(p_token, v_key), p_token_expires_at, NOW(), auth.uid())
+  ON CONFLICT (id) DO UPDATE SET
+    holder_name = EXCLUDED.holder_name, holder_doc = EXCLUDED.holder_doc, issuer = EXCLUDED.issuer, serial = EXCLUDED.serial,
+    valid_from = EXCLUDED.valid_from, valid_to = EXCLUDED.valid_to, details = EXCLUDED.details,
+    kind = 'cloud', provider = EXCLUDED.provider, cert_alias = EXCLUDED.cert_alias, cert_pem = EXCLUDED.cert_pem,
+    token_enc = EXCLUDED.token_enc, token_expires_at = EXCLUDED.token_expires_at,
+    pfx_enc = NULL, password_enc = NULL, updated_at = NOW(), updated_by = auth.uid();
   RETURN json_build_object('ok', true);
 END;
 $$;
@@ -2270,7 +2338,8 @@ BEGIN
     SELECT json_agg(json_build_object(
       'ownerType', owner_type, 'ownerId', owner_id, 'holderName', holder_name, 'holderDoc', holder_doc,
       'issuer', issuer, 'serial', serial, 'validFrom', valid_from, 'validTo', valid_to,
-      'updatedAt', updated_at, 'lastUsedAt', last_used_at, 'details', details) ORDER BY owner_type, holder_name)
+      'updatedAt', updated_at, 'lastUsedAt', last_used_at, 'details', details,
+      'kind', kind, 'provider', provider, 'tokenExpiresAt', token_expires_at) ORDER BY owner_type, holder_name)
       FROM public.training_signing_certs WHERE company_id = v_company), '[]'::json);
 END;
 $$;
@@ -2297,7 +2366,14 @@ BEGIN
     RETURN NULL;
   END IF;
   UPDATE public.training_signing_certs SET last_used_at = NOW(), last_used_by = auth.uid() WHERE id = r.id;
+  IF r.kind = 'cloud' THEN
+    RETURN json_build_object(
+      'kind', 'cloud', 'provider', r.provider, 'alias', r.cert_alias, 'certPem', r.cert_pem,
+      'token', extensions.pgp_sym_decrypt(r.token_enc, v_key), 'tokenExpiresAt', r.token_expires_at,
+      'holderName', r.holder_name, 'validTo', r.valid_to);
+  END IF;
   RETURN json_build_object(
+    'kind', 'a1',
     'pfx', extensions.pgp_sym_decrypt(r.pfx_enc, v_key),
     'password', extensions.pgp_sym_decrypt(r.password_enc, v_key),
     'holderName', r.holder_name, 'validTo', r.valid_to);
@@ -2305,6 +2381,8 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.jvm_training_save_signing_cert(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, JSONB) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.jvm_training_save_cloud_cert(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, JSONB) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.jvm_training_save_cloud_cert(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TEXT, TEXT, TEXT, TEXT, TIMESTAMPTZ, TIMESTAMPTZ, JSONB) TO authenticated;
 REVOKE ALL ON FUNCTION public.jvm_training_delete_signing_cert(TEXT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.jvm_training_signing_certs() FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.jvm_training_signing_material(TEXT, TEXT) FROM PUBLIC, anon;

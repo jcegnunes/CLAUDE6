@@ -156,12 +156,17 @@ export function certificateDetails(own: forge.pki.Certificate, chainCerts: forge
 }
 
 export interface PdfSigner {
-  /** Conteúdo do arquivo .pfx/.p12 */
+  /** Conteúdo do arquivo .pfx/.p12 (vazio no certificado em nuvem) */
   p12: Uint8Array;
   password: string;
   name: string;
   reason: string;
   location?: string;
+  /** Certificado em nuvem: certificado público (PEM) e quem assina o hash no PSC */
+  remote?: {
+    certPem: string;
+    signHash: (sha256Digest: Uint8Array) => Promise<Uint8Array>;
+  };
 }
 
 function bytesToBinary(bytes: Uint8Array): string {
@@ -194,6 +199,31 @@ export function inspectP12(bytes: Uint8Array, password: string): SigningCertInfo
     const pub = c.publicKey as forge.pki.rsa.PublicKey;
     return pub && pub.n && key.n && pub.n.equals(key.n);
   }) || certs[0];
+  return certInfo(own, certs);
+}
+
+/**
+ * Lê um certificado público em PEM (certificado em nuvem, devolvido pelo PSC).
+ * Aceita o PEM com ou sem cabeçalho e com quebras de linha escapadas.
+ */
+export function parseCertificatePem(pem: string): forge.pki.Certificate {
+  const body = String(pem || '')
+    .replace(/\\n/g, '\n')
+    .replace(/-----(BEGIN|END) CERTIFICATE-----/g, '')
+    .replace(/\s+/g, '');
+  if (!body) throw new Error('O PSC não devolveu o certificado.');
+  try {
+    return forge.pki.certificateFromAsn1(forge.asn1.fromDer(forge.util.decode64(body)));
+  } catch {
+    throw new Error('Certificado devolvido pelo PSC em formato não reconhecido.');
+  }
+}
+
+export function inspectCertificatePem(pem: string): SigningCertInfo {
+  return certInfo(parseCertificatePem(pem), []);
+}
+
+function certInfo(own: forge.pki.Certificate, certs: forge.pki.Certificate[]): SigningCertInfo {
   const cn = String(own.subject.getField('CN')?.value || '');
   const [namePart, docPart] = cn.split(':');
   const issuer = String(own.issuer.getField('CN')?.value || own.issuer.getField('O')?.value || '');
@@ -303,9 +333,9 @@ export async function signPdf(pdf: Uint8Array, signers: PdfSigner[]): Promise<Ui
 
   /** Assinante CAdES ICP-Brasil para a biblioteca de PDF. */
   class IcpBrasilSigner extends (utils as any).Signer {
-    constructor(private loaded: ReturnType<typeof pades.loadP12>) { super(); }
+    constructor(private make: (content: Uint8Array) => Promise<Uint8Array>) { super(); }
     async sign(content: Uint8Array) {
-      return B.from(pades.createIcpBrasilCms(new Uint8Array(content), this.loaded));
+      return B.from(await this.make(new Uint8Array(content)));
     }
   }
 
@@ -314,11 +344,20 @@ export async function signPdf(pdf: Uint8Array, signers: PdfSigner[]): Promise<Ui
   const alreadySigned = B.from(pdf).includes('/ByteRange');
   let buf: any = B.from(alreadySigned ? pdf : setPdfVersion17(pdf));
   for (const s of signers) {
-    let loaded: ReturnType<typeof pades.loadP12>;
-    try {
-      loaded = pades.loadP12(s.p12, s.password);
-    } catch {
-      throw new Error('Senha incorreta ou arquivo que não é um certificado A1 (.pfx/.p12).');
+    let make: (content: Uint8Array) => Promise<Uint8Array>;
+    if (s.remote) {
+      // certificado em nuvem: só o hash vai ao PSC
+      const cert = parseCertificatePem(s.remote.certPem);
+      const signHash = s.remote.signHash;
+      make = content => pades.createIcpBrasilCmsRemote(content, cert, [], signHash);
+    } else {
+      let loaded: ReturnType<typeof pades.loadP12>;
+      try {
+        loaded = pades.loadP12(s.p12, s.password);
+      } catch {
+        throw new Error('Senha incorreta ou arquivo que não é um certificado A1 (.pfx/.p12).');
+      }
+      make = async content => pades.createIcpBrasilCms(content, loaded);
     }
     buf = plainAddPlaceholder({
       pdfBuffer: buf,
@@ -330,7 +369,7 @@ export async function signPdf(pdf: Uint8Array, signers: PdfSigner[]): Promise<Ui
       subFilter: (utils as any).SUBFILTER_ETSI_CADES_DETACHED
     });
     buf = B.from(fixLastStartxref(new Uint8Array(buf)));
-    buf = B.from(await signpdf.sign(buf, new IcpBrasilSigner(loaded)));
+    buf = B.from(await signpdf.sign(buf, new IcpBrasilSigner(make)));
   }
   return new Uint8Array(buf);
 }

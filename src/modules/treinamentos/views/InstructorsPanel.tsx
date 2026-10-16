@@ -165,7 +165,7 @@ const InstructorEditor: React.FC<{ instructor: TrainingInstructor; onClose: () =
       </div>
       <div className="mt-4">
         {instructor.id
-          ? <DigitalCertBox ownerType="instructor" ownerId={instructor.id} ownerName={i.name} />
+          ? <DigitalCertBox ownerType="instructor" ownerId={instructor.id} ownerName={i.name} ownerCpf={i.cpf} />
           : <PendingCertFields value={pending} onChange={v => { setPending(v); setCertError(null); }} error={certError} />}
       </div>
     </Modal>
