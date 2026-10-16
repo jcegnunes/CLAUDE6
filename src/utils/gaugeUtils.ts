@@ -34,7 +34,8 @@ export function generateGaugeCanvasDataUrl(config: GaugeConfig): string {
   ctx.scale(scale, scale);
 
   const cx = w / 2;
-  const cy = 76;
+  // centro mais baixo: o rótulo do limite (ex.: "9mA"), acima do arco, não fica sob a faixa do título
+  const cy = 84;
   const radius = 48;
   const trackWidth = 7.5;
 
@@ -133,6 +134,7 @@ export function generateGaugeCanvasDataUrl(config: GaugeConfig): string {
     ctx.font = 'bold 7.0px Helvetica, Arial, sans-serif';
     ctx.fillStyle = '#991B1B';
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     const tagR = radius + 10;
     const tx = cx + tagR * Math.cos(limitAngle);
     const ty = cy + tagR * Math.sin(limitAngle);

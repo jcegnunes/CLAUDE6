@@ -89,6 +89,8 @@
   certificados já emitidos mantêm o nome. O e-mail de login fica reservado: para reaproveitá-lo, use
   "Desativar" em vez de excluir.
 - **Laudos:** fotos da nuvem voltam a sair no PDF/Word (cache do app instalado).
+- **Laudos:** no gráfico de corrente de fuga do PDF/Word, o valor do limite (ex.: "9mA") no alto da escala
+  ficava escondido sob a faixa do título; o medidor desceu e o valor aparece inteiro.
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
   assinaturas RSA no verificador de PDF (detalhes em "Vulnerabilidades das dependências").
