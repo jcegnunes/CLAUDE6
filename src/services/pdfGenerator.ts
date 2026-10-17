@@ -1038,7 +1038,7 @@ export async function renderLaudoToDoc(
         : test.equipmentType === 'ponteira_prova'
         ? `Máximo ${test.leakageCurrentLimit_mA} mA (limite adotado pelo laboratório – a NBR 6881 não estipula corrente de fuga)`
         : test.poleDiameter_mm
-        ? `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (NBR 11854 – Ø ${test.poleDiameter_mm} mm a ${test.appliedVoltage_kV} kV)`
+        ? `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (NBR 11854 – Ø ${test.poleDiameter_mm} mm a ${test.appliedVoltage_kV} kV${(test.testPoints ?? 1) > 1 ? ` – ${test.testPoints} pontos ensaiados` : ''})`
         : `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (${normApplicableDisplay})`,
       measured: `${test.measuredLeakageCurrent_mA} ${displayUnit(test.currentUnit)}`,
       isConforming: test.measuredLeakageCurrent_mA <= normLeakageLimit

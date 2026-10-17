@@ -137,6 +137,8 @@ export interface NormEvaluationInput {
   gloveLength_mm?: number;
   /** Bastão/vara de manobra/bastão de resgate: diâmetro (mm) para a tabela da NBR 11854 */
   poleDiameter_mm?: number;
+  /** Bastão/vara: quantidade de pontos ensaiados (limite = pontos × limite da tabela) */
+  poleTestPoints?: number;
   /** Detector de tensão por indução: distância de detecção obtida em cada tensão */
   inductionPoints?: InductionDetectorPoint[];
   gloveTestMethod?: GloveTestMethod;
@@ -309,6 +311,11 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
   let isGloveLengthApplicable = true;
   let normReferenceClause = criterion.normCode;
   const poleDiameter = getClosestPoleDiameter(input.poleDiameter_mm);
+  const poleTestPoints = Math.max(1, Math.floor(Number(input.poleTestPoints) || 1));
+  const polePointLimit = getNBR11854LeakageLimit_uA(poleDiameter);
+  const poleLimitText = (limit: number) => poleTestPoints > 1
+    ? `${limit} µA (${poleTestPoints} pontos ensaiados × ${polePointLimit} µA da tabela da ABNT NBR 11854 para bastão de Ø ${poleDiameter} mm a ${NBR11854_TEST_VOLTAGE_KV} kV)`
+    : `${limit} µA da tabela da ABNT NBR 11854 para bastão de Ø ${poleDiameter} mm a ${NBR11854_TEST_VOLTAGE_KV} kV`;
 
   if (input.equipmentType === 'luva_isolante') {
     const gloveLength = input.gloveLength_mm || 360;
@@ -350,9 +357,11 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
     normReferenceClause = `ABNT NBR 6881 (item 4.3: sem perfuração; corrente de fuga: limite de ${appliedLimit} mA adotado pelo laboratório)`;
   } else if (isPoleEquipment(input.equipmentType)) {
     // NBR 11854: limite em µA pelo diâmetro do bastão (a corrente medida é digitada em µA)
-    appliedLimit = getNBR11854LeakageLimit_uA(poleDiameter);
+    // limite = quantidade de pontos ensaiados × limite da tabela
+    appliedLimit = polePointLimit * poleTestPoints;
     appliedUnit = 'uA';
-    normReferenceClause = `ABNT NBR 11854 (Tabela de corrente de fuga — ${NBR11854_TEST_VOLTAGE_KV} kV, bastão Ø ${poleDiameter} mm: ${appliedLimit} µA)`;
+    normReferenceClause = `ABNT NBR 11854 (Tabela de corrente de fuga — ${NBR11854_TEST_VOLTAGE_KV} kV, bastão Ø ${poleDiameter} mm: ${polePointLimit} µA` +
+      (poleTestPoints > 1 ? ` × ${poleTestPoints} pontos = ${appliedLimit} µA)` : ')');
   }
 
   // 2. Voltage Check (applied voltage must meet or exceed required voltage within 2% tolerance)
@@ -417,7 +426,7 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
     } else if (input.equipmentType === 'ponteira_prova') {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} mA) excedeu o limite de ${appliedLimit} mA adotado pelo laboratório (a ABNT NBR 6881 não estipula corrente de fuga; o critério da norma é a ausência de perfuração).`);
     } else if (isPoleEquipment(input.equipmentType)) {
-      rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} µA) excedeu o limite máximo de ${appliedLimit} µA da ABNT NBR 11854 para bastão de Ø ${poleDiameter} mm ensaiado a ${NBR11854_TEST_VOLTAGE_KV} kV.`);
+      rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} µA) excedeu o limite máximo de ${poleLimitText(appliedLimit)}.`);
     } else {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} ${criterion.currentUnit}) excedeu o limite máximo permitido de ${appliedLimit} ${criterion.currentUnit} conforme ${criterion.normCode}.`);
     }
@@ -568,7 +577,7 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       const kind = input.equipmentType === 'vara_manobra' ? 'Vara de manobra telescópica / seccionável' : 'Bastão de manobra / bastão de resgate';
       rationaleParts.push(
         `${kind} plenamente CONFORME com a ABNT NBR 11854. Aprovado na inspeção visual e no ensaio dielétrico a ${targetVoltage} kV ${input.voltageType} por ${input.durationSeconds} segundos, sem disrupção nem perfuração, ` +
-        `com corrente de fuga de ${input.measuredLeakageCurrent_mA} µA (abaixo do limite de ${appliedLimit} µA da tabela da NBR 11854 para bastão de Ø ${poleDiameter} mm a ${NBR11854_TEST_VOLTAGE_KV} kV).`
+        `com corrente de fuga de ${input.measuredLeakageCurrent_mA} µA (abaixo do limite de ${poleLimitText(appliedLimit)}).`
       );
     } else {
       rationaleParts.push(

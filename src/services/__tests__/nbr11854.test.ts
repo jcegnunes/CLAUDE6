@@ -52,6 +52,20 @@ describe('NBR 11854 — bastões, varas telescópicas e bastões de resgate (50 
     }
   });
 
+  it('quantidade de pontos ensaiados: limite = pontos × limite da tabela', () => {
+    const base = { equipmentType: 'bastao_manobra' as EquipmentType, dielectricClass: 'Geral', appliedVoltage_kV: 50, voltageType: 'AC' as const,
+      durationSeconds: 60, withstandWithoutPuncture: true, visualChecklist: [], allCriteria: INITIAL_NORMS, poleDiameter_mm: 38 };
+    const ok = evaluateDielectricTest({ ...base, measuredLeakageCurrent_mA: 17, poleTestPoints: 3 });
+    expect(ok.appliedLimit).toBe(18);
+    expect(ok.result).toBe('APROVADO');
+    expect(ok.rationale).toContain('3 pontos ensaiados × 6 µA');
+    const fail = evaluateDielectricTest({ ...base, measuredLeakageCurrent_mA: 19, poleTestPoints: 3 });
+    expect(fail.result).toBe('REPROVADO');
+    // sem informar (ou inválido) conta como 1 ponto
+    expect(evaluateDielectricTest({ ...base, measuredLeakageCurrent_mA: 1 }).appliedLimit).toBe(6);
+    expect(evaluateDielectricTest({ ...base, measuredLeakageCurrent_mA: 1, poleTestPoints: 0 }).appliedLimit).toBe(6);
+  });
+
   it('aplica o limite do diâmetro e avalia em µA', () => {
     const ok = evalPole('vara_manobra', 51, 7.9);
     expect(ok.appliedLimit).toBe(8);
