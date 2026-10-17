@@ -115,7 +115,10 @@ import {
   LadderTestMethod,
   LADDER_TYPES_INFO,
   LADDER_TEST_METHODS_INFO,
-  TABELA_NORMAS_ESCADAS_FIBRA
+  TABELA_NORMAS_ESCADAS_FIBRA,
+  LADDER_NORM_ID_BY_METHOD,
+  DEFAULT_LADDER_TEST_METHOD,
+  ladderMethodForNormId
 } from '../services/ladderNormsService';
 import { SignatureCanvas } from '../components/SignatureCanvas';
 import { StatusBadge } from '../components/StatusBadge';
@@ -228,6 +231,10 @@ export function lastTestEnvironment(tests?: TestRecord[]): { temperatureC?: numb
   }
 }
 
+/** Escada: critério padrão (EN 50528:2024 — baixa tensão, 36 kV CA), se estiver ativo na lista. */
+const defaultLadderNorm = (norms: NormCriterion[]): NormCriterion | undefined =>
+  norms.find(n => n.id === LADDER_NORM_ID_BY_METHOD[DEFAULT_LADDER_TEST_METHOD] && n.status === 'active');
+
 export const TestWizardView: React.FC<TestWizardViewProps> = ({
   currentUser,
   onFinishTest,
@@ -302,7 +309,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
 
   // ABNT NBR IEC 61478 & NBR 16308 Ladder Parameters
   const [ladderType, setLadderType] = useState<LadderType>('extensivel');
-  const [ladderTestMethod, setLadderTestMethod] = useState<LadderTestMethod>('segmento_300mm_100kv');
+  // escada: método de ensaio acompanha o critério escolhido (padrão EN 50528:2024 — 36 kV CA)
+  const [ladderTestMethod, setLadderTestMethod] = useState<LadderTestMethod>(ladderMethodForNormId(editingTest?.normCriterionId) ?? DEFAULT_LADDER_TEST_METHOD);
   const [ladderSegmentLength_mm, setLadderSegmentLength_mm] = useState<number>(300);
   const [ladderTestedSegmentsCount, setLadderTestedSegmentsCount] = useState<number>(12);
   const [ladderRungsInspectedCount, setLadderRungsInspectedCount] = useState<number>(28);
@@ -434,7 +442,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
 
     // Norm Criteria matching
     const currentNorms = normsList.length > 0 ? normsList : DielectricStorageService.getNorms();
-    const match = findMatchingCriterion(eq.type, eq.type === 'ferramenta_isolada' ? '0' : dClass, currentNorms);
+    const match = (eq.type === 'escada_isolada' ? defaultLadderNorm(currentNorms) : undefined)
+      || findMatchingCriterion(eq.type, eq.type === 'ferramenta_isolada' ? '0' : dClass, currentNorms);
     if (match) {
       setSelectedNormId(match.id);
       setAppliedVoltage(match.testVoltage_kV);
@@ -688,7 +697,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       const effClass = selectedEquipmentType === 'ferramenta_isolada'
         ? '0'
         : (selectedEquipmentType === 'tapete_isolante' && selectedDielectricClass === '00' ? '0' : selectedDielectricClass);
-      const match = findMatchingCriterion(selectedEquipmentType, effClass, normsList);
+      const match = (selectedEquipmentType === 'escada_isolada' ? defaultLadderNorm(normsList) : undefined)
+        || findMatchingCriterion(selectedEquipmentType, effClass, normsList);
       if (match) {
         setSelectedNormId(match.id);
         setAppliedVoltage(match.testVoltage_kV);
@@ -697,6 +707,20 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       }
     }
   }, [selectedEquipmentType, selectedDielectricClass, normsList, selectedNormId]);
+
+  // Escada: o método de ensaio (tensão, fuga e resumo) segue o critério escolhido na lista
+  useEffect(() => {
+    if (selectedEquipmentType !== 'escada_isolada') return;
+    const method = ladderMethodForNormId(selectedNormId);
+    if (method && method !== ladderTestMethod) setLadderTestMethod(method);
+  }, [selectedEquipmentType, selectedNormId]);
+
+  // Escada: botão de método escolhe também o critério correspondente da lista
+  const selectLadderMethod = (method: LadderTestMethod) => {
+    setLadderTestMethod(method);
+    const norm = normsList.find(n => n.id === LADDER_NORM_ID_BY_METHOD[method] && n.status === 'active');
+    if (norm) setSelectedNormId(norm.id);
+  };
 
   // Evaluation computation based on Norms Engine
   const currentEvaluation = evaluateDielectricTest({
@@ -2718,7 +2742,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setLadderTestMethod('baixa_tensao_en50528_36kv');
+                    selectLadderMethod('baixa_tensao_en50528_36kv');
                     const entry = getLadderNormEntry('baixa_tensao_en50528_36kv');
                     if (entry) {
                       setAppliedVoltage(entry.testVoltageAC_kV);
@@ -2741,7 +2765,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setLadderTestMethod('baixa_tensao_en50528_degraus');
+                    selectLadderMethod('baixa_tensao_en50528_degraus');
                     const entry = getLadderNormEntry('baixa_tensao_en50528_degraus');
                     if (entry) {
                       setAppliedVoltage(entry.testVoltageAC_kV);
@@ -2764,7 +2788,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 <button
                   type="button"
                   onClick={() => {
-                    setLadderTestMethod('segmento_300mm_100kv');
+                    selectLadderMethod('segmento_300mm_100kv');
                     const entry = getLadderNormEntry('segmento_300mm_100kv');
                     if (entry) {
                       setAppliedVoltage(entry.testVoltageAC_kV);

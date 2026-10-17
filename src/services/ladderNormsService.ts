@@ -353,6 +353,25 @@ export function getLadderChecklistItems(ladderType: LadderType = 'extensivel'): 
 /**
  * Busca uma entrada de critério normativo de escada por tipo ou método
  */
+/** Critério da lista de normas correspondente a cada método de ensaio da escada. */
+export const LADDER_NORM_ID_BY_METHOD: Record<LadderTestMethod, string> = {
+  baixa_tensao_en50528_36kv: 'norm-escada-en-50528-2024-bt-36kv',
+  baixa_tensao_en50528_degraus: 'norm-escada-en-50528-2024-degraus',
+  segmento_300mm_100kv: 'norm-escada-nbr-iec-61478-100kv',
+  montante_metro_90kv: 'norm-escada-nbr-16308-metro-90kv',
+  entre_degraus_30kv: 'norm-escada-nbr-16308-degraus-30kv',
+  linha_viva_integral: 'norm-escada-nbr-iec-61478-linha-viva'
+};
+
+/** Escada: abre com a EN 50528:2024 (baixa tensão, 36 kV CA). */
+export const DEFAULT_LADDER_TEST_METHOD: LadderTestMethod = 'baixa_tensao_en50528_36kv';
+
+/** Método de ensaio da escada para o critério escolhido (undefined se não for de escada). */
+export function ladderMethodForNormId(normId?: string): LadderTestMethod | undefined {
+  if (!normId) return undefined;
+  return (Object.keys(LADDER_NORM_ID_BY_METHOD) as LadderTestMethod[]).find(m => LADDER_NORM_ID_BY_METHOD[m] === normId);
+}
+
 export function getLadderNormEntry(
   testMethod: LadderTestMethod = 'segmento_300mm_100kv'
 ): LadderNormEntry {

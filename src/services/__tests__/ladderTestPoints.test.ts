@@ -40,3 +40,25 @@ describe('Escada isolante — quantidade de pontos ensaiados', () => {
     expect(evalLadder(0.1, 3, true).appliedLimit).toBeCloseTo(0.6);
   });
 });
+
+import { DEFAULT_LADDER_TEST_METHOD, LADDER_NORM_ID_BY_METHOD, getLadderNormEntry, ladderMethodForNormId } from '../ladderNormsService';
+
+describe('Escada isolante — norma padrão e método ligado ao critério', () => {
+  it('padrão é a EN 50528:2024 de baixa tensão a 36 kV CA (fuga 0,50 mA)', () => {
+    const entry = getLadderNormEntry(DEFAULT_LADDER_TEST_METHOD);
+    expect(entry.normCode).toBe('EN 50528:2024');
+    expect(entry.testVoltageAC_kV).toBe(36);
+    expect(entry.maxLeakageCurrent_mA).toBe(0.5);
+    const norm = INITIAL_NORMS.find(n => n.id === LADDER_NORM_ID_BY_METHOD[DEFAULT_LADDER_TEST_METHOD]);
+    expect(norm?.testVoltage_kV).toBe(36);
+  });
+
+  it('cada critério de escada da lista leva ao seu método (e vice-versa)', () => {
+    for (const n of INITIAL_NORMS.filter(c => c.applicableEquipmentTypes.includes('escada_isolada'))) {
+      const method = ladderMethodForNormId(n.id);
+      expect(method).toBeDefined();
+      expect(getLadderNormEntry(method!).testVoltageAC_kV).toBe(n.testVoltage_kV);
+    }
+    expect(ladderMethodForNormId('norm-bastao-100kv')).toBeUndefined();
+  });
+});
