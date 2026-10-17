@@ -1,3 +1,4 @@
+import { isGloveTest } from './nbr16295Service';
 import { hardenPdfText } from '../utils/safePdf';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -390,7 +391,7 @@ export async function exportTestsSummaryReportPDF(
     const collaboratorSector = test.collaboratorSector || matchingOS?.collaboratorSector || matchingEq?.collaboratorSector || matchingEq?.sector || 'Geral';
 
     let dimensionOrLength = '-';
-    if (test.gloveLength_mm) {
+    if (isGloveTest(test) && test.gloveLength_mm) {
       dimensionOrLength = `${test.gloveLength_mm}mm`;
     } else if (test.blanketDimensions) {
       dimensionOrLength = test.blanketDimensions;

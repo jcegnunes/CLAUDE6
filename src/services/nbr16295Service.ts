@@ -151,6 +151,18 @@ export function isGloveLengthValidForClass(classe: DielectricClass | string, len
 /**
  * Normaliza o comprimento numérico para os patamares da Tabela 4 (280, 360, 410, 460).
  */
+/**
+ * Ensaio de luva isolante? Pelo tipo do equipamento. O comprimento da luva só
+ * indica luva em registros antigos sem tipo: ensaios vindos do app Android
+ * trazem esse campo preenchido em outros equipamentos (ex.: detector, bastão),
+ * e a Tabela 4 da NBR 16295 não pode aparecer no laudo deles.
+ */
+export function isGloveTest(t?: { equipmentType?: string; gloveLength_mm?: number } | null): boolean {
+  if (!t) return false;
+  if (t.equipmentType === 'luva_isolante') return true;
+  return !t.equipmentType && !!t.gloveLength_mm;
+}
+
 export function getClosestGloveLength(length_mm: number): GloveLength_mm {
   if (length_mm <= 300) return 280;
   if (length_mm <= 380) return 360;

@@ -1,3 +1,4 @@
+import { isGloveTest } from './nbr16295Service';
 import {
   Client,
   Equipment,
@@ -318,7 +319,7 @@ export class DielectricStorageService {
         const existingTests = getLocal<TestRecord[]>(STORAGE_KEYS.TESTS, []);
         let testsUpdated = false;
         const migratedTests = existingTests.map(t => {
-          if ((t.equipmentType === 'luva_isolante' || t.gloveLength_mm) && (t.normCode === 'ABNT NBR 16259' || t.normCode === 'NBR 16295 / IEC 60903')) {
+          if (isGloveTest(t) && (t.normCode === 'ABNT NBR 16259' || t.normCode === 'NBR 16295 / IEC 60903')) {
             testsUpdated = true;
             return { ...t, normCode: 'NBR 16295 Tabela 4' };
           }

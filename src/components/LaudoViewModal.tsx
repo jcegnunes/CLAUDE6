@@ -21,11 +21,12 @@ import { DielectricStorageService } from '../services/syncEngine';
 import { ValidationPortalService } from '../services/validationPortalService';
 import { NiimbotLabelModal } from './NiimbotLabelModal';
 import { getASTMD178Entry, getASTMD1048Entry } from '../services/astmBlanketMattingService';
-import { TABELA_4_NBR_16295, getClosestGloveLength } from '../services/nbr16295Service';
+import { TABELA_4_NBR_16295, getClosestGloveLength, isGloveTest } from '../services/nbr16295Service';
 import { formatDateBR } from '../utils/dateUtils';
 import { SpeedometerGauge } from './SpeedometerGauge';
 import { displayUnit, leakageGaugeScale } from '../utils/gaugeUtils';
 import { InductionDetectorChart } from './InductionDetectorChart';
+import { technicianCrea } from '../utils/technicianCrea';
 import { fmtBr1, INDUCTION_DETECTOR_CLASS, INDUCTION_DETECTOR_NOTE, normalizeInductionPoints } from '../services/inductionDetectorService';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 import { exportSingleLaudoToWord } from '../services/wordReportService';
@@ -69,7 +70,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
   const matchingOS = test ? workOrders.find(os => os.id === test.serviceOrderId || os.osNumber === test.serviceOrderNumber) : undefined;
   const effectiveArtNumber = test?.artNumber || matchingOS?.artNumber || '';
 
-  const isGlove = Boolean(test && (test.equipmentType === 'luva_isolante' || test.gloveLength_mm));
+  const isGlove = isGloveTest(test);
   const selectedGloveClass = test?.equipmentClass?.trim() || '0';
   const selectedGloveLength = getClosestGloveLength(test?.gloveLength_mm || 360);
   const gloveTableEntry = TABELA_4_NBR_16295.find(r => r.classe === selectedGloveClass);
@@ -289,7 +290,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                 </div>
                 <div>
                   <span className="text-slate-500 block">
-                    {test.equipmentType === 'luva_isolante' || test.gloveLength_mm
+                    {isGlove
                       ? 'Comprimento da Luva (NBR 16295):'
                       : test.blanketDimensions
                       ? 'Dimensões da Manta:'
@@ -300,7 +301,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                       : 'Comprimento / Dimensão:'}
                   </span>
                   <span className="font-bold text-blue-700 font-mono">
-                    {test.equipmentType === 'luva_isolante' || test.gloveLength_mm
+                    {isGlove
                       ? `${test.gloveLength_mm || 360} mm`
                       : test.blanketDimensions
                       ? test.blanketDimensions
@@ -308,8 +309,6 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                       ? test.mattingDimensions
                       : test.poleDiameter_mm
                       ? `Ø ${test.poleDiameter_mm} mm`
-                      : test.gloveLength_mm
-                      ? `${test.gloveLength_mm} mm`
                       : 'N/A'}
                   </span>
                 </div>
@@ -484,7 +483,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
               <div className="sm:col-span-2">
                 <span className="text-slate-500 block">Norma Regulamentadora / Técnica:</span>
                 <span className="font-bold text-slate-900">
-                  {(test.equipmentType === 'luva_isolante' || test.gloveLength_mm)
+                  {isGlove
                     ? (test.normCode && (test.normCode.includes('16295') || test.normCode.includes('16259') || test.normCode.includes('IEC 60903')) ? 'NBR 16295 Tabela 4' : (test.normCode || 'NBR 16295 Tabela 4'))
                     : (test.normCode || 'Norma Geral NR-10')}
                 </span>
@@ -1022,7 +1021,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
               </div>
               <div className="border-t border-slate-400 pt-1">
                 <span className="font-bold text-xs text-slate-900 block">{test.technicianName}</span>
-                <span className="text-[11px] text-slate-500">{test.technicianCftOrCrea || 'Analista Executor'}</span>
+                <span className="text-[11px] text-slate-500">{technicianCrea(test.technicianCftOrCrea) || 'Analista Executor'}</span>
               </div>
             </div>
 
