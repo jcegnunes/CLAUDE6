@@ -655,6 +655,28 @@ export const INITIAL_NORMS: NormCriterion[] = [
     status: 'active'
   },
 
+  // Ponteiras de Prova e Cabos de Ensaio - ABNT NBR 6881 (2,5 kV)
+  {
+    id: 'norm-ponteira-nbr-6881',
+    normCode: 'ABNT NBR 6881',
+    normName: 'Ponteiras de Prova e Cabos de Ensaio (2,5 kV — NBR 6881)',
+    editionOrVersion: 'Ensaio de tensão aplicada',
+    effectiveDate: '2026-10-16',
+    applicableEquipmentTypes: ['ponteira_prova'],
+    dielectricClass: 'Geral',
+    nominalVoltageMaxAC_kV: 1.0,
+    nominalVoltageMaxDC_kV: 1.5,
+    testVoltage_kV: 2.5,
+    voltageType: 'AC',
+    testDurationSeconds: 60,
+    maxLeakageCurrent: 1.0,
+    currentUnit: 'mA',
+    defaultRetestMonths: 12,
+    approvalCriterion: 'visual_and_leakage',
+    notes: 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio a 2,5 kV CA por 1 minuto, sem disrupção ou perfuração da isolação. Corrente de fuga máxima adotada: 1,0 mA.',
+    status: 'active'
+  },
+
   // Detector de Tensão por Indução (classe 1 kV a 50 kV) - detecção por aproximação
   {
     id: 'norm-detector-inducao',

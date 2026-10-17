@@ -57,6 +57,16 @@ export function getNBR11854LeakageLimit_uA(diameter_mm?: number): number {
   return NBR11854_LEAKAGE_UA[getClosestPoleDiameter(diameter_mm)].kv50;
 }
 
+/** Ponteiras de prova e cabos de ensaio: ABNT NBR 6881, tensão de ensaio 2,5 kV. */
+export const PROBE_TEST_VOLTAGE_KV = 2.5;
+export const PROBE_NORM_ID = 'norm-ponteira-nbr-6881';
+
+/** Norma de ponteira ainda pela IEC 61010-031 a 5 kV (predefinição antiga): passa para a NBR 6881. */
+export function isOldProbeNorm(n: Pick<NormCriterion, 'applicableEquipmentTypes' | 'normCode' | 'testVoltage_kV'> | null | undefined): boolean {
+  if (!n || !Array.isArray(n.applicableEquipmentTypes) || !n.applicableEquipmentTypes.includes('ponteira_prova')) return false;
+  return /61010/.test(n.normCode || '') && Number(n.testVoltage_kV) === 5;
+}
+
 /** Calçado de segurança dielétrico: corrente de fuga máxima da norma (mA). */
 export const FOOTWEAR_LEAKAGE_LIMIT_MA = 0.5;
 export const FOOTWEAR_NORM_ID = 'norm-calcado-dieletrico';
@@ -881,16 +891,16 @@ export function getNormPresetForEquipment(
     }
     case 'ponteira_prova': {
       return {
-        normCode: 'IEC 61010-031',
-        normName: 'Ponteiras de Prova e Cabos de Ensaio',
-        testVoltage_kV: 5.0,
+        normCode: 'ABNT NBR 6881',
+        normName: 'Ponteiras de Prova e Cabos de Ensaio (2,5 kV — NBR 6881)',
+        testVoltage_kV: PROBE_TEST_VOLTAGE_KV,
         voltageType: 'AC',
         testDurationSeconds: 60,
         maxLeakageCurrent: 1.0,
         currentUnit: 'mA',
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-11 Rev.01',
-        description: 'Ensaio de rigidez dielétrica de cabos e ponteiras conforme IEC 61010-031.'
+        description: 'Ensaio de tensão aplicada em cabos e ponteiras de prova a 2,5 kV CA por 1 minuto conforme ABNT NBR 6881.'
       };
     }
     case 'outro':

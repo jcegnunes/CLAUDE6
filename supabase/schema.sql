@@ -812,6 +812,18 @@ UPDATE public.norms
              ELSE false END)
    AND COALESCE(payload->>'currentUnit', 'mA') = 'mA';
 
+-- Ponteiras de prova e cabos de ensaio: ABNT NBR 6881 a 2,5 kV (normas criadas
+-- pela predefinição antiga IEC 61010-031 a 5 kV). Ensaios já emitidos NÃO mudam.
+UPDATE public.norms
+   SET payload = payload || jsonb_build_object(
+         'normCode', 'ABNT NBR 6881',
+         'normName', 'Ponteiras de Prova e Cabos de Ensaio (2,5 kV — NBR 6881)',
+         'testVoltage_kV', 2.5,
+         'notes', 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio a 2,5 kV CA por 1 minuto, sem disrupção ou perfuração da isolação. Corrente de fuga máxima adotada: 1,0 mA.')
+ WHERE payload->'applicableEquipmentTypes' ? 'ponteira_prova'
+   AND COALESCE(payload->>'normCode', '') LIKE '%61010%'
+   AND COALESCE(payload->>'testVoltage_kV', '') IN ('5', '5.0');
+
 -- Detector de tensão por indução: tabela de 1 kV a 50 kV (era até 60 kV).
 -- Ensaios e laudos já emitidos NÃO são alterados.
 UPDATE public.norms

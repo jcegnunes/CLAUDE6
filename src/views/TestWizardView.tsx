@@ -202,8 +202,8 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
   },
   ponteira_prova: {
     label: 'Ponteiras de Prova e Cabos de Ensaio',
-    norm: 'IEC 61010-031',
-    fullLabel: 'Ponteiras de Prova e Cabos de Ensaio (IEC 61010-031)'
+    norm: 'ABNT NBR 6881',
+    fullLabel: 'Ponteiras de Prova e Cabos de Ensaio (ABNT NBR 6881 — 2,5 kV)'
   },
   outro: {
     label: 'Outros Dispositivos Dielétricos',

@@ -827,7 +827,7 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
                     <option value="escada_isolada">🪜 Escadas Isoladas em Fibra de Vidro (ABNT NBR IEC 61478)</option>
                     <option value="detector_tensao">⚡ Detectores de Tensão (ABNT NBR IEC 61243-1)</option>
                     <option value="detector_inducao">📡 Detector de Tensão por Indução (1 kV a 50 kV)</option>
-                    <option value="ponteira_prova">🔌 Ponteiras de Prova (IEC 61010-031)</option>
+                    <option value="ponteira_prova">🔌 Ponteiras de Prova e Cabos (ABNT NBR 6881)</option>
                     <option value="outro">📦 Outros Dispositivos Dielétricos</option>
                   </select>
                   {EQUIPMENT_NORM_SPECIFICATIONS[newType] && (

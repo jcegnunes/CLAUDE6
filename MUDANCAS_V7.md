@@ -121,6 +121,12 @@
   tabela Distância × Tensão, o gráfico e a observação, no lugar dos velocímetros. Norma oficial nova
   (`norm-detector-inducao`) entra sozinha nos aparelhos; a versão que ia até 60 kV é atualizada no
   app e pelo `schema.sql` no banco. Ensaio já gravado com a tabela até 60 kV mantém as tensões dele.
+- **Ponteiras de prova e cabos de ensaio — ABNT NBR 6881 a 2,5 kV:** nova norma oficial
+  (`norm-ponteira-nbr-6881`): tensão de ensaio **2,5 kV CA** por 1 minuto, sem disrupção; corrente de
+  fuga máxima mantida em 1,0 mA. Antes não havia norma oficial para ponteiras (o ensaio ficava
+  "critério não configurado" se a empresa não criasse uma) e a predefinição era IEC 61010-031 a 5 kV.
+  Normas criadas pela predefinição antiga (IEC 61010-031 a 5 kV) passam para a NBR 6881 a 2,5 kV no app
+  e no banco; ensaios já emitidos não mudam. **Banco:** execute de novo `supabase/schema.sql`.
 - **Calçado de segurança dielétrico:** corrente de fuga máxima passou de 3,5 mA para **0,5 mA**
   (14 kV CA por 1 minuto, sem mudança). Normas gravadas com 3,5 mA são atualizadas no app e no banco;
   norma que a empresa já ajustou para outro valor fica como está. Ensaios e laudos já emitidos não
