@@ -24,7 +24,7 @@ import { getASTMD178Entry, getASTMD1048Entry } from '../services/astmBlanketMatt
 import { TABELA_4_NBR_16295, getClosestGloveLength } from '../services/nbr16295Service';
 import { formatDateBR } from '../utils/dateUtils';
 import { SpeedometerGauge } from './SpeedometerGauge';
-import { displayUnit } from '../utils/gaugeUtils';
+import { displayUnit, leakageGaugeScale } from '../utils/gaugeUtils';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 import { exportSingleLaudoToWord } from '../services/wordReportService';
 
@@ -669,7 +669,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                 const voltageScale = Math.max(15, Math.ceil(appliedV * 1.35 / 5) * 5);
                 const leakVal = test.measuredLeakageCurrent_mA || 0;
                 const effectiveLimit = normLeakageLimit || test.leakageCurrentLimit_mA || 10;
-                const leakScale = Math.max(10, Math.ceil(Math.max(effectiveLimit * 1.35, leakVal * 1.25) / 5) * 5);
+                const leakScale = leakageGaugeScale(effectiveLimit, leakVal);
                 const leakPercent = ((leakVal / effectiveLimit) * 100).toFixed(1);
                 const isLeakOk = leakVal <= effectiveLimit;
 

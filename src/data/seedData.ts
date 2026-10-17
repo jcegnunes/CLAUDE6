@@ -525,11 +525,11 @@ export const INITIAL_NORMS: NormCriterion[] = [
     testVoltage_kV: 14.0,
     voltageType: 'AC',
     testDurationSeconds: 60,
-    maxLeakageCurrent: 3.5,
+    maxLeakageCurrent: 0.5,
     currentUnit: 'mA',
     defaultRetestMonths: 12,
     approvalCriterion: 'visual_and_leakage',
-    notes: 'Ensaio com esferas metálicas no interior e cuba de água externa a 14 kV CA por 1 minuto. Corrente de fuga máx 3,5 mA.',
+    notes: 'Ensaio com esferas metálicas no interior e cuba de água externa a 14 kV CA por 1 minuto. Corrente de fuga máxima: 0,5 mA.',
     status: 'active'
   },
 

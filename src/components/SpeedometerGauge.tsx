@@ -1,5 +1,5 @@
 import React from 'react';
-import { displayUnit } from '../utils/gaugeUtils';
+import { displayUnit, formatGaugeValue } from '../utils/gaugeUtils';
 
 export interface SpeedometerGaugeProps {
   title: string;
@@ -53,7 +53,7 @@ export const SpeedometerGauge: React.FC<SpeedometerGaugeProps> = ({
   const ticks = Array.from({ length: numTicks + 1 }, (_, i) => {
     const fraction = i / numTicks;
     const angleRad = Math.PI - (fraction * Math.PI);
-    const tickVal = Math.round(fraction * maxScale * 10) / 10;
+    const tickVal = Math.round(fraction * maxScale * 100) / 100;
     const rIn = radius - strokeWidth / 2 - 5;
     const rOut = radius - strokeWidth / 2 - 1;
     const x1 = cx + rIn * Math.cos(angleRad);
@@ -214,7 +214,7 @@ export const SpeedometerGauge: React.FC<SpeedometerGaugeProps> = ({
             textAnchor="middle"
             fontFamily="monospace"
           >
-            {value.toFixed(1)} {displayUnit(unit)}
+            {formatGaugeValue(value)} {displayUnit(unit)}
           </text>
         </svg>
       </div>

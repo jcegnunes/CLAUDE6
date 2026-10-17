@@ -799,6 +799,19 @@ UPDATE public.norms
              ELSE false END)
    AND COALESCE(payload->>'currentUnit', 'mA') = 'mA';
 
+-- Calçado de segurança dielétrico: corrente de fuga máxima de 0,5 mA (era 3,5 mA).
+-- Só troca a norma ainda com 3,5 mA; norma ajustada pela empresa fica como está.
+-- Ensaios e laudos já emitidos NÃO são alterados.
+UPDATE public.norms
+   SET payload = payload || jsonb_build_object(
+         'maxLeakageCurrent', 0.5,
+         'notes', 'Ensaio com esferas metálicas no interior e cuba de água externa a 14 kV CA por 1 minuto. Corrente de fuga máxima: 0,5 mA.')
+ WHERE payload->'applicableEquipmentTypes' ? 'bota_dielétrica'
+   AND (CASE WHEN COALESCE(payload->>'maxLeakageCurrent', '') ~ '^[0-9]+(\.[0-9]+)?$'
+             THEN (payload->>'maxLeakageCurrent')::numeric = 3.5
+             ELSE false END)
+   AND COALESCE(payload->>'currentUnit', 'mA') = 'mA';
+
 -- Funções antigas de login (senha conferida com a chave pública): removidas
 DROP FUNCTION IF EXISTS public.jvm_login(TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.jvm_set_initial_password(TEXT, TEXT);

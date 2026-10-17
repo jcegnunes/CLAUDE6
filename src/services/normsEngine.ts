@@ -52,6 +52,20 @@ export function getNBR11854LeakageLimit_uA(diameter_mm?: number): number {
   return NBR11854_LEAKAGE_UA[getClosestPoleDiameter(diameter_mm)].kv50;
 }
 
+/** Calçado de segurança dielétrico: corrente de fuga máxima da norma (mA). */
+export const FOOTWEAR_LEAKAGE_LIMIT_MA = 0.5;
+export const FOOTWEAR_NORM_ID = 'norm-calcado-dieletrico';
+const FOOTWEAR_OLD_LIMIT_MA = 3.5;
+
+/**
+ * Norma de calçado ainda com o limite antigo (3,5 mA): passa para 0,5 mA.
+ * Norma que a empresa já ajustou para outro valor fica como está.
+ */
+export function isOldFootwearNorm(n: Pick<NormCriterion, 'applicableEquipmentTypes' | 'maxLeakageCurrent' | 'currentUnit'> | null | undefined): boolean {
+  if (!n || !Array.isArray(n.applicableEquipmentTypes) || !n.applicableEquipmentTypes.includes('bota_dielétrica')) return false;
+  return Number(n.maxLeakageCurrent) === FOOTWEAR_OLD_LIMIT_MA && (n.currentUnit || 'mA') === 'mA';
+}
+
 /** Norma oficial de bastões/varas (id mantido das versões anteriores). */
 export const POLE_NORM_ID = 'norm-bastao-100kv';
 
@@ -744,11 +758,11 @@ export function getNormPresetForEquipment(
         testVoltage_kV: 14.0,
         voltageType: 'AC',
         testDurationSeconds: 60,
-        maxLeakageCurrent: 3.5,
+        maxLeakageCurrent: FOOTWEAR_LEAKAGE_LIMIT_MA,
         currentUnit: 'mA',
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-08 Rev.03',
-        description: 'Ensaio com esferas metálicas e cuba a 14 kV CA por 1 minuto conforme ABNT NBR 16603 e ASTM F2413.'
+        description: 'Ensaio com esferas metálicas e cuba a 14 kV CA por 1 minuto conforme ABNT NBR 16603 e ASTM F2413. Corrente de fuga máxima: 0,5 mA.'
       };
     }
     case 'escada_isolada': {

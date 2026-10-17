@@ -8,7 +8,7 @@ import { TABELA_4_NBR_16295, getClosestGloveLength } from './nbr16295Service';
 import { DielectricStorageService } from './syncEngine';
 import { ValidationPortalService } from './validationPortalService';
 import { formatDateBR, nc } from '../utils/dateUtils';
-import { displayUnit, generateGaugeCanvasDataUrl } from '../utils/gaugeUtils';
+import { displayUnit, generateGaugeCanvasDataUrl, leakageGaugeScale } from '../utils/gaugeUtils';
 import { saveDocLocally } from '../utils/nativeFileSaver';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 
@@ -860,7 +860,7 @@ export async function renderLaudoToDoc(
   const voltageScale = Math.max(15, Math.ceil(appliedV * 1.35 / 5) * 5);
   const leakVal = test.measuredLeakageCurrent_mA || 0;
   const effectiveLimit = normLeakageLimit || test.leakageCurrentLimit_mA || 10;
-  const leakScale = Math.max(10, Math.ceil(Math.max(effectiveLimit * 1.35, leakVal * 1.25) / 5) * 5);
+  const leakScale = leakageGaugeScale(effectiveLimit, leakVal);
   const leakPercent = ((leakVal / effectiveLimit) * 100).toFixed(1);
   const isLeakOk = leakVal <= effectiveLimit;
 
