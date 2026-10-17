@@ -7,6 +7,8 @@ import { saveFileLocally } from '../utils/nativeFileSaver';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 import { ValidationPortalService } from './validationPortalService';
 import { displayUnit, generateGaugeCanvasDataUrl, leakageGaugeScale } from '../utils/gaugeUtils';
+import { generateInductionChartDataUrl } from '../utils/inductionChart';
+import { fmtBr1, INDUCTION_DETECTOR_CLASS, INDUCTION_DETECTOR_NOTE, normalizeInductionPoints } from './inductionDetectorService';
 import { TABELA_4_NBR_16295, getClosestGloveLength } from './nbr16295Service';
 import { getASTMD178Entry } from './astmBlanketMattingService';
 
@@ -1759,6 +1761,81 @@ export async function exportSingleLaudoToWord(test: TestRecord, companyInfo?: Co
     });
   }
 
+  // Detector de tensão por indução: tabela Distância × Tensão + gráfico no lugar dos velocímetros
+  const isInductionTest = test.equipmentType === 'detector_inducao';
+  const inductionPoints = normalizeInductionPoints(test.inductionPoints);
+  const inductionChartUrl = isInductionTest ? generateInductionChartDataUrl(inductionPoints) : '';
+  const inductionMissed = inductionPoints.filter(p => p.detected === false).map(p => `${fmtBr1(p.voltage_kV)} kV`);
+  const inductionObs = test.result === 'APROVADO'
+    ? `OBS: ${INDUCTION_DETECTOR_NOTE}`
+    : inductionMissed.length
+    ? `OBS: O DETECTOR NÃO SINALIZOU EM ${inductionMissed.join('; ')} — NÃO ATENDE ÀS ESPECIFICAÇÕES DO FABRICANTE.`
+    : 'OBS: EQUIPAMENTO REPROVADO — VER PARECER TÉCNICO.';
+  const inductionSectionHtml = !isInductionTest ? '' : `
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 4px 0 6px 0;">
+          <tr>
+            <td width="38%" valign="top" style="padding-right: 8px;">
+              <table class="data-table" cellpadding="0" cellspacing="0">
+                <tr><th colspan="2" style="text-align: center;">Classe: ${escapeXml(INDUCTION_DETECTOR_CLASS)}</th></tr>
+                <tr style="background-color: #E2E8F0;">
+                  <th style="text-align: center;">DISTÂNCIA (cm)</th>
+                  <th style="text-align: center;">TENSÃO (kV)</th>
+                </tr>
+                ${inductionPoints.map(p => `
+                <tr${p.detected === false ? ' style="background-color: #FEE2E2; color: #991B1B;"' : ''}>
+                  <td align="center">${p.detected === false ? 'Não detectou' : (fmtBr1(p.distance_cm) || '—')}</td>
+                  <td align="center">${fmtBr1(p.voltage_kV)}</td>
+                </tr>`).join('')}
+              </table>
+            </td>
+            <td width="62%" valign="top" align="center">
+              ${inductionChartUrl ? `<img src="${inductionChartUrl}" style="width: 100%; max-width: 440px; border: 1px solid #CBD5E1;" alt="Gráfico do detector de tensão" />` : ''}
+            </td>
+          </tr>
+        </table>
+        <table class="data-table" cellpadding="0" cellspacing="0" style="margin-bottom: 6px;">
+          <tr><td align="center" style="color: ${test.result === 'APROVADO' ? '#1D4ED8' : '#B91C1C'};">${escapeXml(inductionObs)}</td></tr>
+        </table>
+`;
+  const hipotSectionHtml = isInductionTest ? '' : `
+        <!-- Gauges / Velocímetros Metrológicos -->
+        ${(gaugeVoltageDataUrl && gaugeLeakageDataUrl) ? `
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin: 4px 0 6px 0;">
+            <tr>
+              <td width="50%" align="center" style="padding-right: 4px;">
+                <img src="${gaugeVoltageDataUrl}" style="width: 100%; max-width: 320px; border-radius: 4px; border: 1px solid #CBD5E1;" alt="Velocímetro Tensão" />
+              </td>
+              <td width="50%" align="center" style="padding-left: 4px;">
+                <img src="${gaugeLeakageDataUrl}" style="width: 100%; max-width: 320px; border-radius: 4px; border: 1px solid #CBD5E1;" alt="Velocímetro Corrente" />
+              </td>
+            </tr>
+          </table>
+        ` : ''}
+
+        <!-- Tabela de Medições Elétricas -->
+        <table class="data-table" cellpadding="0" cellspacing="0">
+          <tr style="background-color: #E2E8F0;">
+            <th width="30%">Parâmetro de Ensaio</th>
+            <th width="35%">Exigência Normativa</th>
+            <th width="20%">Valor Medido</th>
+            <th width="15%" style="text-align: center;">Avaliação</th>
+          </tr>
+          ${measurementRows.map((r, idx) => `
+            <tr style="background-color: ${idx % 2 === 1 ? '#F8FAFC' : '#FFFFFF'};">
+              <td>${escapeXml(r.param)}</td>
+              <td><strong>${escapeXml(r.norm)}</strong></td>
+              <td style="color: #1D4ED8; font-weight: bold;">${escapeXml(r.measured)}</td>
+              <td align="center">
+                <span class="${r.isConforming ? 'badge-conforme' : 'badge-nao-conforme'}">
+                  ${r.isConforming ? 'CONFORME' : 'NÃO CONFORME'}
+                </span>
+              </td>
+            </tr>
+          `).join('')}
+        </table>
+
+`;
+
   // Montagem do HTML Word MSO Compliant
   const wordDocumentHtml = `
     <html xmlns:o='urn:schemas-microsoft-com:office:office' 
@@ -2193,41 +2270,7 @@ export async function exportSingleLaudoToWord(test: TestRecord, companyInfo?: Co
           </tr>
         </table>
 
-        <!-- Gauges / Velocímetros Metrológicos -->
-        ${(gaugeVoltageDataUrl && gaugeLeakageDataUrl) ? `
-          <table width="100%" cellpadding="0" cellspacing="0" style="margin: 4px 0 6px 0;">
-            <tr>
-              <td width="50%" align="center" style="padding-right: 4px;">
-                <img src="${gaugeVoltageDataUrl}" style="width: 100%; max-width: 320px; border-radius: 4px; border: 1px solid #CBD5E1;" alt="Velocímetro Tensão" />
-              </td>
-              <td width="50%" align="center" style="padding-left: 4px;">
-                <img src="${gaugeLeakageDataUrl}" style="width: 100%; max-width: 320px; border-radius: 4px; border: 1px solid #CBD5E1;" alt="Velocímetro Corrente" />
-              </td>
-            </tr>
-          </table>
-        ` : ''}
-
-        <!-- Tabela de Medições Elétricas -->
-        <table class="data-table" cellpadding="0" cellspacing="0">
-          <tr style="background-color: #E2E8F0;">
-            <th width="30%">Parâmetro de Ensaio</th>
-            <th width="35%">Exigência Normativa</th>
-            <th width="20%">Valor Medido</th>
-            <th width="15%" style="text-align: center;">Avaliação</th>
-          </tr>
-          ${measurementRows.map((r, idx) => `
-            <tr style="background-color: ${idx % 2 === 1 ? '#F8FAFC' : '#FFFFFF'};">
-              <td>${escapeXml(r.param)}</td>
-              <td><strong>${escapeXml(r.norm)}</strong></td>
-              <td style="color: #1D4ED8; font-weight: bold;">${escapeXml(r.measured)}</td>
-              <td align="center">
-                <span class="${r.isConforming ? 'badge-conforme' : 'badge-nao-conforme'}">
-                  ${r.isConforming ? 'CONFORME' : 'NÃO CONFORME'}
-                </span>
-              </td>
-            </tr>
-          `).join('')}
-        </table>
+        ${isInductionTest ? inductionSectionHtml : hipotSectionHtml}
 
         <!-- ================= SEÇÃO 4: INSPEÇÃO VISUAL E FÍSICO-MECÂNICA ================= -->
         <table width="100%" class="section-header" cellpadding="0" cellspacing="0">

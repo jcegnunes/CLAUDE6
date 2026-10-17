@@ -1780,6 +1780,7 @@ export const NormsView: React.FC = () => {
                 <option value="ferramenta_isolada">🔧 Ferramentas Isoladas (ABNT NBR 9699 / IEC 60900)</option>
                 <option value="escada_isolada">🪜 Escadas Isoladas PRFV (ABNT NBR IEC 61478)</option>
                 <option value="detector_tensao">⚡ Detectores de Tensão (ABNT NBR IEC 61243-1)</option>
+                <option value="detector_inducao">📡 Detector de Tensão por Indução (1 kV a 60 kV)</option>
                 <option value="ponteira_prova">🔌 Ponteiras de Prova (IEC 61010-031)</option>
                 <option value="outro">⚙️ Outros Dispositivos</option>
               </select>
@@ -1984,6 +1985,7 @@ export const NormsView: React.FC = () => {
                     <option value="ferramenta_isolada">🔧 Ferramentas Manuais Isoladas 1000V (ABNT NBR 9699 / IEC 60900)</option>
                     <option value="escada_isolada">🪜 Escadas Isoladas de Fibra de Vidro (ABNT NBR IEC 61478 / NBR 16308)</option>
                     <option value="detector_tensao">⚡ Detectores de Tensão (ABNT NBR IEC 61243-1)</option>
+                    <option value="detector_inducao">📡 Detector de Tensão por Indução (1 kV a 60 kV)</option>
                     <option value="ponteira_prova">🔌 Ponteiras de Prova e Cabos de Ensaio (IEC 61010-031)</option>
                     <option value="outro">⚙️ Outros Dispositivos Dielétricos (NR-10 / Esp. Técnica)</option>
                   </select>

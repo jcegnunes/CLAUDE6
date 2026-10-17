@@ -655,6 +655,28 @@ export const INITIAL_NORMS: NormCriterion[] = [
     status: 'active'
   },
 
+  // Detector de Tensão por Indução (classe 1 kV a 60 kV) - detecção por aproximação
+  {
+    id: 'norm-detector-inducao',
+    normCode: 'Especificações do fabricante',
+    normName: 'Detector de Tensão por Indução (1 kV a 60 kV)',
+    editionOrVersion: 'Ensaio de detecção por aproximação',
+    effectiveDate: '2026-10-16',
+    applicableEquipmentTypes: ['detector_inducao'],
+    dielectricClass: 'Geral',
+    nominalVoltageMaxAC_kV: 60.0,
+    nominalVoltageMaxDC_kV: 60.0,
+    testVoltage_kV: 60.0,
+    voltageType: 'AC',
+    testDurationSeconds: 0,
+    maxLeakageCurrent: 0,
+    currentUnit: 'mA',
+    defaultRetestMonths: 12,
+    approvalCriterion: 'visual_and_leakage',
+    notes: 'Classe 1 kV a 60 kV. Em cada tensão da tabela (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43; 52 e 60 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão; o laudo traz a tabela Distância × Tensão e o gráfico. Aprovado quando o detector sinaliza em todas as tensões, conforme as especificações do fabricante.',
+    status: 'active'
+  },
+
   // Detectores de Tensão / Prova de Ausência de Tensão - ABNT NBR IEC 61243-1 / IEC 61243-1
   {
     id: 'norm-detector-iec-61243-1-haste-100kv',

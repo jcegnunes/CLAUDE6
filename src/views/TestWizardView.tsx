@@ -76,6 +76,14 @@ import {
 } from '../services/normsEngine';
 import { displayUnit } from '../utils/gaugeUtils';
 import {
+  INDUCTION_DETECTOR_CLASS,
+  INDUCTION_DETECTOR_NOTE,
+  normalizeInductionPoints,
+  fmtBr1,
+  type InductionDetectorPoint
+} from '../services/inductionDetectorService';
+import { InductionDetectorChart } from '../components/InductionDetectorChart';
+import {
   getNBR16295MaxLeakageCurrent,
   getNBR16295Voltages,
   NBR_16295_LENGTH_OPTIONS,
@@ -182,6 +190,11 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
     norm: 'EN 50528:2024 / ABNT NBR IEC 61478',
     fullLabel: 'Escadas Isoladas em Fibra de Vidro (EN 50528:2024 BT / ABNT NBR IEC 61478 AT)'
   },
+  detector_inducao: {
+    label: 'Detector de Tensão por Indução (1 kV a 60 kV)',
+    norm: 'Especificações do fabricante',
+    fullLabel: 'Detector de Tensão por Indução — classe 1 kV a 60 kV (especificações do fabricante)'
+  },
   detector_tensao: {
     label: 'Detectores de Tensão / Prova de Ausência de Tensão',
     norm: 'ABNT NBR IEC 61243-1',
@@ -250,6 +263,11 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
   const [gloveLength_mm, setGloveLength_mm] = useState<GloveLength_mm>(editingTest?.gloveLength_mm || 360);
   // NBR 11854: diâmetro do bastão / vara de manobra / bastão de resgate
   const [poleDiameter_mm, setPoleDiameter_mm] = useState<number>(getClosestPoleDiameter(editingTest?.poleDiameter_mm));
+  // Detector de tensão por indução: tensões fixas, distâncias obtidas a preencher
+  const [inductionPoints, setInductionPoints] = useState<InductionDetectorPoint[]>(normalizeInductionPoints(editingTest?.inductionPoints));
+  const isInductionDetector = selectedEquipmentType === 'detector_inducao';
+  const updateInductionPoint = (voltage: number, patch: Partial<InductionDetectorPoint>) =>
+    setInductionPoints(prev => prev.map(p => (p.voltage_kV === voltage ? { ...p, ...patch } : p)));
   const [gloveTestMethod, setGloveTestMethod] = useState<GloveTestMethod>(editingTest?.gloveTestMethod || 'ensaio_prova');
   const [moistureConditioning, setMoistureConditioning] = useState<boolean>(editingTest?.moistureConditioning || false);
 
@@ -571,6 +589,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       ferramenta_isolada: 'FRM',
       escada_isolada: 'ESC',
       detector_tensao: 'DET',
+      detector_inducao: 'DTI',
       outro: 'EPI'
     };
     const prefix = prefixMap[type] || 'EPI';
@@ -674,6 +693,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
     isolatedTools: selectedEquipmentType === 'ferramenta_isolada' ? isolatedTools : undefined,
     gloveLength_mm: selectedEquipmentType === 'luva_isolante' ? gloveLength_mm : undefined,
     poleDiameter_mm: isPoleEquipment(selectedEquipmentType) ? poleDiameter_mm : undefined,
+    inductionPoints: selectedEquipmentType === 'detector_inducao' ? inductionPoints : undefined,
     gloveTestMethod: selectedEquipmentType === 'luva_isolante' ? gloveTestMethod : undefined,
     moistureConditioning: selectedEquipmentType === 'luva_isolante' ? moistureConditioning : undefined,
     blanketType: selectedEquipmentType === 'manta_isolante' ? blanketType : undefined,
@@ -1158,6 +1178,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       appliedClass: selectedDielectricClass,
       gloveLength_mm: selectedEquipmentType === 'luva_isolante' ? gloveLength_mm : undefined,
     poleDiameter_mm: isPoleEquipment(selectedEquipmentType) ? poleDiameter_mm : undefined,
+      inductionPoints: selectedEquipmentType === 'detector_inducao' ? inductionPoints : undefined,
       gloveTestMethod: selectedEquipmentType === 'luva_isolante' ? gloveTestMethod : undefined,
       moistureConditioning: selectedEquipmentType === 'luva_isolante' ? moistureConditioning : undefined,
       blanketType: selectedEquipmentType === 'manta_isolante' ? blanketType : undefined,
@@ -1168,13 +1189,13 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       mattingDimensions: selectedEquipmentType === 'tapete_isolante' ? mattingDimensions : undefined,
       testElectrodeType,
       flashoverClearance_mm: selectedEquipmentType === 'manta_isolante' ? getASTMD1048Entry(selectedDielectricClass)?.distanciaBordaEletrodo_mm : undefined,
-      appliedVoltage_kV: appliedVoltage,
-      voltageType,
-      applicationDurationSeconds: durationSeconds,
-      measuredLeakageCurrent_mA: leakageCurrent,
+      appliedVoltage_kV: isInductionDetector ? Math.max(...inductionPoints.map(p => p.voltage_kV)) : appliedVoltage,
+      voltageType: isInductionDetector ? 'AC' : voltageType,
+      applicationDurationSeconds: isInductionDetector ? 0 : durationSeconds,
+      measuredLeakageCurrent_mA: isInductionDetector ? 0 : leakageCurrent,
       leakageCurrentLimit_mA: currentEvaluation.appliedLimit,
       currentUnit: currentEvaluation.appliedUnit,
-      withstandWithoutPuncture: withstandPuncture,
+      withstandWithoutPuncture: isInductionDetector ? true : withstandPuncture,
       environmental: {
         temperatureC: temperature,
         relativeHumidityPercent: relativeHumidity,
@@ -2842,6 +2863,68 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
             </div>
           )}
 
+          {/* Detector de tensão por indução: tabela Tensão × Distância obtida + gráfico */}
+          {isInductionDetector && (
+            <div className="p-4 bg-blue-50/60 border border-blue-200 rounded-xl space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-bold text-blue-950 uppercase tracking-wider">Ensaio de detecção por aproximação</span>
+                <span className="text-[11px] font-bold text-blue-800 bg-white px-2.5 py-0.5 rounded-full border border-blue-200">Classe: {INDUCTION_DETECTOR_CLASS}</span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                Para cada tensão, informe a <b>distância (cm)</b> em que o detector sinalizou a presença de tensão. Desmarque "Detectou" se ele não sinalizar.
+              </p>
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,320px)_1fr] gap-4 items-start">
+                <table className="w-full text-xs bg-white border border-slate-300 rounded-lg overflow-hidden">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-800">
+                      <th className="p-2 border border-slate-300 font-bold">Tensão (kV)</th>
+                      <th className="p-2 border border-slate-300 font-bold">Distância obtida (cm)</th>
+                      <th className="p-2 border border-slate-300 font-bold">Detectou</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inductionPoints.map(p => (
+                      <tr key={p.voltage_kV} className={p.detected === false ? 'bg-red-50' : ''}>
+                        <td className="p-1.5 border border-slate-300 text-center font-bold font-mono">{fmtBr1(p.voltage_kV)}</td>
+                        <td className="p-1 border border-slate-300">
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.1"
+                            value={p.distance_cm ?? ''}
+                            disabled={p.detected === false}
+                            onChange={e => {
+                              const v = parseFloat(e.target.value.replace(',', '.'));
+                              updateInductionPoint(p.voltage_kV, { distance_cm: isFinite(v) && v > 0 ? v : undefined });
+                            }}
+                            aria-label={`Distância obtida em ${fmtBr1(p.voltage_kV)} kV`}
+                            className="w-full p-1.5 text-xs text-center border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-bold text-blue-700 disabled:bg-slate-100"
+                            placeholder="cm"
+                          />
+                        </td>
+                        <td className="p-1.5 border border-slate-300 text-center">
+                          <input
+                            type="checkbox"
+                            checked={p.detected !== false}
+                            onChange={e => updateInductionPoint(p.voltage_kV, { detected: e.target.checked })}
+                            aria-label={`Detectou em ${fmtBr1(p.voltage_kV)} kV`}
+                            className="w-4 h-4 accent-emerald-600"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="space-y-2">
+                  <InductionDetectorChart points={inductionPoints} className="w-full h-auto rounded-lg" />
+                  <p className="text-[11px] text-slate-500">Obs. no laudo: {INDUCTION_DETECTOR_NOTE}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isInductionDetector && (<>
           {/* Measurements Form Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
@@ -2947,6 +3030,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
             </div>
           </div>
 
+          </>)}
+
           {/* Real-Time Result Preview Card */}
           {currentEvaluation && (
             <div className="space-y-3">
@@ -2975,7 +3060,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                           : 'text-red-800'
                       }`}>{currentEvaluation.result}</span>
                     </span>
-                    {currentEvaluation.result === 'PENDENTE' && (
+                    {currentEvaluation.result === 'PENDENTE' && !isInductionDetector && (
                       <span className="text-[10px] bg-amber-200/80 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md">
                         Critério Não Configurado
                       </span>
@@ -3331,7 +3416,13 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
               <ArrowLeft className="w-4 h-4" /> Voltar
             </button>
             <button
-              onClick={() => setCurrentStep(5)}
+              onClick={() => {
+                if (isInductionDetector && currentEvaluation.result === 'PENDENTE') {
+                  window.alert(currentEvaluation.rationale);
+                  return;
+                }
+                setCurrentStep(5);
+              }}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 shadow-sm"
             >
               Avançar para Instrumentos <ArrowRight className="w-4 h-4" />

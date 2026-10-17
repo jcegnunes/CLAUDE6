@@ -21,6 +21,11 @@ import {
   LadderTestMethod,
   TABELA_NORMAS_ESCADAS_FIBRA
 } from './ladderNormsService';
+import {
+  evaluateInductionDetector,
+  INDUCTION_DETECTOR_CLASS,
+  type InductionDetectorPoint
+} from './inductionDetectorService';
 
 // ---------------------------------------------------------------------------
 // ABNT NBR 11854 — bastões de manobra, varas telescópicas e bastões de resgate:
@@ -109,6 +114,8 @@ export interface NormEvaluationInput {
   gloveLength_mm?: number;
   /** Bastão/vara de manobra/bastão de resgate: diâmetro (mm) para a tabela da NBR 11854 */
   poleDiameter_mm?: number;
+  /** Detector de tensão por indução: distância de detecção obtida em cada tensão */
+  inductionPoints?: InductionDetectorPoint[];
   gloveTestMethod?: GloveTestMethod;
   moistureConditioning?: boolean;
   blanketType?: BlanketType;
@@ -218,6 +225,32 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
     input.allCriteria,
     input.customNormCriterionId
   );
+
+  // Detector de tensão por indução: avaliação pela detecção em cada tensão da tabela
+  // (não há tensão aplicada contínua, tempo nem corrente de fuga)
+  if (input.equipmentType === 'detector_inducao') {
+    const visualFailed = input.visualChecklist
+      .filter(i => i.status === 'nao_conforme')
+      .map(i => i.item + (i.observation ? ` (${i.observation})` : ''));
+    const ev = evaluateInductionDetector(input.inductionPoints, visualFailed);
+    return {
+      canEvaluate: true,
+      matchedCriterion: criterion,
+      isVisualConforming: visualFailed.length === 0,
+      visualFailedItems: visualFailed,
+      isVoltageSufficient: true,
+      isDurationSufficient: true,
+      isWithstandPassed: true,
+      isLeakageCurrentConforming: ev.notDetected.length === 0,
+      appliedLimit: 0,
+      appliedUnit: 'mA',
+      result: ev.result,
+      rationale: ev.rationale,
+      errorMessage: ev.result === 'PENDENTE' ? ev.rationale : undefined,
+      recommendedRetestMonths: criterion?.defaultRetestMonths || 12,
+      normReferenceClause: `Especificações do fabricante — detecção por indução, classe ${INDUCTION_DETECTOR_CLASS}`
+    };
+  }
 
   // Requirement: If no criterion configured, do NOT invent criteria
   if (!criterion) {
@@ -575,6 +608,16 @@ export function getDefaultChecklistForEquipment(type: EquipmentType): ChecklistI
     return getLadderChecklistItems('extensivel');
   }
 
+  if (type === 'detector_inducao') {
+    return [
+      { id: 'chk-di1', item: 'Carcaça / invólucro sem trincas, quebras ou partes soltas', status: 'conforme' },
+      { id: 'chk-di2', item: 'Autoteste: sinalização luminosa e sonora funcionando', status: 'conforme' },
+      { id: 'chk-di3', item: 'Pilhas / bateria em bom estado e contatos sem oxidação', status: 'conforme' },
+      { id: 'chk-di4', item: 'Botão liga/desliga e seletor de sensibilidade funcionando', status: 'conforme' },
+      { id: 'chk-di5', item: 'Identificação do fabricante, modelo e faixa de tensão legíveis', status: 'conforme' }
+    ];
+  }
+
   if (type === 'bastao_manobra' || type === 'vara_manobra') {
     return [
       { id: 'chk-b1', item: 'Superfície de fibra de vidro lisa, polida e sem delaminações', status: 'conforme' },
@@ -791,6 +834,20 @@ export function getNormPresetForEquipment(
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-09 Rev.02',
         description: 'Ensaio dielétrico por segmento de 300 mm com 100 kV CA por 60s conforme ABNT NBR IEC 61478 e ABNT NBR 16308.'
+      };
+    }
+    case 'detector_inducao': {
+      return {
+        normCode: 'Especificações do fabricante',
+        normName: `Detector de Tensão por Indução (${INDUCTION_DETECTOR_CLASS})`,
+        testVoltage_kV: 60,
+        voltageType: 'AC',
+        testDurationSeconds: 0,
+        maxLeakageCurrent: 0,
+        currentUnit: 'mA',
+        retestIntervalMonths: 12,
+        standardProcedureCode: 'PR-JVM-LAB-10 Rev.03',
+        description: 'Ensaio de detecção por aproximação: em cada tensão da tabela (1 kV a 60 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão, conforme as especificações do fabricante.'
       };
     }
     case 'detector_tensao': {

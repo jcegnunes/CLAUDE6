@@ -22,6 +22,7 @@ export function getEquipmentTypeDescription(type: string, customName?: string): 
     vara_manobra: 'Vara de Manobra Telescópica',
     ponteira_prova: 'Ponteira / Terminal de Prova',
     detector_tensao: 'Detector de Tensão',
+    detector_inducao: 'Detector de Tensão por Indução',
     ferramenta_isolada: 'Conjunto de Ferramentas Isoladas 1000V',
     outro: 'Outro Equipamento Dielétrico'
   };
