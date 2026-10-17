@@ -1,3 +1,4 @@
+import { isGloveTest } from './nbr16295Service';
 import { TestRecord, Client, CompanyLabInfo } from '../types';
 import { DielectricStorageService } from './syncEngine';
 import { formatDateBR, getTodayBR } from '../utils/dateUtils';
@@ -120,7 +121,7 @@ export function getApplicableNormsList(tests: TestRecord[]): NormInfo[] {
   // Varrer ensaios selecionados para identificar as normas usadas
   tests.forEach(test => {
     const rawCode = (test.normCode || '').trim();
-    const isGlove = test.equipmentType === 'luva_isolante' || Boolean(test.gloveLength_mm);
+    const isGlove = isGloveTest(test);
 
     if (isGlove) {
       normMap.set('NBR 16295', standardCatalog['NBR 16295 Tabela 4'] || standardCatalog['NBR 16295']);
@@ -261,7 +262,7 @@ export async function exportTestsSpreadsheet(
     const collaboratorSector = test.collaboratorSector || matchingOS?.collaboratorSector || matchingEq?.collaboratorSector || matchingEq?.sector || 'Geral';
 
     let dimensionOrLength = '-';
-    if (test.gloveLength_mm) {
+    if (isGloveTest(test) && test.gloveLength_mm) {
       dimensionOrLength = `${test.gloveLength_mm} mm`;
     } else if (test.blanketDimensions) {
       dimensionOrLength = test.blanketDimensions;

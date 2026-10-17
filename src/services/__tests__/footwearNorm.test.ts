@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateDielectricTest, findMatchingCriterion, getNormPresetForEquipment, isOldFootwearNorm, FOOTWEAR_NORM_ID } from '../normsEngine';
+import { evaluateDielectricTest, getNormPresetForEquipment, isOldFootwearNorm, FOOTWEAR_NORM_ID } from '../normsEngine';
 import { INITIAL_NORMS } from '../../data/seedData';
 import { formatGaugeValue, leakageGaugeScale } from '../../utils/gaugeUtils';
 
@@ -45,31 +45,5 @@ describe('Calçado de segurança dielétrico: corrente de fuga máxima 0,5 mA', 
     expect(isOldFootwearNorm({ applicableEquipmentTypes: ['bota_dielétrica'], maxLeakageCurrent: 3.5, currentUnit: 'mA' })).toBe(true);
     expect(isOldFootwearNorm({ applicableEquipmentTypes: ['bota_dielétrica'], maxLeakageCurrent: 2, currentUnit: 'mA' })).toBe(false);
     expect(isOldFootwearNorm({ applicableEquipmentTypes: ['luva_isolante'], maxLeakageCurrent: 3.5, currentUnit: 'mA' })).toBe(false);
-  });
-});
-
-describe('Calçado: norma carregada ao selecionar o equipamento', () => {
-  it('a norma do calçado (classe "Especial") é encontrada para qualquer classe do equipamento', () => {
-    for (const cls of ['00', '0', '1', '2', '3', '4']) {
-      expect(findMatchingCriterion('bota_dielétrica', cls, INITIAL_NORMS)?.id).toBe(FOOTWEAR_NORM_ID);
-    }
-    const r = evaluateDielectricTest({
-      equipmentType: 'bota_dielétrica',
-      dielectricClass: '2',
-      appliedVoltage_kV: 14,
-      voltageType: 'AC',
-      durationSeconds: 60,
-      measuredLeakageCurrent_mA: 0.4,
-      withstandWithoutPuncture: true,
-      visualChecklist: [],
-      allCriteria: INITIAL_NORMS
-    });
-    expect(r.canEvaluate).toBe(true);
-    expect(r.result).toBe('APROVADO');
-  });
-
-  it('tipos com norma por classe ou com várias normas continuam exigindo a escolha', () => {
-    expect(findMatchingCriterion('manga_isolante', '1', INITIAL_NORMS)).toBeUndefined();
-    expect(findMatchingCriterion('detector_tensao', '2', INITIAL_NORMS)).toBeUndefined();
   });
 });

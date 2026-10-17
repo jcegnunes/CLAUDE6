@@ -1,3 +1,5 @@
+import { technicianCrea } from '../utils/technicianCrea';
+import { isGloveTest } from '../services/nbr16295Service';
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   FileText, 
@@ -284,7 +286,7 @@ export const ReportEmissionView: React.FC<ReportEmissionViewProps> = ({
       const collaboratorSector = test.collaboratorSector || matchingOS?.collaboratorSector || matchingEq?.collaboratorSector || matchingEq?.sector || 'Geral';
 
       let dimensionOrLength = '-';
-      if (test.gloveLength_mm) {
+      if (isGloveTest(test) && test.gloveLength_mm) {
         dimensionOrLength = `${test.gloveLength_mm}mm`;
       } else if (test.blanketDimensions) {
         dimensionOrLength = test.blanketDimensions;
@@ -1844,7 +1846,7 @@ export const ReportEmissionView: React.FC<ReportEmissionViewProps> = ({
                     </div>
                     <div>
                       <p className="font-bold text-slate-900">{technicianName}</p>
-                      <p className="text-[11px] text-slate-500">Técnico Executor / Laboratorista ({technicianCreaOrCft})</p>
+                      <p className="text-[11px] text-slate-500">Técnico Executor / Laboratorista{technicianCrea(technicianCreaOrCft) ? ` (${technicianCrea(technicianCreaOrCft)})` : ''}</p>
                     </div>
                   </div>
 

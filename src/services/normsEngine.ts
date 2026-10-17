@@ -202,7 +202,7 @@ export function findMatchingCriterion(
   }
 
   // Find by equipment type and class
-  const byClass = allCriteria.find(c => {
+  return allCriteria.find(c => {
     if (c.status !== 'active') return false;
     const typeMatches = c.applicableEquipmentTypes.includes(equipmentType);
     
@@ -239,16 +239,6 @@ export function findMatchingCriterion(
 
     return typeMatches && classMatches;
   });
-  if (byClass) return byClass;
-
-  // Tipo com uma única norma cadastrada e classe não numérica (ex.: calçado "Especial"):
-  // ela é carregada ao selecionar o equipamento. Tipos com norma por classe (ex.: manga
-  // classe 2) ou com várias normas (detectores) continuam exigindo a escolha no ensaio.
-  const forType = allCriteria.filter(c => c.status === 'active' && c.applicableEquipmentTypes?.includes(equipmentType));
-  if (forType.length !== 1) return undefined;
-  const single = forType[0];
-  const numericClasses = ['00', '0', '1', '2', '3', '4'];
-  return numericClasses.includes((single.dielectricClass || '').trim()) ? undefined : single;
 }
 
 export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluationResult {

@@ -75,6 +75,8 @@ import {
   NBR11854_TEST_VOLTAGE_KV
 } from '../services/normsEngine';
 import { displayUnit } from '../utils/gaugeUtils';
+import { technicianCrea } from '../utils/technicianCrea';
+import { DecimalInput } from '../components/DecimalInput';
 import {
   INDUCTION_DETECTOR_CLASS,
   INDUCTION_DETECTOR_NOTE,
@@ -212,6 +214,20 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
   }
 };
 
+/** Temperatura e umidade do último ensaio registrado (para o próximo começar com elas). */
+export function lastTestEnvironment(tests?: TestRecord[]): { temperatureC?: number; relativeHumidityPercent?: number } | undefined {
+  try {
+    const list = (tests || DielectricStorageService.getTests())
+      .filter(t => t?.environmental && Number.isFinite(Number(t.environmental.temperatureC)));
+    if (!list.length) return undefined;
+    const when = (t: TestRecord) => String(t.createdAt || '') || `${t.testDate || ''}T${t.testTime || ''}`;
+    list.sort((a, b) => when(b).localeCompare(when(a)));
+    return list[0].environmental;
+  } catch {
+    return undefined;
+  }
+}
+
 export const TestWizardView: React.FC<TestWizardViewProps> = ({
   currentUser,
   onFinishTest,
@@ -292,8 +308,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
   const [ladderMoistureConditioned, setLadderMoistureConditioned] = useState<boolean>(false);
 
   // Environmental
-  const [temperature, setTemperature] = useState<number>(editingTest?.environmental?.temperatureC ?? 23.5);
-  const [relativeHumidity, setRelativeHumidity] = useState<number>(editingTest?.environmental?.relativeHumidityPercent ?? 55.0);
+  // novo ensaio: começa com a temperatura e a umidade do ensaio anterior
+  const [temperature, setTemperature] = useState<number>(() => editingTest?.environmental?.temperatureC ?? lastTestEnvironment()?.temperatureC ?? 23.5);
+  const [relativeHumidity, setRelativeHumidity] = useState<number>(() => editingTest?.environmental?.relativeHumidityPercent ?? lastTestEnvironment()?.relativeHumidityPercent ?? 55.0);
   const [ambientInstrumentId, setAmbientInstrumentId] = useState<string>(editingTest?.environmental?.instrumentUsedId || 'inst-3');
   const [testLocation, setTestLocation] = useState<string>(editingTest?.location || 'Laboratório Móvel JVM');
 
@@ -1165,7 +1182,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       artNumber: selectedOS?.artNumber || editingTest?.artNumber || undefined,
       technicianId: effectiveTechnician.id,
       technicianName: effectiveTechnician.name,
-      technicianCftOrCrea: effectiveTechnician.creaOrCft || 'CFT-SP 1458920',
+      technicianCftOrCrea: technicianCrea(effectiveTechnician.creaOrCft),
       techResponsibleId: effectiveTechResponsible.id,
       techResponsibleName: effectiveTechResponsible.name,
       techResponsibleCrea: effectiveTechResponsible.creaNumber || '',
@@ -1855,11 +1872,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                     <label className="block text-[11px] font-bold text-emerald-900 mb-1">
                       Espessura Medida (mm):
                     </label>
-                    <input
-                      type="number"
-                      step="0.1"
+                    <DecimalInput
                       value={mattingThickness_mm}
-                      onChange={(e) => setMattingThickness_mm(parseFloat(e.target.value) || 0)}
+                      onValue={setMattingThickness_mm}
                       className="w-full p-2 text-xs bg-white border border-emerald-200 rounded-lg focus:ring-2 focus:ring-emerald-500 font-bold text-emerald-900"
                     />
                     <span className="text-[10px] text-slate-500 mt-0.5 block">
@@ -2013,11 +2028,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 <Thermometer className="w-4 h-4 text-orange-500" />
                 Temperatura Ambiente (°C):
               </label>
-              <input
-                type="number"
-                step="0.1"
+              <DecimalInput
                 value={temperature}
-                onChange={(e) => setTemperature(parseFloat(e.target.value) || 0)}
+                onValue={setTemperature}
                 className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-semibold"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">Faixa recomendada: 20°C a 26°C</span>
@@ -2028,11 +2041,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 <Droplets className="w-4 h-4 text-blue-500" />
                 Umidade Relativa (% UR):
               </label>
-              <input
-                type="number"
-                step="0.5"
+              <DecimalInput
                 value={relativeHumidity}
-                onChange={(e) => setRelativeHumidity(parseFloat(e.target.value) || 0)}
+                onValue={setRelativeHumidity}
                 className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-semibold"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">Faixa recomendada: 45% a 75%</span>
@@ -2952,11 +2963,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 <Zap className="w-4 h-4 text-amber-500" />
                 Tensão Aplicada (kV):
               </label>
-              <input
-                type="number"
-                step="0.5"
+              <DecimalInput
                 value={appliedVoltage}
-                onChange={(e) => setAppliedVoltage(parseFloat(e.target.value) || 0)}
+                onValue={setAppliedVoltage}
                 className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
@@ -2982,10 +2991,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Duração da Aplicação (s):
               </label>
-              <input
-                type="number"
+              <DecimalInput
                 value={durationSeconds}
-                onChange={(e) => setDurationSeconds(parseInt(e.target.value, 10) || 0)}
+                onValue={n => setDurationSeconds(Math.max(0, Math.round(n)))}
                 className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
@@ -2997,11 +3005,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
               <label className="block text-xs font-bold text-slate-700 mb-1">
                 Corrente de Fuga Medida ({displayUnit(currentEvaluation?.appliedUnit)}):
               </label>
-              <input
-                type="number"
-                step="0.1"
+              <DecimalInput
                 value={leakageCurrent}
-                onChange={(e) => setLeakageCurrent(parseFloat(e.target.value) || 0)}
+                onValue={setLeakageCurrent}
                 className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-blue-700"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">

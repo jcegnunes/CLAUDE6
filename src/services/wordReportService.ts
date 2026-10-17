@@ -8,8 +8,9 @@ import { cleanSignatureImage } from '../utils/signatureCleaner';
 import { ValidationPortalService } from './validationPortalService';
 import { displayUnit, generateGaugeCanvasDataUrl, leakageGaugeScale } from '../utils/gaugeUtils';
 import { generateInductionChartDataUrl } from '../utils/inductionChart';
+import { technicianCrea } from '../utils/technicianCrea';
 import { fmtBr1, INDUCTION_DETECTOR_CLASS, INDUCTION_DETECTOR_NOTE, normalizeInductionPoints } from './inductionDetectorService';
-import { TABELA_4_NBR_16295, getClosestGloveLength } from './nbr16295Service';
+import { TABELA_4_NBR_16295, getClosestGloveLength, isGloveTest } from './nbr16295Service';
 import { getASTMD178Entry } from './astmBlanketMattingService';
 
 export interface WordExportOptions {
@@ -1540,7 +1541,7 @@ export async function exportSingleLaudoToWord(test: TestRecord, companyInfo?: Co
   const rtSigUrl = cleanedRTSig ? await loadImageAsDataUrl(cleanedRTSig) : '';
 
   // 4. Detalhes do Equipamento e Normas
-  const isGlove = Boolean(test.equipmentType === 'luva_isolante' || test.gloveLength_mm);
+  const isGlove = isGloveTest(test);
   const selectedGloveClass = (test.equipmentClass || '0').trim();
   const selectedGloveLength = getClosestGloveLength(test.gloveLength_mm || 360);
   const gloveTableEntry = TABELA_4_NBR_16295.find(r => r.classe === selectedGloveClass);
@@ -1595,7 +1596,7 @@ export async function exportSingleLaudoToWord(test: TestRecord, companyInfo?: Co
     : [];
 
   const technicianName = test.technicianName || techUser?.name || 'Técnico Executor';
-  const technicianCreaOrCft = test.technicianCftOrCrea || techUser?.creaOrCft || 'Inspetor Dielétrico • Executor';
+  const technicianCreaOrCft = technicianCrea(test.technicianCftOrCrea) || technicianCrea(techUser?.creaOrCft) || 'Inspetor Dielétrico • Executor';
   const techResponsibleName = test.techResponsibleName || rtUser?.name || company.technicalResponsible.name;
   const techResponsibleCrea = test.techResponsibleCrea || rtUser?.creaOrCft || company.technicalResponsible.creaNumber;
   const techResponsibleRnp = company.technicalResponsible.rnp || '';
@@ -1615,7 +1616,7 @@ export async function exportSingleLaudoToWord(test: TestRecord, companyInfo?: Co
     { label: 'Classe Dielétrica:', value: `Classe ${test.equipmentClass}`, isHighlight: true },
     { label: 'Nº de Série:', value: nc(test.equipmentSerial), isMono: true },
     { label: 'Certificado de Aprovação (CA):', value: nc(test.equipmentCa) },
-    ...(test.equipmentType === 'luva_isolante' || test.gloveLength_mm
+    ...(isGlove
       ? [{ label: 'Comprimento da Luva (NBR 16295):', value: `${test.gloveLength_mm || 360} mm`, isMono: true, isHighlight: true }]
       : test.blanketDimensions
       ? [{ label: 'Dimensões da Manta:', value: nc(test.blanketDimensions) }]
@@ -1623,7 +1624,7 @@ export async function exportSingleLaudoToWord(test: TestRecord, companyInfo?: Co
       ? [{ label: 'Dimensões do Tapete:', value: nc(test.mattingDimensions) }]
       : test.poleDiameter_mm
       ? [{ label: 'Diâmetro do Bastão (NBR 11854):', value: `Ø ${test.poleDiameter_mm} mm`, isMono: true, isHighlight: true }]
-      : [{ label: 'Comprimento / Dimensão:', value: test.gloveLength_mm ? `${test.gloveLength_mm} mm` : 'N/C' }]
+      : [{ label: 'Comprimento / Dimensão:', value: 'N/C' }]
     )
   ];
 

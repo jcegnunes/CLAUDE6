@@ -137,6 +137,14 @@
 - **Medidor de corrente de fuga (laudo):** limites pequenos usam escala 1, 2 ou 5 (ex.: calçado
   0,5 mA → escala 0 a 1), para a marca do limite não ficar colada no zero; valores abaixo de 1
   aparecem com 2 casas (ex.: 0.35 mA).
+- **Laudo do detector de tensão (e outros não-luva):** a Tabela 4 da NBR 16295 aparecia porque ensaios vindos do
+  app Android trazem o campo "comprimento da luva" preenchido em outros equipamentos. Agora a tabela, o
+  selo "Luva Ensaiada" e o comprimento só aparecem em ensaios de **luva isolante**.
+- **CREA/CFT do técnico executor em branco:** não aparece no laudo (antes o ensaio gravava um número de
+  exemplo, "CFT-SP 1458920", que também deixa de ser exibido em ensaios antigos).
+- **Ensaio:** temperatura e umidade começam com os valores do **ensaio anterior**. Os campos de
+  temperatura, umidade, corrente de fuga, tensão aplicada, duração e espessura podem ser apagados sem
+  voltar "0" no campo, e aceitam vírgula (ex.: 24,7).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
   assinaturas RSA no verificador de PDF (detalhes em "Vulnerabilidades das dependências").
