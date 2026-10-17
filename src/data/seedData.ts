@@ -659,21 +659,22 @@ export const INITIAL_NORMS: NormCriterion[] = [
   {
     id: 'norm-ponteira-nbr-6881',
     normCode: 'ABNT NBR 6881',
-    normName: 'Ponteiras de Prova e Cabos de Ensaio (2,5 kV — NBR 6881)',
+    normName: 'Ponteiras de Prova e Cabos de Ensaio (1,2 kV — NBR 6881)',
     editionOrVersion: 'Ensaio de tensão aplicada',
     effectiveDate: '2026-10-16',
     applicableEquipmentTypes: ['ponteira_prova'],
     dielectricClass: 'Geral',
     nominalVoltageMaxAC_kV: 1.0,
     nominalVoltageMaxDC_kV: 1.5,
-    testVoltage_kV: 2.5,
+    testVoltage_kV: 1.2,
     voltageType: 'AC',
     testDurationSeconds: 60,
-    maxLeakageCurrent: 1.0,
+    // a NBR 6881 não estipula corrente de fuga: limite adotado pelo laboratório
+    maxLeakageCurrent: 5.0,
     currentUnit: 'mA',
     defaultRetestMonths: 12,
     approvalCriterion: 'visual_and_leakage',
-    notes: 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio a 2,5 kV CA por 1 minuto, sem disrupção ou perfuração da isolação. Corrente de fuga máxima adotada: 1,0 mA.',
+    notes: 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio (até 1 kV) a 1,2 kV CA por 1 minuto. A tensão é elevada a partir de no máximo 20 % da tensão nominal (0,2 kV), atingindo 1,2 kV em 10 s a 60 s, e reduzida até no máximo 20 % da tensão nominal antes de desligar e aterrar. Critério da norma (item 4.3): sem perfuração total ou parcial da isolação. A norma não estipula corrente de fuga; limite adotado pelo laboratório: 5,0 mA.',
     status: 'active'
   },
 

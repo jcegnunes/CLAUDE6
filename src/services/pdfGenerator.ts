@@ -1034,6 +1034,8 @@ export async function renderLaudoToDoc(
         ? `Máximo ${normLeakageLimit} mA (Limite adotado – ASTM D178-22)`
         : test.equipmentType === 'ferramenta_isolada'
         ? `Máximo ${test.leakageCurrentLimit_mA} mA (${(test.isolatedTools?.reduce((acc, t) => acc + (Number(t.quantity) || 1), 0) || 1)} un x 1,0 mA - NBR 9699)`
+        : test.equipmentType === 'ponteira_prova'
+        ? `Máximo ${test.leakageCurrentLimit_mA} mA (limite adotado pelo laboratório – a NBR 6881 não estipula corrente de fuga)`
         : test.poleDiameter_mm
         ? `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (NBR 11854 – Ø ${test.poleDiameter_mm} mm a ${test.appliedVoltage_kV} kV)`
         : `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (${normApplicableDisplay})`,

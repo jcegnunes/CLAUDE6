@@ -859,17 +859,23 @@ UPDATE public.norms
              ELSE false END)
    AND COALESCE(payload->>'currentUnit', 'mA') = 'mA';
 
--- Ponteiras de prova e cabos de ensaio: ABNT NBR 6881 a 2,5 kV (normas criadas
--- pela predefinição antiga IEC 61010-031 a 5 kV). Ensaios já emitidos NÃO mudam.
+-- Ponteiras de prova e cabos de ensaio (até 1 kV): ABNT NBR 6881 a 1,2 kV, aprovação
+-- sem perfuração e limite de fuga de 5,0 mA adotado pelo laboratório (normas da
+-- predefinição antiga IEC 61010-031 a 5 kV ou da NBR 6881 a 2,5 kV / 1,0 mA).
+-- Norma ajustada pela empresa e ensaios já emitidos NÃO mudam.
 UPDATE public.norms
    SET payload = payload || jsonb_build_object(
          'normCode', 'ABNT NBR 6881',
-         'normName', 'Ponteiras de Prova e Cabos de Ensaio (2,5 kV — NBR 6881)',
-         'testVoltage_kV', 2.5,
-         'notes', 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio a 2,5 kV CA por 1 minuto, sem disrupção ou perfuração da isolação. Corrente de fuga máxima adotada: 1,0 mA.')
+         'normName', 'Ponteiras de Prova e Cabos de Ensaio (1,2 kV — NBR 6881)',
+         'testVoltage_kV', 1.2,
+         'maxLeakageCurrent', 5.0,
+         'notes', 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio (até 1 kV) a 1,2 kV CA por 1 minuto. A tensão é elevada a partir de no máximo 20 % da tensão nominal (0,2 kV), atingindo 1,2 kV em 10 s a 60 s, e reduzida até no máximo 20 % da tensão nominal antes de desligar e aterrar. Critério da norma (item 4.3): sem perfuração total ou parcial da isolação. A norma não estipula corrente de fuga; limite adotado pelo laboratório: 5,0 mA.')
  WHERE payload->'applicableEquipmentTypes' ? 'ponteira_prova'
-   AND COALESCE(payload->>'normCode', '') LIKE '%61010%'
-   AND COALESCE(payload->>'testVoltage_kV', '') IN ('5', '5.0');
+   AND (   (COALESCE(payload->>'normCode', '') LIKE '%61010%'
+            AND COALESCE(payload->>'testVoltage_kV', '') IN ('5', '5.0'))
+        OR (COALESCE(payload->>'normCode', '') LIKE '%6881%'
+            AND COALESCE(payload->>'testVoltage_kV', '') = '2.5'
+            AND COALESCE(payload->>'maxLeakageCurrent', '') IN ('1', '1.0')));
 
 -- Detector de tensão por indução: tabela de 1 kV a 50 kV (era até 60 kV).
 -- Ensaios e laudos já emitidos NÃO são alterados.

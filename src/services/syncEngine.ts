@@ -1270,10 +1270,10 @@ export class DielectricStorageService {
       const footSeed = INITIAL_NORMS.find(s => s.id === FOOTWEAR_NORM_ID);
       if (footSeed) Object.assign(n, { maxLeakageCurrent: footSeed.maxLeakageCurrent, notes: footSeed.notes });
     }
-    // ponteiras de prova e cabos: NBR 6881 a 2,5 kV (era IEC 61010-031 a 5 kV)
+    // ponteiras de prova e cabos: NBR 6881 a 1,2 kV, 5,0 mA adotado (era IEC 61010-031 a 5 kV ou NBR 6881 a 2,5 kV)
     if (isOldProbeNorm(n)) {
       const probeSeed = INITIAL_NORMS.find(s => s.id === PROBE_NORM_ID);
-      if (probeSeed) Object.assign(n, { normCode: probeSeed.normCode, normName: probeSeed.normName, testVoltage_kV: probeSeed.testVoltage_kV, notes: probeSeed.notes });
+      if (probeSeed) Object.assign(n, { normCode: probeSeed.normCode, normName: probeSeed.normName, testVoltage_kV: probeSeed.testVoltage_kV, maxLeakageCurrent: probeSeed.maxLeakageCurrent, notes: probeSeed.notes });
     }
     // detector de tensão por indução: tabela passou de 60 kV para 50 kV
     if (n.id === INDUCTION_DETECTOR_NORM_ID && Number(n.testVoltage_kV) === 60) {
