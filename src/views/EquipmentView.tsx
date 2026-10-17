@@ -826,6 +826,7 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
                     <option value="ferramenta_isolada">🔧 Ferramentas Manuais Isoladas 1000V (ABNT NBR 9699 / IEC 60900)</option>
                     <option value="escada_isolada">🪜 Escadas Isoladas em Fibra de Vidro (ABNT NBR IEC 61478)</option>
                     <option value="detector_tensao">⚡ Detectores de Tensão (ABNT NBR IEC 61243-1)</option>
+                    <option value="detector_inducao">📡 Detector de Tensão por Indução (1 kV a 60 kV)</option>
                     <option value="ponteira_prova">🔌 Ponteiras de Prova (IEC 61010-031)</option>
                     <option value="outro">📦 Outros Dispositivos Dielétricos</option>
                   </select>

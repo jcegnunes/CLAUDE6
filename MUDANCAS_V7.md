@@ -108,6 +108,18 @@
   (µA). Normas já gravadas com os valores antigos (100 kV / mA) são atualizadas no app e no banco;
   norma que a empresa já ajustou de outro jeito fica como está. **Ensaios e laudos já emitidos não
   mudam.** **Banco:** execute de novo `supabase/schema.sql` (só atualiza a norma; não apaga dados).
+- **Novo equipamento: Detector de Tensão por Indução (classe 1 kV a 60 kV)** — em Equipamentos,
+  Normas e no ensaio (prefixo da TAG `DTI`). No ensaio (etapa 4) a tela de hipot é trocada pela
+  tabela de **detecção por aproximação**: as tensões são fixas (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43;
+  52 e 60 kV) e o técnico preenche a **distância obtida (cm)** em que o detector sinalizou, com a
+  opção "Detectou" (desmarcar = não sinalizou). O gráfico **Detector de Tensão** (Tensão kV ×
+  Distância cm) é desenhado na hora. Critério: aprovado quando sinaliza em todas as tensões
+  (OBS: "Resultados satisfatórios conforme especificações do fabricante"); reprovado se não sinalizar
+  em alguma tensão ou na inspeção visual; não avança com distância faltando. Distância que não
+  cresce com a tensão gera só um aviso. Checklist visual próprio (carcaça, autoteste luminoso e
+  sonoro, pilhas, botões, identificação). No laudo (tela, PDF e Word) a seção 3 traz a classe, a
+  tabela Distância × Tensão, o gráfico e a observação, no lugar dos velocímetros. Norma oficial nova
+  (`norm-detector-inducao`) entra sozinha nos aparelhos; não precisa de script no banco.
 - **Calçado de segurança dielétrico:** corrente de fuga máxima passou de 3,5 mA para **0,5 mA**
   (14 kV CA por 1 minuto, sem mudança). Normas gravadas com 3,5 mA são atualizadas no app e no banco;
   norma que a empresa já ajustou para outro valor fica como está. Ensaios e laudos já emitidos não

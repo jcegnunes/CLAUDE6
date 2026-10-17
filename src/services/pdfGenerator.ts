@@ -9,6 +9,8 @@ import { DielectricStorageService } from './syncEngine';
 import { ValidationPortalService } from './validationPortalService';
 import { formatDateBR, nc } from '../utils/dateUtils';
 import { displayUnit, generateGaugeCanvasDataUrl, leakageGaugeScale } from '../utils/gaugeUtils';
+import { generateInductionChartDataUrl } from '../utils/inductionChart';
+import { fmtBr1, INDUCTION_DETECTOR_CLASS, INDUCTION_DETECTOR_NOTE, normalizeInductionPoints } from './inductionDetectorService';
 import { saveDocLocally } from '../utils/nativeFileSaver';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 
@@ -161,6 +163,7 @@ export function formatEquipmentType(type?: string, customName?: string): string 
     vara_manobra: 'VARA DE MANOBRA TELESCÓPICA',
     ponteira_prova: 'PONTEIRA DE PROVA',
     detector_tensao: 'DETECTOR DE TENSÃO',
+    detector_inducao: 'DETECTOR DE TENSÃO POR INDUÇÃO',
     ferramenta_isolada: 'FERRAMENTA MANUAL ISOLADA',
     arco_serra_isolado: 'CHAVE ARCO SERRA COM CABO ISOLADO',
     chave_ajustavel: 'CHAVE ISOLADA TIPO AJUSTÁVEL',
@@ -855,6 +858,85 @@ export async function renderLaudoToDoc(
   // ================= SEÇÃO 3: PARÂMETROS E RESULTADOS DAS MEDIÇÕES ELÉTRICAS =================
   drawSectionHeader('3. Parâmetros e Resultados das Medições Elétricas');
 
+  // ================= DETECTOR DE TENSÃO POR INDUÇÃO: TABELA DISTÂNCIA × TENSÃO + GRÁFICO =================
+  const isInductionTest = test.equipmentType === 'detector_inducao';
+  if (isInductionTest) {
+    const points = normalizeInductionPoints(test.inductionPoints);
+    const tblW = 64;
+    const colW = tblW / 2;
+    const rowH = 3.6;
+    const top = y + 1;
+
+    doc.setDrawColor(textDark[0], textDark[1], textDark[2]);
+    doc.setLineWidth(0.25);
+    doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(6.4);
+    doc.rect(margin, top, tblW, 4.2, 'D');
+    doc.text(`Classe: ${INDUCTION_DETECTOR_CLASS}`, margin + tblW / 2, top + 2.9, { align: 'center' });
+
+    let ty = top + 6;
+    doc.setFillColor(226, 232, 240);
+    doc.rect(margin, ty, tblW, rowH + 0.4, 'FD');
+    doc.line(margin + colW, ty, margin + colW, ty + rowH + 0.4);
+    doc.text('DISTÂNCIA (cm)', margin + colW / 2, ty + 2.7, { align: 'center' });
+    doc.text('TENSÃO (kV)', margin + colW + colW / 2, ty + 2.7, { align: 'center' });
+    ty += rowH + 0.4;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.2);
+    points.forEach(p => {
+      const missed = p.detected === false;
+      if (missed) {
+        doc.setFillColor(254, 226, 226);
+        doc.rect(margin, ty, tblW, rowH, 'F');
+      }
+      doc.rect(margin, ty, tblW, rowH, 'D');
+      doc.line(margin + colW, ty, margin + colW, ty + rowH);
+      doc.setTextColor(missed ? 153 : textDark[0], missed ? 27 : textDark[1], missed ? 27 : textDark[2]);
+      doc.text(missed ? 'Não detectou' : (fmtBr1(p.distance_cm) || '—'), margin + colW / 2, ty + 2.5, { align: 'center' });
+      doc.setTextColor(textDark[0], textDark[1], textDark[2]);
+      doc.text(fmtBr1(p.voltage_kV), margin + colW + colW / 2, ty + 2.5, { align: 'center' });
+      ty += rowH;
+    });
+
+    // gráfico à direita, na altura da tabela, mantendo a proporção
+    const chartAreaX = margin + tblW + 4;
+    const chartAreaW = contentWidth - tblW - 4;
+    const chartAreaH = ty - top;
+    let chartW = chartAreaW;
+    let chartH = (chartW * 300) / 560;
+    if (chartH > chartAreaH) { chartH = chartAreaH; chartW = (chartH * 560) / 300; }
+    try {
+      const chartImg = generateInductionChartDataUrl(points);
+      if (chartImg) doc.addImage(chartImg, 'PNG', chartAreaX + (chartAreaW - chartW) / 2, top, chartW, chartH);
+    } catch (err) {
+      console.warn('Erro ao inserir o gráfico do detector no PDF:', err);
+    }
+    y = ty + 2;
+
+    // observação
+    const notDetected = points.filter(p => p.detected === false).map(p => `${fmtBr1(p.voltage_kV)} kV`);
+    const obsOk = test.result === 'APROVADO';
+    const obsText = obsOk
+      ? `OBS: ${INDUCTION_DETECTOR_NOTE}`
+      : notDetected.length
+      ? `OBS: O DETECTOR NÃO SINALIZOU EM ${notDetected.join('; ')} — NÃO ATENDE ÀS ESPECIFICAÇÕES DO FABRICANTE.`
+      : 'OBS: EQUIPAMENTO REPROVADO — VER PARECER TÉCNICO.';
+    doc.setDrawColor(textDark[0], textDark[1], textDark[2]);
+    doc.rect(margin, y, contentWidth, 4.6, 'D');
+    if (obsOk) doc.setTextColor(bluePrimary[0], bluePrimary[1], bluePrimary[2]);
+    else doc.setTextColor(185, 28, 28);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.4);
+    doc.text(obsText, margin + contentWidth / 2, y + 3.1, { align: 'center' });
+    doc.setLineWidth(0.2);
+    doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+    y += 4.6;
+  }
+
+  if (!isInductionTest) {
+
   // ================= INDICADORES GRÁFICOS TIPO VELOCÍMETRO (DENTRO DA SEÇÃO 3) =================
   const appliedV = test.appliedVoltage_kV || 0;
   const voltageScale = Math.max(15, Math.ceil(appliedV * 1.35 / 5) * 5);
@@ -1016,6 +1098,7 @@ export async function renderLaudoToDoc(
 
     y += rowH;
   });
+  }
 
   y += 2.0;
 

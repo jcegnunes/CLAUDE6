@@ -25,6 +25,8 @@ import { TABELA_4_NBR_16295, getClosestGloveLength } from '../services/nbr16295S
 import { formatDateBR } from '../utils/dateUtils';
 import { SpeedometerGauge } from './SpeedometerGauge';
 import { displayUnit, leakageGaugeScale } from '../utils/gaugeUtils';
+import { InductionDetectorChart } from './InductionDetectorChart';
+import { fmtBr1, INDUCTION_DETECTOR_CLASS, INDUCTION_DETECTOR_NOTE, normalizeInductionPoints } from '../services/inductionDetectorService';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 import { exportSingleLaudoToWord } from '../services/wordReportService';
 
@@ -663,6 +665,47 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
             </div>
 
             <div className="border border-slate-300 rounded-b-md p-3.5 space-y-4 bg-white">
+              {/* Detector de tensão por indução: tabela Distância × Tensão + gráfico */}
+              {test.equipmentType === 'detector_inducao' && (() => {
+                const points = normalizeInductionPoints(test.inductionPoints);
+                const missed = points.filter(p => p.detected === false).map(p => `${fmtBr1(p.voltage_kV)} kV`);
+                const ok = test.result === 'APROVADO';
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 md:grid-cols-[minmax(0,260px)_1fr] gap-4 items-start">
+                      <div>
+                        <div className="border border-slate-800 text-center text-xs font-bold py-1 mb-2">Classe: {INDUCTION_DETECTOR_CLASS}</div>
+                        <table className="w-full text-xs border-collapse border border-slate-800">
+                          <thead>
+                            <tr className="bg-slate-200">
+                              <th className="p-1.5 border border-slate-800">DISTÂNCIA (cm)</th>
+                              <th className="p-1.5 border border-slate-800">TENSÃO (kV)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {points.map(p => (
+                              <tr key={p.voltage_kV} className={p.detected === false ? 'bg-red-50 text-red-800' : ''}>
+                                <td className="p-1 border border-slate-800 text-center font-mono">{p.detected === false ? 'Não detectou' : (fmtBr1(p.distance_cm) || '—')}</td>
+                                <td className="p-1 border border-slate-800 text-center font-mono">{fmtBr1(p.voltage_kV)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <InductionDetectorChart points={points} className="w-full h-auto" />
+                    </div>
+                    <div className={`border border-slate-800 text-center text-xs py-1.5 px-2 ${ok ? 'text-blue-800' : 'text-red-700 font-bold'}`}>
+                      {ok
+                        ? `OBS: ${INDUCTION_DETECTOR_NOTE}`
+                        : missed.length
+                        ? `OBS: O DETECTOR NÃO SINALIZOU EM ${missed.join('; ')} — NÃO ATENDE ÀS ESPECIFICAÇÕES DO FABRICANTE.`
+                        : 'OBS: EQUIPAMENTO REPROVADO — VER PARECER TÉCNICO.'}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {test.equipmentType !== 'detector_inducao' && (<>
               {/* Indicadores Gráficos Tipo Velocímetro (Tensão Aplicada e Corrente de Fuga) */}
               {(() => {
                 const appliedV = test.appliedVoltage_kV || 0;
@@ -795,6 +838,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                 </tbody>
               </table>
             </div>
+              </>)}
           </div>
         </div>
 
