@@ -421,25 +421,27 @@ export const INITIAL_NORMS: NormCriterion[] = [
     status: 'active'
   },
 
-  // NBR 16613 / ASTM F711 - Bastões e Varas de Manobra
+  // NBR 11854 - Bastões de manobra, varas telescópicas e bastões de resgate (ensaio a 50 kV)
+  // (id mantido de versões anteriores para atualizar a norma já gravada)
   {
     id: 'norm-bastao-100kv',
-    normCode: 'ABNT NBR 16613 / ASTM F711',
-    normName: 'Bastões e Varas de Manobra em Fibra de Vidro (30cm/100kV)',
-    editionOrVersion: 'Edição 2021',
+    normCode: 'ABNT NBR 11854',
+    normName: 'Bastões de Manobra, Varas Telescópicas e Bastões de Resgate (50 kV — NBR 11854)',
+    editionOrVersion: 'Tabela de corrente de fuga — 50 kV',
     effectiveDate: '2021-03-01',
     applicableEquipmentTypes: ['bastao_manobra', 'vara_manobra'],
     dielectricClass: 'Geral',
     nominalVoltageMaxAC_kV: 69.0,
     nominalVoltageMaxDC_kV: 100.0,
-    testVoltage_kV: 100.0,
+    testVoltage_kV: 50.0,
     voltageType: 'AC',
     testDurationSeconds: 60,
-    maxLeakageCurrent: 0.1, // 100 uA = 0.1 mA
-    currentUnit: 'mA',
+    // limite pelo diâmetro (normsEngine: NBR11854_LEAKAGE_UA); aqui o de Ø 32 mm
+    maxLeakageCurrent: 5,
+    currentUnit: 'uA',
     defaultRetestMonths: 12,
     approvalCriterion: 'visual_and_leakage',
-    notes: 'Ensaio de rigidez dielétrica por segmento de 300 mm com 100 kV CA por 1 minuto. Não deve haver aquecimento perceptível ou corrente de fuga superior a 100 uA.',
+    notes: 'ABNT NBR 11854 — ensaio a 50 kV CA. Corrente de fuga máxima pelo diâmetro do bastão: Ø 32 mm 5 µA; Ø 38 mm 6 µA; Ø 51 mm 8 µA; Ø 64 mm 10 µA (a 100 kV: 10, 12, 15 e 20 µA). O limite aplicado no ensaio é o do diâmetro informado.',
     status: 'active'
   },
 

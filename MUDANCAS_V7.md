@@ -97,11 +97,22 @@
   no BirdID/VaultID) e os PDFs são assinados automaticamente nesse período; só o hash vai ao
   provedor. **Exige configuração**: veja "Certificado digital em nuvem (PSC) — configuração".
   **Banco:** execute de novo `supabase/modules/treinamentos.sql`.
+- **Bastões de manobra, varas telescópicas e bastões de resgate — ABNT NBR 11854 a 50 kV:** a norma
+  passou de 100 kV / 100 µA (NBR 16613 / ASTM F711) para **50 kV**, com a corrente de fuga máxima em
+  **µA pelo diâmetro do bastão**: Ø 32 mm **5 µA**, Ø 38 mm **6 µA**, Ø 51 mm **8 µA**, Ø 64 mm **10 µA**
+  (a coluna de 100 kV — 10, 12, 15 e 20 µA — fica registrada na norma). No ensaio (etapa 1) aparece
+  o seletor **Diâmetro do bastão**; o limite do diâmetro escolhido é aplicado na avaliação e a
+  corrente medida é digitada em **µA**. O diâmetro fica gravado no equipamento (próximos ensaios
+  já vêm com ele) e sai no laudo (tela, PDF e Word: "Diâmetro do Bastão (NBR 11854)" e
+  "Máximo 8 µA (NBR 11854 – Ø 51 mm a 50 kV)"). O gráfico de corrente mostra a unidade do ensaio
+  (µA). Normas já gravadas com os valores antigos (100 kV / mA) são atualizadas no app e no banco;
+  norma que a empresa já ajustou de outro jeito fica como está. **Ensaios e laudos já emitidos não
+  mudam.** **Banco:** execute de novo `supabase/schema.sql` (só atualiza a norma; não apaga dados).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
   assinaturas RSA no verificador de PDF (detalhes em "Vulnerabilidades das dependências").
-- **Banco:** executar de novo `supabase/modules/treinamentos.sql` (certificado em nuvem); `schema.sql`
-  sem mudança em relação à 7.2.
+- **Banco:** executar de novo `supabase/schema.sql` (norma de bastões/varas pela NBR 11854) e
+  `supabase/modules/treinamentos.sql` (certificado em nuvem). Nenhum dos dois apaga dados.
 
 ## ⚠️ Passos obrigatórios (nesta ordem)
 
@@ -350,10 +361,16 @@ faixas dos ensaios (sem número repetido entre aparelhos).
   endereço de testes, se houver).
 - **2. Banco:** execute de novo `supabase/modules/treinamentos.sql` no SQL Editor (colunas da
   nuvem e a função `jvm_training_save_cloud_cert`; não apaga dados).
-- **3. Função do servidor:** Supabase → **Edge Functions** → *Deploy a new function* → *Via
-  Editor*, nome **`psc-assinatura`**, cole o conteúdo de
-  `supabase/functions/psc-assinatura/index.ts` e publique (ou, com o Supabase CLI:
-  `supabase functions deploy psc-assinatura`). Deixe ligada a verificação de JWT.
+- **3. Função do servidor:** no painel do Supabase (projeto do JVM Lab), menu lateral
+  **Edge Functions** → botão **Deploy a new function** → **Via Editor**. No editor, apague todo
+  o exemplo que vem pronto no `index.ts` e cole o arquivo inteiro
+  `supabase/functions/psc-assinatura/index.ts` (não usa bibliotecas externas). Embaixo, em
+  *Function name*, troque o nome sugerido por **`psc-assinatura`** (exatamente assim) e clique em
+  **Deploy function**. Na página da função, em *Details*, deixe **Enforce JWT verification**
+  ligado. Teste: no app, o quadro "Certificado em nuvem" passa de "O servidor ainda não tem a
+  função" para "Nenhum provedor configurado" (até cadastrar os segredos do passo 4).
+  Alternativa pelo terminal: `npx supabase login` e
+  `npx supabase functions deploy psc-assinatura --project-ref cdtbzbshylrcprvmjpgc`.
 - **4. Segredos:** Edge Functions → **Secrets**, um par por provedor:
   `PSC_BIRDID_CLIENT_ID` / `PSC_BIRDID_CLIENT_SECRET`, `PSC_VAULTID_…`, `PSC_VIDAAS_…`,
   `PSC_SAFEID_…`, `PSC_NEOID_…`. Só os provedores com o par configurado aparecem no app.

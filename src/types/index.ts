@@ -137,6 +137,7 @@ export interface Equipment {
   dielectricClass: string; // Ex: '00', '0', '1', '2', '3', '4'
   sizeOrLength?: string; // Ex: 'Tamanho 9,5' ou '3,5 metros'
   gloveLength_mm?: number; // Ex: 280, 360, 410, 460 (NBR 16295)
+  poleDiameter_mm?: number; // Bastão/vara de manobra/bastão de resgate: 32, 38, 51, 64 (NBR 11854)
   blanketType?: 'Type I' | 'Type II'; // ASTM D1048
   blanketStyle?: 'Style A' | 'Style B' | 'Style C' | 'Style D'; // ASTM D1048
   blanketDimensions?: string; // Ex: '910x910 mm'
@@ -376,6 +377,7 @@ export interface TestRecord {
   currentUnit: string;
   withstandWithoutPuncture: boolean;
   gloveLength_mm?: number; // 280, 360, 410, 460
+  poleDiameter_mm?: number; // Bastão/vara: 32, 38, 51, 64 mm (NBR 11854)
   gloveTestMethod?: 'ensaio_prova' | 'rigidez_dieletrica';
   moistureConditioning?: boolean; // Nota c da Tab 4 (+2mA)
   blanketType?: 'Type I' | 'Type II'; // ASTM D1048

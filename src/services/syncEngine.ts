@@ -25,6 +25,7 @@ import {
   JVM_COMPANY_INFO
 } from '../data/seedData';
 import { DEFAULT_VALIDATION_BASE_URL, normalizeValidationBaseUrl } from '../config/validationPortalConfig';
+import { isOldPoleNorm, poleNormFields, POLE_NORM_ID } from './normsEngine';
 import {
   NumberKind,
   NumberBlockState,
@@ -278,6 +279,13 @@ export class DielectricStorageService {
                 history: n.history || seedMatch.history
               };
             }
+          }
+          // Bastões/varas de manobra: NBR 11854 a 50 kV, limite em µA pelo diâmetro.
+          // Só troca a norma antiga (100 kV / mA); norma já ajustada pela empresa fica como está.
+          if (isOldPoleNorm(n)) {
+            const seedMatch = INITIAL_NORMS.find(sn => sn.id === POLE_NORM_ID)!;
+            updated = true;
+            return { ...n, ...poleNormFields(seedMatch), history: n.history || seedMatch.history };
           }
           return n;
         });
@@ -1245,6 +1253,11 @@ export class DielectricStorageService {
       ? n.applicableEquipmentTypes.filter((t: any) => typeof t === 'string')
       : [];
     if (n.gloveLengthLimits && typeof n.gloveLengthLimits !== 'object') delete n.gloveLengthLimits;
+    // bastões/varas ainda na norma antiga (100 kV / mA): NBR 11854 a 50 kV / µA
+    if (isOldPoleNorm(n)) {
+      const poleSeed = INITIAL_NORMS.find(s => s.id === POLE_NORM_ID);
+      if (poleSeed) Object.assign(n, poleNormFields(poleSeed));
+    }
     return n as NormCriterion;
   }
 

@@ -22,6 +22,64 @@ import {
   TABELA_NORMAS_ESCADAS_FIBRA
 } from './ladderNormsService';
 
+// ---------------------------------------------------------------------------
+// ABNT NBR 11854 — bastões de manobra, varas telescópicas e bastões de resgate:
+// corrente de fuga máxima (µA) pelo diâmetro do bastão. O laboratório ensaia a
+// 50 kV; a coluna de 100 kV fica registrada para referência.
+// ---------------------------------------------------------------------------
+export const NBR11854_TEST_VOLTAGE_KV = 50;
+export const NBR11854_POLE_DIAMETERS_MM = [32, 38, 51, 64] as const;
+export const NBR11854_LEAKAGE_UA: Record<number, { kv50: number; kv100: number }> = {
+  32: { kv50: 5, kv100: 10 },
+  38: { kv50: 6, kv100: 12 },
+  51: { kv50: 8, kv100: 15 },
+  64: { kv50: 10, kv100: 20 }
+};
+/** Diâmetro padrão quando não informado: o de menor limite (mais exigente). */
+export const NBR11854_DEFAULT_DIAMETER_MM = 32;
+
+export const isPoleEquipment = (type?: string) => type === 'bastao_manobra' || type === 'vara_manobra';
+
+/** Diâmetro da tabela mais próximo do informado (32, 38, 51 ou 64 mm). */
+export function getClosestPoleDiameter(diameter_mm?: number): number {
+  const d = Number(diameter_mm);
+  if (!d || !isFinite(d)) return NBR11854_DEFAULT_DIAMETER_MM;
+  return NBR11854_POLE_DIAMETERS_MM.reduce((best, x) => (Math.abs(x - d) < Math.abs(best - d) ? x : best), NBR11854_DEFAULT_DIAMETER_MM as number);
+}
+
+/** Limite de corrente de fuga (µA) da NBR 11854 a 50 kV para o diâmetro do bastão. */
+export function getNBR11854LeakageLimit_uA(diameter_mm?: number): number {
+  return NBR11854_LEAKAGE_UA[getClosestPoleDiameter(diameter_mm)].kv50;
+}
+
+/** Norma oficial de bastões/varas (id mantido das versões anteriores). */
+export const POLE_NORM_ID = 'norm-bastao-100kv';
+
+/**
+ * Norma de bastão/vara ainda com os valores antigos (100 kV, limite em mA):
+ * deve passar para a NBR 11854 a 50 kV. Norma que a empresa já ajustou fica.
+ */
+export function isOldPoleNorm(n: Pick<NormCriterion, 'applicableEquipmentTypes' | 'testVoltage_kV' | 'currentUnit'> | null | undefined): boolean {
+  if (!n || !Array.isArray(n.applicableEquipmentTypes)) return false;
+  if (!n.applicableEquipmentTypes.some(t => isPoleEquipment(t))) return false;
+  return Number(n.testVoltage_kV) === 100 && (n.currentUnit || 'mA') === 'mA';
+}
+
+/** Campos da NBR 11854 (50 kV / µA) aplicados sobre a norma antiga. */
+export function poleNormFields(seed: NormCriterion): Partial<NormCriterion> {
+  return {
+    normCode: seed.normCode,
+    normName: seed.normName,
+    editionOrVersion: seed.editionOrVersion,
+    testVoltage_kV: seed.testVoltage_kV,
+    voltageType: seed.voltageType,
+    testDurationSeconds: seed.testDurationSeconds,
+    maxLeakageCurrent: seed.maxLeakageCurrent,
+    currentUnit: seed.currentUnit,
+    notes: seed.notes
+  };
+}
+
 export interface NormEvaluationInput {
   equipmentType: EquipmentType;
   dielectricClass: string;
@@ -35,6 +93,8 @@ export interface NormEvaluationInput {
   allCriteria: NormCriterion[];
   isolatedTools?: IsolatedToolItem[];
   gloveLength_mm?: number;
+  /** Bastão/vara de manobra/bastão de resgate: diâmetro (mm) para a tabela da NBR 11854 */
+  poleDiameter_mm?: number;
   gloveTestMethod?: GloveTestMethod;
   moistureConditioning?: boolean;
   blanketType?: BlanketType;
@@ -175,8 +235,10 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
 
   // Specific calculation for Insulating Gloves (Luvas Isolantes) per NBR 16295 Tabela 4
   let appliedLimit = criterion.maxLeakageCurrent;
+  let appliedUnit = criterion.currentUnit;
   let isGloveLengthApplicable = true;
   let normReferenceClause = criterion.normCode;
+  const poleDiameter = getClosestPoleDiameter(input.poleDiameter_mm);
 
   if (input.equipmentType === 'luva_isolante') {
     const gloveLength = input.gloveLength_mm || 360;
@@ -214,6 +276,11 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       : 1;
     appliedLimit = Math.max(1, totalToolsCount) * 1.0;
     normReferenceClause = 'ABNT NBR 9699:2022 / IEC 60900 (Item 5.5 / 1,0 mA por ferramenta)';
+  } else if (isPoleEquipment(input.equipmentType)) {
+    // NBR 11854: limite em µA pelo diâmetro do bastão (a corrente medida é digitada em µA)
+    appliedLimit = getNBR11854LeakageLimit_uA(poleDiameter);
+    appliedUnit = 'uA';
+    normReferenceClause = `ABNT NBR 11854 (Tabela de corrente de fuga — ${NBR11854_TEST_VOLTAGE_KV} kV, bastão Ø ${poleDiameter} mm: ${appliedLimit} µA)`;
   }
 
   // 2. Voltage Check (applied voltage must meet or exceed required voltage within 2% tolerance)
@@ -275,6 +342,8 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
         ? input.isolatedTools.reduce((acc, t) => acc + (Number(t.quantity) || 1), 0)
         : 1;
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA.toFixed(2)} mA) excedeu o limite normativo máximo de ${appliedLimit.toFixed(1)} mA para o lote de ${totalToolsCount} ferramenta(s) ensaiada(s) (1,0 mA por ferramenta conforme ABNT NBR 9699 / IEC 60900).`);
+    } else if (isPoleEquipment(input.equipmentType)) {
+      rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} µA) excedeu o limite máximo de ${appliedLimit} µA da ABNT NBR 11854 para bastão de Ø ${poleDiameter} mm ensaiado a ${NBR11854_TEST_VOLTAGE_KV} kV.`);
     } else {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} ${criterion.currentUnit}) excedeu o limite máximo permitido de ${appliedLimit} ${criterion.currentUnit} conforme ${criterion.normCode}.`);
     }
@@ -414,6 +483,12 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       );
     } else if (input.equipmentType === 'ferramenta_isolada') {
       // Parecer técnico completo e conclusivo já consolidado acima para ferramentas manuais isoladas
+    } else if (isPoleEquipment(input.equipmentType)) {
+      const kind = input.equipmentType === 'vara_manobra' ? 'Vara de manobra telescópica / seccionável' : 'Bastão de manobra / bastão de resgate';
+      rationaleParts.push(
+        `${kind} plenamente CONFORME com a ABNT NBR 11854. Aprovado na inspeção visual e no ensaio dielétrico a ${targetVoltage} kV ${input.voltageType} por ${input.durationSeconds} segundos, sem disrupção nem perfuração, ` +
+        `com corrente de fuga de ${input.measuredLeakageCurrent_mA} µA (abaixo do limite de ${appliedLimit} µA da tabela da NBR 11854 para bastão de Ø ${poleDiameter} mm a ${NBR11854_TEST_VOLTAGE_KV} kV).`
+      );
     } else {
       rationaleParts.push(
         `Equipamento plenamente CONFORME. Atendeu à inspeção visual, suportabilidade dielétrica a ${criterion.testVoltage_kV} kV ${criterion.voltageType} por ${criterion.testDurationSeconds} segundos, com corrente de fuga de ${input.measuredLeakageCurrent_mA} ${criterion.currentUnit} (abaixo do limite de ${appliedLimit} ${criterion.currentUnit} da norma ${criterion.normCode}).`
@@ -432,7 +507,7 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
     isLeakageCurrentConforming,
     isGloveLengthApplicable,
     appliedLimit,
-    appliedUnit: criterion.currentUnit,
+    appliedUnit,
     result,
     rationale: rationaleParts.join('\n\n'),
     recommendedRetestMonths: criterion.defaultRetestMonths,
@@ -608,30 +683,30 @@ export function getNormPresetForEquipment(
     }
     case 'bastao_manobra': {
       return {
-        normCode: 'ABNT NBR 16613 / ASTM F711',
-        normName: 'Bastões de Manobra e Salvamento em PRFV (100kV/30cm)',
-        testVoltage_kV: 100.0,
+        normCode: 'ABNT NBR 11854',
+        normName: 'Bastões de Manobra e Bastões de Resgate (50 kV — NBR 11854)',
+        testVoltage_kV: NBR11854_TEST_VOLTAGE_KV,
         voltageType: 'AC',
         testDurationSeconds: 60,
-        maxLeakageCurrent: 0.1,
-        currentUnit: 'mA',
+        maxLeakageCurrent: getNBR11854LeakageLimit_uA(NBR11854_DEFAULT_DIAMETER_MM),
+        currentUnit: 'uA',
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-05 Rev.06',
-        description: 'Ensaio de rigidez dielétrica por segmento de 300 mm com 100 kV CA por 1 minuto conforme ABNT NBR 16613 e ASTM F711.'
+        description: 'Ensaio dielétrico a 50 kV CA conforme ABNT NBR 11854. Corrente de fuga máxima pelo diâmetro do bastão: Ø 32 mm 5 µA; Ø 38 mm 6 µA; Ø 51 mm 8 µA; Ø 64 mm 10 µA.'
       };
     }
     case 'vara_manobra': {
       return {
-        normCode: 'ABNT NBR 16613 / ASTM F711',
-        normName: 'Varas de Manobra Telescópicas / Seccionáveis (100kV/30cm)',
-        testVoltage_kV: 100.0,
+        normCode: 'ABNT NBR 11854',
+        normName: 'Varas de Manobra Telescópicas / Seccionáveis (50 kV — NBR 11854)',
+        testVoltage_kV: NBR11854_TEST_VOLTAGE_KV,
         voltageType: 'AC',
         testDurationSeconds: 60,
-        maxLeakageCurrent: 0.1,
-        currentUnit: 'mA',
+        maxLeakageCurrent: getNBR11854LeakageLimit_uA(NBR11854_DEFAULT_DIAMETER_MM),
+        currentUnit: 'uA',
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-05 Rev.06',
-        description: 'Ensaio de rigidez dielétrica de vara de manobra a 100 kV CA / 300 mm conforme ABNT NBR 16613.'
+        description: 'Ensaio dielétrico de vara de manobra telescópica a 50 kV CA conforme ABNT NBR 11854. Corrente de fuga máxima pelo diâmetro: Ø 32 mm 5 µA; Ø 38 mm 6 µA; Ø 51 mm 8 µA; Ø 64 mm 10 µA.'
       };
     }
     case 'ferramenta_isolada': {

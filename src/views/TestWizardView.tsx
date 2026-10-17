@@ -67,8 +67,14 @@ import {
   evaluateDielectricTest,
   getDefaultChecklistForEquipment,
   findMatchingCriterion,
-  isTestEligibleForCertificate
+  isTestEligibleForCertificate,
+  isPoleEquipment,
+  getClosestPoleDiameter,
+  getNBR11854LeakageLimit_uA,
+  NBR11854_POLE_DIAMETERS_MM,
+  NBR11854_TEST_VOLTAGE_KV
 } from '../services/normsEngine';
+import { displayUnit } from '../utils/gaugeUtils';
 import {
   getNBR16295MaxLeakageCurrent,
   getNBR16295Voltages,
@@ -147,14 +153,14 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
     fullLabel: 'Tapetes Isolantes de Borracha (ASTM D178-22)'
   },
   bastao_manobra: {
-    label: 'Bastões de Manobra e Salvamento',
-    norm: 'NBR 14540 / ASTM F711',
-    fullLabel: 'Bastões de Manobra e Salvamento (NBR 14540 / ASTM F711)'
+    label: 'Bastões de Manobra e Bastões de Resgate',
+    norm: 'ABNT NBR 11854',
+    fullLabel: 'Bastões de Manobra e Bastões de Resgate (ABNT NBR 11854 — 50 kV)'
   },
   vara_manobra: {
     label: 'Varas de Manobra Telescópicas / Seccionáveis',
-    norm: 'NBR 14540 / ASTM F711',
-    fullLabel: 'Varas de Manobra Telescópicas / Seccionáveis (NBR 14540 / ASTM F711)'
+    norm: 'ABNT NBR 11854',
+    fullLabel: 'Varas de Manobra Telescópicas / Seccionáveis (ABNT NBR 11854 — 50 kV)'
   },
   capacete_classe_b: {
     label: 'Capacetes de Segurança Classe B (Classe 2)',
@@ -242,6 +248,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
 
   // NBR 16295 Glove Parameters
   const [gloveLength_mm, setGloveLength_mm] = useState<GloveLength_mm>(editingTest?.gloveLength_mm || 360);
+  // NBR 11854: diâmetro do bastão / vara de manobra / bastão de resgate
+  const [poleDiameter_mm, setPoleDiameter_mm] = useState<number>(getClosestPoleDiameter(editingTest?.poleDiameter_mm));
   const [gloveTestMethod, setGloveTestMethod] = useState<GloveTestMethod>(editingTest?.gloveTestMethod || 'ensaio_prova');
   const [moistureConditioning, setMoistureConditioning] = useState<boolean>(editingTest?.moistureConditioning || false);
 
@@ -349,6 +357,9 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
     // Handle glove length
     if (eq.type === 'luva_isolante' && eq.gloveLength_mm) {
       setGloveLength_mm(eq.gloveLength_mm as GloveLength_mm);
+    }
+    if (isPoleEquipment(eq.type)) {
+      setPoleDiameter_mm(getClosestPoleDiameter(eq.poleDiameter_mm));
     }
 
     // Handle blanket
@@ -662,6 +673,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
     allCriteria: normsList,
     isolatedTools: selectedEquipmentType === 'ferramenta_isolada' ? isolatedTools : undefined,
     gloveLength_mm: selectedEquipmentType === 'luva_isolante' ? gloveLength_mm : undefined,
+    poleDiameter_mm: isPoleEquipment(selectedEquipmentType) ? poleDiameter_mm : undefined,
     gloveTestMethod: selectedEquipmentType === 'luva_isolante' ? gloveTestMethod : undefined,
     moistureConditioning: selectedEquipmentType === 'luva_isolante' ? moistureConditioning : undefined,
     blanketType: selectedEquipmentType === 'manta_isolante' ? blanketType : undefined,
@@ -1012,6 +1024,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
         retestIntervalMonths: currentEvaluation?.recommendedRetestMonths || selectedEquipment?.retestIntervalMonths || 6,
         qrCode: finalTag,
         gloveLength_mm: selectedEquipmentType === 'luva_isolante' ? gloveLength_mm : undefined,
+    poleDiameter_mm: isPoleEquipment(selectedEquipmentType) ? poleDiameter_mm : undefined,
         blanketType: selectedEquipmentType === 'manta_isolante' ? blanketType : undefined,
         blanketStyle: selectedEquipmentType === 'manta_isolante' ? blanketStyle : undefined,
         blanketDimensions: selectedEquipmentType === 'manta_isolante' ? blanketDimensions : undefined,
@@ -1144,6 +1157,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       procedureCode: 'PR-JVM-LAB-01 Rev.08',
       appliedClass: selectedDielectricClass,
       gloveLength_mm: selectedEquipmentType === 'luva_isolante' ? gloveLength_mm : undefined,
+    poleDiameter_mm: isPoleEquipment(selectedEquipmentType) ? poleDiameter_mm : undefined,
       gloveTestMethod: selectedEquipmentType === 'luva_isolante' ? gloveTestMethod : undefined,
       moistureConditioning: selectedEquipmentType === 'luva_isolante' ? moistureConditioning : undefined,
       blanketType: selectedEquipmentType === 'manta_isolante' ? blanketType : undefined,
@@ -1241,6 +1255,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       status: (testToSave.result === 'APROVADO' || (selectedEquipmentType === 'ferramenta_isolada' && (currentEvaluation.toolsEvaluation?.approvedCount || 0) > 0)) ? 'em_uso' : 'reprovado',
       qrCode: finalTag,
       gloveLength_mm: selectedEquipmentType === 'luva_isolante' ? gloveLength_mm : undefined,
+    poleDiameter_mm: isPoleEquipment(selectedEquipmentType) ? poleDiameter_mm : undefined,
       blanketType: selectedEquipmentType === 'manta_isolante' ? blanketType : undefined,
       blanketStyle: selectedEquipmentType === 'manta_isolante' ? blanketStyle : undefined,
       blanketDimensions: selectedEquipmentType === 'manta_isolante' ? blanketDimensions : undefined,
@@ -1603,6 +1618,44 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
               </div>
             </div>
           </div>
+
+            {/* Diâmetro do bastão / vara (ABNT NBR 11854 — corrente de fuga a 50 kV) */}
+            {isPoleEquipment(selectedEquipmentType) && (
+              <div className="p-3.5 bg-blue-50/70 border border-blue-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="block text-xs font-bold text-blue-950 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                    Diâmetro do bastão (ABNT NBR 11854):
+                  </label>
+                  <span className="text-[11px] font-bold font-mono text-blue-700 bg-white px-2 py-0.5 rounded-md border border-blue-200">
+                    Ø {poleDiameter_mm} mm • {getNBR11854LeakageLimit_uA(poleDiameter_mm)} µA a {NBR11854_TEST_VOLTAGE_KV} kV
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {NBR11854_POLE_DIAMETERS_MM.map(d => {
+                    const isSelected = poleDiameter_mm === d;
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setPoleDiameter_mm(d)}
+                        className={`p-2.5 rounded-xl text-left border transition-all ${
+                          isSelected ? 'bg-blue-600 text-white border-blue-600 shadow-xs' : 'bg-white border-slate-200 text-slate-800 hover:border-blue-300'
+                        }`}
+                      >
+                        <span className="font-extrabold font-mono text-xs block">Ø {d} mm</span>
+                        <span className={`text-[10px] font-semibold ${isSelected ? 'text-blue-100' : 'text-slate-500'}`}>
+                          Fuga máx.: {getNBR11854LeakageLimit_uA(d)} µA
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-blue-900/80">
+                  Ensaio a {NBR11854_TEST_VOLTAGE_KV} kV CA. Digite a corrente de fuga medida em µA.
+                </p>
+              </div>
+            )}
 
             {/* Campo de Comprimento da Luva Isolante (NBR 16295 Tabela 4) */}
             {selectedEquipmentType === 'luva_isolante' && (
@@ -2839,7 +2892,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Corrente de Fuga Medida ({currentEvaluation?.appliedUnit || 'mA'}):
+                Corrente de Fuga Medida ({displayUnit(currentEvaluation?.appliedUnit)}):
               </label>
               <input
                 type="number"
@@ -2849,7 +2902,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-bold text-blue-700"
               />
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Limite Máximo: <span className="font-bold text-slate-700">{currentEvaluation?.appliedLimit || 0} {currentEvaluation?.appliedUnit}</span>
+                Limite Máximo: <span className="font-bold text-slate-700">{currentEvaluation?.appliedLimit || 0} {displayUnit(currentEvaluation?.appliedUnit)}</span>
                 {selectedEquipmentType === 'luva_isolante' && (
                   <span className="text-blue-700 font-semibold ml-1">
                     (2 luvas simultâneas: {((currentEvaluation?.appliedLimit || 0) / 2).toFixed(1)} mA × 2)
