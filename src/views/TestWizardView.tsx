@@ -279,7 +279,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
   const [gloveLength_mm, setGloveLength_mm] = useState<GloveLength_mm>(editingTest?.gloveLength_mm || 360);
   // NBR 11854: diâmetro do bastão / vara de manobra / bastão de resgate
   const [poleDiameter_mm, setPoleDiameter_mm] = useState<number>(getClosestPoleDiameter(editingTest?.poleDiameter_mm));
-  // NBR 11854: quantidade de pontos ensaiados (limite de fuga = pontos × limite da tabela)
+  // Bastão/vara (NBR 11854) e escada: quantidade de pontos ensaiados (limite de fuga = pontos × limite da norma)
   const [poleTestPointsInput, setPoleTestPointsInput] = useState<string>(String(Math.max(1, editingTest?.testPoints || 1)));
   const poleTestPoints = Math.max(1, parseInt(poleTestPointsInput, 10) || 1);
   // Detector de tensão por indução: tensões fixas, distâncias obtidas a preencher
@@ -730,7 +730,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
     ladderSegmentLength_mm: selectedEquipmentType === 'escada_isolada' ? ladderSegmentLength_mm : undefined,
     ladderTestedSegmentsCount: selectedEquipmentType === 'escada_isolada' ? ladderTestedSegmentsCount : undefined,
     ladderRungsInspectedCount: selectedEquipmentType === 'escada_isolada' ? ladderRungsInspectedCount : undefined,
-    ladderMoistureConditioned: selectedEquipmentType === 'escada_isolada' ? ladderMoistureConditioned : undefined
+    ladderMoistureConditioned: selectedEquipmentType === 'escada_isolada' ? ladderMoistureConditioned : undefined,
+    ladderTestPoints: selectedEquipmentType === 'escada_isolada' ? poleTestPoints : undefined
   });
 
   // Checklist updates
@@ -1199,7 +1200,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       appliedClass: selectedDielectricClass,
       gloveLength_mm: selectedEquipmentType === 'luva_isolante' ? gloveLength_mm : undefined,
     poleDiameter_mm: isPoleEquipment(selectedEquipmentType) ? poleDiameter_mm : undefined,
-      testPoints: isPoleEquipment(selectedEquipmentType) ? poleTestPoints : undefined,
+      testPoints: (isPoleEquipment(selectedEquipmentType) || selectedEquipmentType === 'escada_isolada') ? poleTestPoints : undefined,
       inductionPoints: selectedEquipmentType === 'detector_inducao' ? inductionPoints : undefined,
       gloveTestMethod: selectedEquipmentType === 'luva_isolante' ? gloveTestMethod : undefined,
       moistureConditioning: selectedEquipmentType === 'luva_isolante' ? moistureConditioning : undefined,
@@ -2784,6 +2785,32 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                 </button>
               </div>
 
+              {/* Quantidade de pontos ensaiados: limite de fuga = pontos × limite da norma da escada */}
+              <div className="flex flex-wrap items-center gap-2">
+                <label htmlFor="ladder-test-points" className="text-xs font-bold text-indigo-950">
+                  Quantidade de pontos ensaiados:
+                </label>
+                <input
+                  id="ladder-test-points"
+                  type="text"
+                  inputMode="numeric"
+                  value={poleTestPointsInput}
+                  onChange={e => setPoleTestPointsInput(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
+                  placeholder="Ex: 3"
+                  className={`w-20 px-2 py-1.5 rounded-lg border text-xs font-mono font-bold bg-white ${poleTestPointsInput ? 'border-slate-300' : 'border-red-400'}`}
+                />
+                {(() => {
+                  const entry = getLadderNormEntry(ladderTestMethod);
+                  if (!entry) return null;
+                  const perPoint = (ladderMoistureConditioned && entry.maxLeakageCurrentWet_mA) ? entry.maxLeakageCurrentWet_mA : entry.maxLeakageCurrent_mA;
+                  return (
+                    <span className="text-[11px] font-semibold text-indigo-800">
+                      Limite de fuga: {poleTestPoints} × {perPoint.toFixed(2)} mA = {(perPoint * poleTestPoints).toFixed(2)} mA
+                    </span>
+                  );
+                })()}
+              </div>
+
               {/* Summary of current ladder norm */}
               {(() => {
                 const normEntry = getLadderNormEntry(ladderTestMethod);
@@ -2800,7 +2827,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-500 block font-medium">Corrente de Fuga Máx:</span>
-                      <span className="font-extrabold font-mono text-rose-700">≤ {normEntry.maxLeakageCurrent_mA.toFixed(2)} mA</span>
+                      <span className="font-extrabold font-mono text-rose-700">≤ {(normEntry.maxLeakageCurrent_mA * poleTestPoints).toFixed(2)} mA</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-slate-500 block font-medium">Periodicidade:</span>

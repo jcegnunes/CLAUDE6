@@ -155,6 +155,8 @@ export interface NormEvaluationInput {
   ladderTestMethod?: LadderTestMethod;
   ladderSegmentLength_mm?: number;
   ladderTestedSegmentsCount?: number;
+  /** Escada: quantidade de pontos ensaiados (limite = pontos × limite da norma da escada) */
+  ladderTestPoints?: number;
   ladderRungsInspectedCount?: number;
   ladderMoistureConditioned?: boolean;
 }
@@ -313,6 +315,10 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
   const poleDiameter = getClosestPoleDiameter(input.poleDiameter_mm);
   const poleTestPoints = Math.max(1, Math.floor(Number(input.poleTestPoints) || 1));
   const polePointLimit = getNBR11854LeakageLimit_uA(poleDiameter);
+  const ladderTestPoints = Math.max(1, Math.floor(Number(input.ladderTestPoints) || 1));
+  const ladderPointsText = (limit: number) => ladderTestPoints > 1
+    ? ` — ${ladderTestPoints} pontos ensaiados × ${(limit / ladderTestPoints).toFixed(2)} mA da norma`
+    : '';
   const poleLimitText = (limit: number) => poleTestPoints > 1
     ? `${limit} µA (${poleTestPoints} pontos ensaiados × ${polePointLimit} µA da tabela da ABNT NBR 11854 para bastão de Ø ${poleDiameter} mm a ${NBR11854_TEST_VOLTAGE_KV} kV)`
     : `${limit} µA da tabela da ABNT NBR 11854 para bastão de Ø ${poleDiameter} mm a ${NBR11854_TEST_VOLTAGE_KV} kV`;
@@ -342,10 +348,13 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
   } else if (input.equipmentType === 'escada_isolada') {
     const ladderNorm = getLadderNormEntry(input.ladderTestMethod || 'segmento_300mm_100kv');
     normReferenceClause = ladderNorm.normClauses;
-    if (input.ladderMoistureConditioned && ladderNorm.maxLeakageCurrentWet_mA) {
-      appliedLimit = ladderNorm.maxLeakageCurrentWet_mA;
-    } else {
-      appliedLimit = ladderNorm.maxLeakageCurrent_mA;
+    const ladderPointLimit = (input.ladderMoistureConditioned && ladderNorm.maxLeakageCurrentWet_mA)
+      ? ladderNorm.maxLeakageCurrentWet_mA
+      : ladderNorm.maxLeakageCurrent_mA;
+    // limite = quantidade de pontos ensaiados × limite da norma da escada
+    appliedLimit = Number((ladderPointLimit * ladderTestPoints).toFixed(4));
+    if (ladderTestPoints > 1) {
+      normReferenceClause += ` (${ladderTestPoints} pontos ensaiados × ${ladderPointLimit.toFixed(2)} mA = ${appliedLimit.toFixed(2)} mA)`;
     }
   } else if (input.equipmentType === 'ferramenta_isolada') {
     const totalToolsCount = (input.isolatedTools && input.isolatedTools.length > 0)
@@ -427,6 +436,8 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} mA) excedeu o limite de ${appliedLimit} mA adotado pelo laboratório (a ABNT NBR 6881 não estipula corrente de fuga; o critério da norma é a ausência de perfuração).`);
     } else if (isPoleEquipment(input.equipmentType)) {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} µA) excedeu o limite máximo de ${poleLimitText(appliedLimit)}.`);
+    } else if (input.equipmentType === 'escada_isolada') {
+      rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} mA) excedeu o limite máximo de ${appliedLimit.toFixed(2)} mA (${Math.round(appliedLimit * 1000)} µA${ladderPointsText(appliedLimit)}) conforme ${criterion.normCode}.`);
     } else {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} ${criterion.currentUnit}) excedeu o limite máximo permitido de ${appliedLimit} ${criterion.currentUnit} conforme ${criterion.normCode}.`);
     }
@@ -556,7 +567,7 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
         `Escada Isolada em Fibra de Vidro (PRFV) plenamente CONFORME com as normas ${ladderNorm.normCode} (${ladderNorm.normClauses})${ladderTypeDesc}. ` +
         `Aprovada na inspeção visual e mecânica de integridade dos montantes, degraus, catracas e sapatas antiderrapantes. ` +
         `Atendeu ao ensaio dielétrico de ${targetVoltage} kV ${input.voltageType} por ${input.durationSeconds} segundos${segDesc}${condDesc} com suportabilidade plena sem disrupção ou perfuração, ` +
-        `registrando corrente de fuga de ${input.measuredLeakageCurrent_mA.toFixed(2)} mA (${(input.measuredLeakageCurrent_mA * 1000).toFixed(0)} µA), estritamente abaixo do limite de ${appliedLimit.toFixed(2)} mA (${appliedLimit * 1000} µA).`
+        `registrando corrente de fuga de ${input.measuredLeakageCurrent_mA.toFixed(2)} mA (${(input.measuredLeakageCurrent_mA * 1000).toFixed(0)} µA), estritamente abaixo do limite de ${appliedLimit.toFixed(2)} mA (${Math.round(appliedLimit * 1000)} µA${ladderPointsText(appliedLimit)}).`
       );
     } else if (input.equipmentType === 'capacete_classe_b') {
       rationaleParts.push(

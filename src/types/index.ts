@@ -379,7 +379,7 @@ export interface TestRecord {
   withstandWithoutPuncture: boolean;
   gloveLength_mm?: number; // 280, 360, 410, 460
   poleDiameter_mm?: number; // Bastão/vara: 32, 38, 51, 64 mm (NBR 11854)
-  /** Bastão/vara: quantidade de pontos ensaiados (limite de fuga = pontos × limite da tabela NBR 11854) */
+  /** Bastão/vara e escada: quantidade de pontos ensaiados (limite de fuga = pontos × limite da norma) */
   testPoints?: number;
   /** Detector de tensão por indução: tensão (kV) × distância de detecção obtida (cm) */
   inductionPoints?: Array<{ voltage_kV: number; distance_cm?: number; detected?: boolean }>;
