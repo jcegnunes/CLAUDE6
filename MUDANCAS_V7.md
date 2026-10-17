@@ -97,11 +97,22 @@
   no BirdID/VaultID) e os PDFs são assinados automaticamente nesse período; só o hash vai ao
   provedor. **Exige configuração**: veja "Certificado digital em nuvem (PSC) — configuração".
   **Banco:** execute de novo `supabase/modules/treinamentos.sql`.
+- **Bastões de manobra, varas telescópicas e bastões de resgate — ABNT NBR 11854 a 50 kV:** a norma
+  passou de 100 kV / 100 µA (NBR 16613 / ASTM F711) para **50 kV**, com a corrente de fuga máxima em
+  **µA pelo diâmetro do bastão**: Ø 32 mm **5 µA**, Ø 38 mm **6 µA**, Ø 51 mm **8 µA**, Ø 64 mm **10 µA**
+  (a coluna de 100 kV — 10, 12, 15 e 20 µA — fica registrada na norma). No ensaio (etapa 1) aparece
+  o seletor **Diâmetro do bastão**; o limite do diâmetro escolhido é aplicado na avaliação e a
+  corrente medida é digitada em **µA**. O diâmetro fica gravado no equipamento (próximos ensaios
+  já vêm com ele) e sai no laudo (tela, PDF e Word: "Diâmetro do Bastão (NBR 11854)" e
+  "Máximo 8 µA (NBR 11854 – Ø 51 mm a 50 kV)"). O gráfico de corrente mostra a unidade do ensaio
+  (µA). Normas já gravadas com os valores antigos (100 kV / mA) são atualizadas no app e no banco;
+  norma que a empresa já ajustou de outro jeito fica como está. **Ensaios e laudos já emitidos não
+  mudam.** **Banco:** execute de novo `supabase/schema.sql` (só atualiza a norma; não apaga dados).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
   assinaturas RSA no verificador de PDF (detalhes em "Vulnerabilidades das dependências").
-- **Banco:** executar de novo `supabase/modules/treinamentos.sql` (certificado em nuvem); `schema.sql`
-  sem mudança em relação à 7.2.
+- **Banco:** executar de novo `supabase/schema.sql` (norma de bastões/varas pela NBR 11854) e
+  `supabase/modules/treinamentos.sql` (certificado em nuvem). Nenhum dos dois apaga dados.
 
 ## ⚠️ Passos obrigatórios (nesta ordem)
 

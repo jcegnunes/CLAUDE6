@@ -777,6 +777,28 @@ UPDATE public.norms
              ELSE true END
         OR COALESCE(payload->>'currentUnit', '') <> 'mA');
 
+-- Bastões de manobra, varas telescópicas e bastões de resgate: ABNT NBR 11854 a
+-- 50 kV, corrente de fuga em µA pelo diâmetro (Ø 32 mm 5; 38 mm 6; 51 mm 8;
+-- 64 mm 10 µA; o app aplica o limite do diâmetro informado no ensaio). Só troca
+-- a norma antiga (100 kV / mA); norma já ajustada pela empresa fica como está.
+-- Ensaios e laudos já emitidos NÃO são alterados.
+UPDATE public.norms
+   SET payload = payload || jsonb_build_object(
+         'normCode', 'ABNT NBR 11854',
+         'normName', 'Bastões de Manobra, Varas Telescópicas e Bastões de Resgate (50 kV — NBR 11854)',
+         'editionOrVersion', 'Tabela de corrente de fuga — 50 kV',
+         'testVoltage_kV', 50,
+         'voltageType', 'AC',
+         'testDurationSeconds', 60,
+         'maxLeakageCurrent', 5,
+         'currentUnit', 'uA',
+         'notes', 'ABNT NBR 11854 — ensaio a 50 kV CA. Corrente de fuga máxima pelo diâmetro do bastão: Ø 32 mm 5 µA; Ø 38 mm 6 µA; Ø 51 mm 8 µA; Ø 64 mm 10 µA (a 100 kV: 10, 12, 15 e 20 µA). O limite aplicado no ensaio é o do diâmetro informado.')
+ WHERE (payload->'applicableEquipmentTypes' ? 'bastao_manobra' OR payload->'applicableEquipmentTypes' ? 'vara_manobra')
+   AND (CASE WHEN COALESCE(payload->>'testVoltage_kV', '') ~ '^[0-9]+(\.[0-9]+)?$'
+             THEN (payload->>'testVoltage_kV')::numeric = 100
+             ELSE false END)
+   AND COALESCE(payload->>'currentUnit', 'mA') = 'mA';
+
 -- Funções antigas de login (senha conferida com a chave pública): removidas
 DROP FUNCTION IF EXISTS public.jvm_login(TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.jvm_set_initial_password(TEXT, TEXT);

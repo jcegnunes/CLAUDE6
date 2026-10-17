@@ -3,6 +3,9 @@
  * para exibição em tela (SVG/Canvas) e inserção em PDF (Data URL).
  */
 
+/** Unidade para exibição ("uA" gravado nos ensaios vira "µA"). */
+export const displayUnit = (unit?: string) => (unit === 'uA' ? 'µA' : unit || 'mA');
+
 export interface GaugeConfig {
   title: string;
   value: number;
@@ -138,7 +141,7 @@ export function generateGaugeCanvasDataUrl(config: GaugeConfig): string {
     const tagR = radius + 10;
     const tx = cx + tagR * Math.cos(limitAngle);
     const ty = cy + tagR * Math.sin(limitAngle);
-    ctx.fillText(`${limit}mA`, tx, ty);
+    ctx.fillText(`${limit}${displayUnit(config.unit)}`, tx, ty);
   }
 
   // 4. Marcas e Escalas (Ticks)
@@ -207,7 +210,7 @@ export function generateGaugeCanvasDataUrl(config: GaugeConfig): string {
   ctx.fill();
 
   // 6. Valor Digital no Centro
-  const valString = `${config.value.toFixed(1)} ${config.unit}`;
+  const valString = `${config.value.toFixed(1)} ${displayUnit(config.unit)}`;
   ctx.font = 'bold 12.0px monospace, Helvetica, Arial, sans-serif';
   ctx.fillStyle = config.type === 'voltage' ? '#1D4ED8' : (config.isConforming !== false ? '#047857' : '#DC2626');
   ctx.textAlign = 'center';

@@ -24,6 +24,7 @@ import { getASTMD178Entry, getASTMD1048Entry } from '../services/astmBlanketMatt
 import { TABELA_4_NBR_16295, getClosestGloveLength } from '../services/nbr16295Service';
 import { formatDateBR } from '../utils/dateUtils';
 import { SpeedometerGauge } from './SpeedometerGauge';
+import { displayUnit } from '../utils/gaugeUtils';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 import { exportSingleLaudoToWord } from '../services/wordReportService';
 
@@ -292,6 +293,8 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                       ? 'Dimensões da Manta:'
                       : test.mattingDimensions
                       ? 'Dimensões do Tapete:'
+                      : test.poleDiameter_mm
+                      ? 'Diâmetro do Bastão (NBR 11854):'
                       : 'Comprimento / Dimensão:'}
                   </span>
                   <span className="font-bold text-blue-700 font-mono">
@@ -301,6 +304,8 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                       ? test.blanketDimensions
                       : test.mattingDimensions
                       ? test.mattingDimensions
+                      : test.poleDiameter_mm
+                      ? `Ø ${test.poleDiameter_mm} mm`
                       : test.gloveLength_mm
                       ? `${test.gloveLength_mm} mm`
                       : 'N/A'}
@@ -689,7 +694,7 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                       isConforming={isLeakOk}
                       type="current"
                       statusLabel={isLeakOk ? 'CONFORME (ABAIXO DO LIMITE)' : 'NÃO CONFORME (ULTRAPASSOU)'}
-                      subtext={`Limite Máximo Normativo: ${effectiveLimit} mA (${leakPercent}% atingido)`}
+                      subtext={`Limite Máximo Normativo: ${effectiveLimit} ${displayUnit(test.currentUnit)} (${leakPercent}% atingido)`}
                     />
                   </div>
                 );
@@ -735,9 +740,11 @@ export const LaudoViewModal: React.FC<LaudoViewModalProps> = ({ test, isOpen, on
                         ? `Máximo ${normLeakageLimit} mA (Limite adotado – ASTM D178-22)`
                         : test.equipmentType === 'ferramenta_isolada'
                         ? `Máximo ${test.leakageCurrentLimit_mA} mA (${(test.isolatedTools?.reduce((acc, t) => acc + (Number(t.quantity) || 1), 0) || 1)} un × 1,0 mA/un – NBR 9699 / IEC 60900)`
-                        : `Máximo ${test.leakageCurrentLimit_mA} ${test.currentUnit} (${normApplicableDisplay})`}
+                        : test.poleDiameter_mm
+                        ? `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (NBR 11854 – Ø ${test.poleDiameter_mm} mm a ${test.appliedVoltage_kV} kV)`
+                        : `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (${normApplicableDisplay})`}
                     </td>
-                    <td className="p-2.5 font-bold font-mono text-blue-700">{test.measuredLeakageCurrent_mA} {test.currentUnit}</td>
+                    <td className="p-2.5 font-bold font-mono text-blue-700">{test.measuredLeakageCurrent_mA} {displayUnit(test.currentUnit)}</td>
                     <td className="p-2.5 text-center font-bold">
                       {test.measuredLeakageCurrent_mA <= normLeakageLimit ? (
                         <span className="text-emerald-700">CONFORME</span>

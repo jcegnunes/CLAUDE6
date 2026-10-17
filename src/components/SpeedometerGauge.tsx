@@ -1,4 +1,5 @@
 import React from 'react';
+import { displayUnit } from '../utils/gaugeUtils';
 
 export interface SpeedometerGaugeProps {
   title: string;
@@ -160,7 +161,7 @@ export const SpeedometerGauge: React.FC<SpeedometerGaugeProps> = ({
                     textAnchor="middle"
                     dominantBaseline="central"
                   >
-                    {limit}mA
+                    {limit}{displayUnit(unit)}
                   </text>
                 </>
               )}
@@ -213,7 +214,7 @@ export const SpeedometerGauge: React.FC<SpeedometerGaugeProps> = ({
             textAnchor="middle"
             fontFamily="monospace"
           >
-            {value.toFixed(1)} {unit}
+            {value.toFixed(1)} {displayUnit(unit)}
           </text>
         </svg>
       </div>

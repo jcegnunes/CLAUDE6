@@ -1773,8 +1773,8 @@ export const NormsView: React.FC = () => {
                 <option value="manga_isolante">🛡️ Mangas Isolantes (ABNT NBR 10624 / ASTM D1051)</option>
                 <option value="manta_isolante">🟨 Mantas de Cobertura (ASTM D1048)</option>
                 <option value="tapete_isolante">🟩 Tapetes Isolantes (ASTM D178-22)</option>
-                <option value="bastao_manobra">🦯 Bastões de Manobra (ABNT NBR 16613 / ASTM F711)</option>
-                <option value="vara_manobra">🎋 Varas de Manobra (ABNT NBR 16613)</option>
+                <option value="bastao_manobra">🦯 Bastões de Manobra e de Resgate (ABNT NBR 11854)</option>
+                <option value="vara_manobra">🎋 Varas de Manobra Telescópicas (ABNT NBR 11854)</option>
                 <option value="capacete_classe_b">⛑️ Capacetes de Segurança Classe B — Classe 2 (ABNT NBR 8221)</option>
                 <option value="bota_dielétrica">🥾 Calçados / Botas Dielétricas (ABNT NBR 16603)</option>
                 <option value="ferramenta_isolada">🔧 Ferramentas Isoladas (ABNT NBR 9699 / IEC 60900)</option>
@@ -1977,8 +1977,8 @@ export const NormsView: React.FC = () => {
                     <option value="manga_isolante">🛡️ Mangas Isolantes de Borracha (ABNT NBR 10624 / ASTM D1051)</option>
                     <option value="manta_isolante">🟨 Mantas de Cobertura Isolantes (ASTM D1048)</option>
                     <option value="tapete_isolante">🟩 Tapetes Isolantes de Borracha (ASTM D178-22)</option>
-                    <option value="bastao_manobra">🦯 Bastões de Manobra e Salvamento (ABNT NBR 16613 / ASTM F711)</option>
-                    <option value="vara_manobra">🎋 Varas de Manobra Telescópicas / Seccionáveis (ABNT NBR 16613)</option>
+                    <option value="bastao_manobra">🦯 Bastões de Manobra e Bastões de Resgate (ABNT NBR 11854)</option>
+                    <option value="vara_manobra">🎋 Varas de Manobra Telescópicas / Seccionáveis (ABNT NBR 11854)</option>
                     <option value="capacete_classe_b">⛑️ Capacetes de Segurança Classe B — Classe 2 (ABNT NBR 8221 / ANSI Z89.1)</option>
                     <option value="bota_dielétrica">🥾 Calçados / Botas Dielétricas (ABNT NBR 16603 / ASTM F2413)</option>
                     <option value="ferramenta_isolada">🔧 Ferramentas Manuais Isoladas 1000V (ABNT NBR 9699 / IEC 60900)</option>

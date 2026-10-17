@@ -8,7 +8,7 @@ import { TABELA_4_NBR_16295, getClosestGloveLength } from './nbr16295Service';
 import { DielectricStorageService } from './syncEngine';
 import { ValidationPortalService } from './validationPortalService';
 import { formatDateBR, nc } from '../utils/dateUtils';
-import { generateGaugeCanvasDataUrl } from '../utils/gaugeUtils';
+import { displayUnit, generateGaugeCanvasDataUrl } from '../utils/gaugeUtils';
 import { saveDocLocally } from '../utils/nativeFileSaver';
 import { cleanSignatureImage } from '../utils/signatureCleaner';
 
@@ -421,6 +421,8 @@ export async function renderLaudoToDoc(
       ? [{ label: 'Dimensões da Manta:', value: nc(test.blanketDimensions) }]
       : test.mattingDimensions
       ? [{ label: 'Dimensões do Tapete:', value: nc(test.mattingDimensions) }]
+      : test.poleDiameter_mm
+      ? [{ label: 'Diâmetro do Bastão (NBR 11854):', value: `Ø ${test.poleDiameter_mm} mm`, isMono: true, isHighlight: true }]
       : [{ label: 'Comprimento / Dimensão:', value: test.gloveLength_mm ? `${test.gloveLength_mm} mm` : 'N/C' }]
     )
   ];
@@ -881,7 +883,7 @@ export async function renderLaudoToDoc(
     isConforming: isLeakOk,
     type: 'current',
     statusLabel: isLeakOk ? 'CONFORME (ABAIXO DO LIMITE)' : 'NÃO CONFORME (ULTRAPASSOU)',
-    subtext: `Limite Máximo Normativo: ${effectiveLimit} mA (${leakPercent}% atingido)`
+    subtext: `Limite Máximo Normativo: ${effectiveLimit} ${displayUnit(test.currentUnit)} (${leakPercent}% atingido)`
   });
 
   if (gaugeVoltageDataUrl && gaugeLeakageDataUrl) {
@@ -950,8 +952,10 @@ export async function renderLaudoToDoc(
         ? `Máximo ${normLeakageLimit} mA (Limite adotado – ASTM D178-22)`
         : test.equipmentType === 'ferramenta_isolada'
         ? `Máximo ${test.leakageCurrentLimit_mA} mA (${(test.isolatedTools?.reduce((acc, t) => acc + (Number(t.quantity) || 1), 0) || 1)} un x 1,0 mA - NBR 9699)`
-        : `Máximo ${test.leakageCurrentLimit_mA} ${test.currentUnit} (${normApplicableDisplay})`,
-      measured: `${test.measuredLeakageCurrent_mA} ${test.currentUnit}`,
+        : test.poleDiameter_mm
+        ? `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (NBR 11854 – Ø ${test.poleDiameter_mm} mm a ${test.appliedVoltage_kV} kV)`
+        : `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (${normApplicableDisplay})`,
+      measured: `${test.measuredLeakageCurrent_mA} ${displayUnit(test.currentUnit)}`,
       isConforming: test.measuredLeakageCurrent_mA <= normLeakageLimit
     },
     {

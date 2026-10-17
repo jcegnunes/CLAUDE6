@@ -556,8 +556,18 @@ async function main() {
     await old.exec(`INSERT INTO public.norms (id, payload) VALUES
       ('norm-tapete-antiga', '{"applicableEquipmentTypes": ["tapete_isolante"], "maxLeakageCurrent": 10, "currentUnit": "uA"}'),
       ('norm-tapete-texto', '{"applicableEquipmentTypes": ["tapete_isolante"], "maxLeakageCurrent": "dez"}'),
-      ('norm-luva-antiga', '{"applicableEquipmentTypes": ["luva_isolante"], "maxLeakageCurrent": 24, "currentUnit": "mA"}')`);
+      ('norm-luva-antiga', '{"applicableEquipmentTypes": ["luva_isolante"], "maxLeakageCurrent": 24, "currentUnit": "mA"}'),
+      ('norm-bastao-antiga', '{"applicableEquipmentTypes": ["bastao_manobra", "vara_manobra"], "testVoltage_kV": 100, "maxLeakageCurrent": 0.1, "currentUnit": "mA", "dielectricClass": "Geral"}'),
+      ('norm-bastao-ajustada', '{"applicableEquipmentTypes": ["vara_manobra"], "testVoltage_kV": 75, "maxLeakageCurrent": 0.2, "currentUnit": "mA"}'),
+      ('norm-bastao-texto', '{"applicableEquipmentTypes": ["bastao_manobra"], "testVoltage_kV": "cem", "currentUnit": "mA"}')`);
     await old.exec(SCHEMA);
+    const poles = Object.fromEntries((await old.query(`SELECT id, payload FROM public.norms WHERE id LIKE 'norm-bastao-%'`)).rows
+      .map(r => [r.id, typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload]));
+    const pa = poles['norm-bastao-antiga'];
+    ok(pa.normCode === 'ABNT NBR 11854' && pa.testVoltage_kV === 50 && pa.maxLeakageCurrent === 5 && pa.currentUnit === 'uA' && pa.dielectricClass === 'Geral',
+      'banco antigo: norma de bastão/vara passa para a NBR 11854 (50 kV, µA), sem perder os outros campos');
+    ok(poles['norm-bastao-ajustada'].testVoltage_kV === 75 && poles['norm-bastao-ajustada'].currentUnit === 'mA', 'banco antigo: norma de bastão já ajustada pela empresa não é alterada');
+    ok(poles['norm-bastao-texto'].testVoltage_kV === 'cem', 'banco antigo: norma de bastão com tensão inválida não quebra o script');
     const tapetes = (await old.query(`SELECT id, payload->>'maxLeakageCurrent' AS l, payload->>'currentUnit' AS u FROM public.norms WHERE id LIKE 'norm-%-antiga' OR id = 'norm-tapete-texto' ORDER BY id`)).rows;
     const byId = Object.fromEntries(tapetes.map(t => [t.id, t]));
     ok(byId['norm-tapete-antiga'].l === '100' && byId['norm-tapete-antiga'].u === 'mA', 'banco antigo: norma de tapete corrigida para 100 mA');
