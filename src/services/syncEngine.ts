@@ -25,7 +25,7 @@ import {
   JVM_COMPANY_INFO
 } from '../data/seedData';
 import { DEFAULT_VALIDATION_BASE_URL, normalizeValidationBaseUrl } from '../config/validationPortalConfig';
-import { isOldPoleNorm, poleNormFields, POLE_NORM_ID } from './normsEngine';
+import { isOldPoleNorm, poleNormFields, POLE_NORM_ID, isOldFootwearNorm, FOOTWEAR_NORM_ID } from './normsEngine';
 import {
   NumberKind,
   NumberBlockState,
@@ -286,6 +286,12 @@ export class DielectricStorageService {
             const seedMatch = INITIAL_NORMS.find(sn => sn.id === POLE_NORM_ID)!;
             updated = true;
             return { ...n, ...poleNormFields(seedMatch), history: n.history || seedMatch.history };
+          }
+          // Calçado de segurança: corrente de fuga máxima de 0,5 mA (era 3,5 mA)
+          if (isOldFootwearNorm(n)) {
+            const seedMatch = INITIAL_NORMS.find(sn => sn.id === FOOTWEAR_NORM_ID)!;
+            updated = true;
+            return { ...n, maxLeakageCurrent: seedMatch.maxLeakageCurrent, notes: seedMatch.notes };
           }
           return n;
         });
@@ -1257,6 +1263,11 @@ export class DielectricStorageService {
     if (isOldPoleNorm(n)) {
       const poleSeed = INITIAL_NORMS.find(s => s.id === POLE_NORM_ID);
       if (poleSeed) Object.assign(n, poleNormFields(poleSeed));
+    }
+    // calçado de segurança ainda com 3,5 mA: 0,5 mA
+    if (isOldFootwearNorm(n)) {
+      const footSeed = INITIAL_NORMS.find(s => s.id === FOOTWEAR_NORM_ID);
+      if (footSeed) Object.assign(n, { maxLeakageCurrent: footSeed.maxLeakageCurrent, notes: footSeed.notes });
     }
     return n as NormCriterion;
   }

@@ -108,10 +108,17 @@
   (µA). Normas já gravadas com os valores antigos (100 kV / mA) são atualizadas no app e no banco;
   norma que a empresa já ajustou de outro jeito fica como está. **Ensaios e laudos já emitidos não
   mudam.** **Banco:** execute de novo `supabase/schema.sql` (só atualiza a norma; não apaga dados).
+- **Calçado de segurança dielétrico:** corrente de fuga máxima passou de 3,5 mA para **0,5 mA**
+  (14 kV CA por 1 minuto, sem mudança). Normas gravadas com 3,5 mA são atualizadas no app e no banco;
+  norma que a empresa já ajustou para outro valor fica como está. Ensaios e laudos já emitidos não
+  mudam. **Banco:** execute de novo `supabase/schema.sql`.
+- **Medidor de corrente de fuga (laudo):** limites pequenos usam escala 1, 2 ou 5 (ex.: calçado
+  0,5 mA → escala 0 a 1), para a marca do limite não ficar colada no zero; valores abaixo de 1
+  aparecem com 2 casas (ex.: 0.35 mA).
 - **Interface:** menus de usuário e de empresa fecham ao clicar fora ou com Esc.
 - **Segurança:** dependências atualizadas (vitest 5, SheetJS 0.20.3) e verificação estrita de
   assinaturas RSA no verificador de PDF (detalhes em "Vulnerabilidades das dependências").
-- **Banco:** executar de novo `supabase/schema.sql` (norma de bastões/varas pela NBR 11854) e
+- **Banco:** executar de novo `supabase/schema.sql` (normas de bastões/varas pela NBR 11854 e de calçado 0,5 mA) e
   `supabase/modules/treinamentos.sql` (certificado em nuvem). Nenhum dos dois apaga dados.
 
 ## ⚠️ Passos obrigatórios (nesta ordem)

@@ -6,6 +6,19 @@
 /** Unidade para exibição ("uA" gravado nos ensaios vira "µA"). */
 export const displayUnit = (unit?: string) => (unit === 'uA' ? 'µA' : unit || 'mA');
 
+/** Valor no centro do medidor: 2 casas abaixo de 1 (ex.: 0.35 mA), senão 1 casa. */
+export const formatGaugeValue = (value: number) => value.toFixed(Math.abs(value) < 1 ? 2 : 1);
+
+/**
+ * Fundo de escala do medidor de corrente de fuga. Limites pequenos (ex.: calçado
+ * 0,5 mA) usam escala 1, 2 ou 5 para o limite não ficar colado no zero.
+ */
+export function leakageGaugeScale(limit: number, value: number): number {
+  const base = Math.max(limit * 1.35, value * 1.25);
+  if (base < 10) return [1, 2, 5, 10].find(x => x >= base) || 10;
+  return Math.max(10, Math.ceil(base / 5) * 5);
+}
+
 export interface GaugeConfig {
   title: string;
   value: number;
@@ -149,7 +162,7 @@ export function generateGaugeCanvasDataUrl(config: GaugeConfig): string {
   for (let i = 0; i <= numMajorTicks; i++) {
     const fraction = i / numMajorTicks;
     const angle = Math.PI + (fraction * Math.PI);
-    const tickValue = Math.round(fraction * config.maxScale * 10) / 10;
+    const tickValue = Math.round(fraction * config.maxScale * 100) / 100;
 
     const rInner = radius - trackWidth / 2 - 3;
     const rOuter = radius - trackWidth / 2 - 1;
@@ -210,7 +223,7 @@ export function generateGaugeCanvasDataUrl(config: GaugeConfig): string {
   ctx.fill();
 
   // 6. Valor Digital no Centro
-  const valString = `${config.value.toFixed(1)} ${displayUnit(config.unit)}`;
+  const valString = `${formatGaugeValue(config.value)} ${displayUnit(config.unit)}`;
   ctx.font = 'bold 12.0px monospace, Helvetica, Arial, sans-serif';
   ctx.fillStyle = config.type === 'voltage' ? '#1D4ED8' : (config.isConforming !== false ? '#047857' : '#DC2626');
   ctx.textAlign = 'center';
