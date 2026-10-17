@@ -655,25 +655,25 @@ export const INITIAL_NORMS: NormCriterion[] = [
     status: 'active'
   },
 
-  // Detector de Tensão por Indução (classe 1 kV a 60 kV) - detecção por aproximação
+  // Detector de Tensão por Indução (classe 1 kV a 50 kV) - detecção por aproximação
   {
     id: 'norm-detector-inducao',
     normCode: 'Especificações do fabricante',
-    normName: 'Detector de Tensão por Indução (1 kV a 60 kV)',
+    normName: 'Detector de Tensão por Indução (1 kV a 50 kV)',
     editionOrVersion: 'Ensaio de detecção por aproximação',
     effectiveDate: '2026-10-16',
     applicableEquipmentTypes: ['detector_inducao'],
     dielectricClass: 'Geral',
-    nominalVoltageMaxAC_kV: 60.0,
-    nominalVoltageMaxDC_kV: 60.0,
-    testVoltage_kV: 60.0,
+    nominalVoltageMaxAC_kV: 50.0,
+    nominalVoltageMaxDC_kV: 50.0,
+    testVoltage_kV: 50.0,
     voltageType: 'AC',
     testDurationSeconds: 0,
     maxLeakageCurrent: 0,
     currentUnit: 'mA',
     defaultRetestMonths: 12,
     approvalCriterion: 'visual_and_leakage',
-    notes: 'Classe 1 kV a 60 kV. Em cada tensão da tabela (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43; 52 e 60 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão; o laudo traz a tabela Distância × Tensão e o gráfico. Aprovado quando o detector sinaliza em todas as tensões, conforme as especificações do fabricante.',
+    notes: 'Classe 1 kV a 50 kV. Em cada tensão da tabela (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43 e 50 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão; o laudo traz a tabela Distância × Tensão e o gráfico. Aprovado quando o detector sinaliza em todas as tensões, conforme as especificações do fabricante.',
     status: 'active'
   },
 

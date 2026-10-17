@@ -26,6 +26,7 @@ import {
 } from '../data/seedData';
 import { DEFAULT_VALIDATION_BASE_URL, normalizeValidationBaseUrl } from '../config/validationPortalConfig';
 import { isOldPoleNorm, poleNormFields, POLE_NORM_ID, isOldFootwearNorm, FOOTWEAR_NORM_ID } from './normsEngine';
+import { INDUCTION_DETECTOR_NORM_ID } from './inductionDetectorService';
 import {
   NumberKind,
   NumberBlockState,
@@ -1268,6 +1269,19 @@ export class DielectricStorageService {
     if (isOldFootwearNorm(n)) {
       const footSeed = INITIAL_NORMS.find(s => s.id === FOOTWEAR_NORM_ID);
       if (footSeed) Object.assign(n, { maxLeakageCurrent: footSeed.maxLeakageCurrent, notes: footSeed.notes });
+    }
+    // detector de tensão por indução: tabela passou de 60 kV para 50 kV
+    if (n.id === INDUCTION_DETECTOR_NORM_ID && Number(n.testVoltage_kV) === 60) {
+      const detSeed = INITIAL_NORMS.find(s => s.id === INDUCTION_DETECTOR_NORM_ID);
+      if (detSeed) {
+        Object.assign(n, {
+          normName: detSeed.normName,
+          testVoltage_kV: detSeed.testVoltage_kV,
+          nominalVoltageMaxAC_kV: detSeed.nominalVoltageMaxAC_kV,
+          nominalVoltageMaxDC_kV: detSeed.nominalVoltageMaxDC_kV,
+          notes: detSeed.notes
+        });
+      }
     }
     return n as NormCriterion;
   }

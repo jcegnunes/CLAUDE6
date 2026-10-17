@@ -191,9 +191,9 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
     fullLabel: 'Escadas Isoladas em Fibra de Vidro (EN 50528:2024 BT / ABNT NBR IEC 61478 AT)'
   },
   detector_inducao: {
-    label: 'Detector de Tensão por Indução (1 kV a 60 kV)',
+    label: 'Detector de Tensão por Indução (1 kV a 50 kV)',
     norm: 'Especificações do fabricante',
-    fullLabel: 'Detector de Tensão por Indução — classe 1 kV a 60 kV (especificações do fabricante)'
+    fullLabel: 'Detector de Tensão por Indução — classe 1 kV a 50 kV (especificações do fabricante)'
   },
   detector_tensao: {
     label: 'Detectores de Tensão / Prova de Ausência de Tensão',

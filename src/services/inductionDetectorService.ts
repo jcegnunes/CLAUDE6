@@ -1,5 +1,5 @@
 /**
- * Detector de tensão por indução (classe 1 kV a 60 kV): ensaio de detecção
+ * Detector de tensão por indução (classe 1 kV a 50 kV): ensaio de detecção
  * por aproximação. Para cada tensão fixa da tabela o técnico registra a
  * distância (cm) em que o detector sinalizou; o resultado sai na tabela
  * Distância × Tensão e no gráfico "Detector de Tensão" do laudo.
@@ -15,8 +15,8 @@ export interface InductionDetectorPoint {
   detected?: boolean;
 }
 
-export const INDUCTION_DETECTOR_CLASS = '1 kV a 60 kV';
-export const INDUCTION_DETECTOR_VOLTAGES_KV = [1, 2, 5, 8, 13.8, 19, 24, 34.5, 43, 52, 60];
+export const INDUCTION_DETECTOR_CLASS = '1 kV a 50 kV';
+export const INDUCTION_DETECTOR_VOLTAGES_KV = [1, 2, 5, 8, 13.8, 19, 24, 34.5, 43, 50];
 export const INDUCTION_DETECTOR_NOTE = 'RESULTADOS SATISFATÓRIOS CONFORME ESPECIFICAÇÕES DO FABRICANTE.';
 export const INDUCTION_DETECTOR_NORM_ID = 'norm-detector-inducao';
 
@@ -28,7 +28,10 @@ export function defaultInductionPoints(): InductionDetectorPoint[] {
 /** Completa/ordena a tabela gravada (ensaios antigos ou incompletos). */
 export function normalizeInductionPoints(points?: InductionDetectorPoint[] | null): InductionDetectorPoint[] {
   const byVoltage = new Map((points || []).map(p => [Number(p.voltage_kV), p]));
-  return INDUCTION_DETECTOR_VOLTAGES_KV.map(v => {
+  const saved = [...byVoltage.keys()].filter(v => isFinite(v) && v > 0);
+  const usesOtherTable = saved.some(v => !INDUCTION_DETECTOR_VOLTAGES_KV.includes(v));
+  const voltages = usesOtherTable ? saved.sort((a, b) => a - b) : INDUCTION_DETECTOR_VOLTAGES_KV;
+  return voltages.map(v => {
     const p = byVoltage.get(v);
     const d = p?.distance_cm;
     return {

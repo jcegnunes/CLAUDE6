@@ -840,14 +840,14 @@ export function getNormPresetForEquipment(
       return {
         normCode: 'Especificações do fabricante',
         normName: `Detector de Tensão por Indução (${INDUCTION_DETECTOR_CLASS})`,
-        testVoltage_kV: 60,
+        testVoltage_kV: 50,
         voltageType: 'AC',
         testDurationSeconds: 0,
         maxLeakageCurrent: 0,
         currentUnit: 'mA',
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-10 Rev.03',
-        description: 'Ensaio de detecção por aproximação: em cada tensão da tabela (1 kV a 60 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão, conforme as especificações do fabricante.'
+        description: 'Ensaio de detecção por aproximação: em cada tensão da tabela (1 kV a 50 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão, conforme as especificações do fabricante.'
       };
     }
     case 'detector_tensao': {

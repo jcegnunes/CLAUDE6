@@ -859,6 +859,18 @@ UPDATE public.norms
              ELSE false END)
    AND COALESCE(payload->>'currentUnit', 'mA') = 'mA';
 
+-- Detector de tensão por indução: tabela de 1 kV a 50 kV (era até 60 kV).
+-- Ensaios e laudos já emitidos NÃO são alterados.
+UPDATE public.norms
+   SET payload = payload || jsonb_build_object(
+         'normName', 'Detector de Tensão por Indução (1 kV a 50 kV)',
+         'testVoltage_kV', 50,
+         'nominalVoltageMaxAC_kV', 50,
+         'nominalVoltageMaxDC_kV', 50,
+         'notes', 'Classe 1 kV a 50 kV. Em cada tensão da tabela (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43 e 50 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão; o laudo traz a tabela Distância × Tensão e o gráfico. Aprovado quando o detector sinaliza em todas as tensões, conforme as especificações do fabricante.')
+ WHERE COALESCE(norm_id, id) = 'norm-detector-inducao'
+   AND COALESCE(payload->>'testVoltage_kV', '') IN ('60', '60.0');
+
 -- Funções antigas de login (senha conferida com a chave pública): removidas
 DROP FUNCTION IF EXISTS public.jvm_login(TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.jvm_set_initial_password(TEXT, TEXT);

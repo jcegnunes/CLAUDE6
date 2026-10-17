@@ -11,7 +11,7 @@ export const INDUCTION_CHART = {
   pad: { left: 52, right: 18, top: 36, bottom: 40 },
   xMax: 140,
   xStep: 20,
-  yMax: 70,
+  yMax: 60,
   yStep: 10,
   line: '#F4A259',
   grid: '#E2E8F0',
