@@ -655,25 +655,48 @@ export const INITIAL_NORMS: NormCriterion[] = [
     status: 'active'
   },
 
-  // Detector de Tensão por Indução (classe 1 kV a 60 kV) - detecção por aproximação
+  // Ponteiras de Prova e Cabos de Ensaio - ABNT NBR 6881 (2,5 kV)
+  {
+    id: 'norm-ponteira-nbr-6881',
+    normCode: 'ABNT NBR 6881',
+    normName: 'Ponteiras de Prova e Cabos de Ensaio (1,2 kV — NBR 6881)',
+    editionOrVersion: 'Ensaio de tensão aplicada',
+    effectiveDate: '2026-10-16',
+    applicableEquipmentTypes: ['ponteira_prova'],
+    dielectricClass: 'Geral',
+    nominalVoltageMaxAC_kV: 1.0,
+    nominalVoltageMaxDC_kV: 1.5,
+    testVoltage_kV: 1.2,
+    voltageType: 'AC',
+    testDurationSeconds: 60,
+    // a NBR 6881 não estipula corrente de fuga: limite adotado pelo laboratório
+    maxLeakageCurrent: 5.0,
+    currentUnit: 'mA',
+    defaultRetestMonths: 12,
+    approvalCriterion: 'visual_and_leakage',
+    notes: 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio (até 1 kV) a 1,2 kV CA por 1 minuto. A tensão é elevada a partir de no máximo 20 % da tensão nominal (0,2 kV), atingindo 1,2 kV em 10 s a 60 s, e reduzida até no máximo 20 % da tensão nominal antes de desligar e aterrar. Critério da norma (item 4.3): sem perfuração total ou parcial da isolação. A norma não estipula corrente de fuga; limite adotado pelo laboratório: 5,0 mA.',
+    status: 'active'
+  },
+
+  // Detector de Tensão por Indução (classe 1 kV a 50 kV) - detecção por aproximação
   {
     id: 'norm-detector-inducao',
     normCode: 'Especificações do fabricante',
-    normName: 'Detector de Tensão por Indução (1 kV a 60 kV)',
+    normName: 'Detector de Tensão por Indução (1 kV a 50 kV)',
     editionOrVersion: 'Ensaio de detecção por aproximação',
     effectiveDate: '2026-10-16',
     applicableEquipmentTypes: ['detector_inducao'],
     dielectricClass: 'Geral',
-    nominalVoltageMaxAC_kV: 60.0,
-    nominalVoltageMaxDC_kV: 60.0,
-    testVoltage_kV: 60.0,
+    nominalVoltageMaxAC_kV: 50.0,
+    nominalVoltageMaxDC_kV: 50.0,
+    testVoltage_kV: 50.0,
     voltageType: 'AC',
     testDurationSeconds: 0,
     maxLeakageCurrent: 0,
     currentUnit: 'mA',
     defaultRetestMonths: 12,
     approvalCriterion: 'visual_and_leakage',
-    notes: 'Classe 1 kV a 60 kV. Em cada tensão da tabela (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43; 52 e 60 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão; o laudo traz a tabela Distância × Tensão e o gráfico. Aprovado quando o detector sinaliza em todas as tensões, conforme as especificações do fabricante.',
+    notes: 'Classe 1 kV a 50 kV. Em cada tensão da tabela (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43 e 50 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão; o laudo traz a tabela Distância × Tensão e o gráfico. Aprovado quando o detector sinaliza em todas as tensões, conforme as especificações do fabricante.',
     status: 'active'
   },
 

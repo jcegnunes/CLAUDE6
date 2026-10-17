@@ -108,10 +108,10 @@
   (µA). Normas já gravadas com os valores antigos (100 kV / mA) são atualizadas no app e no banco;
   norma que a empresa já ajustou de outro jeito fica como está. **Ensaios e laudos já emitidos não
   mudam.** **Banco:** execute de novo `supabase/schema.sql` (só atualiza a norma; não apaga dados).
-- **Novo equipamento: Detector de Tensão por Indução (classe 1 kV a 60 kV)** — em Equipamentos,
+- **Novo equipamento: Detector de Tensão por Indução (classe 1 kV a 50 kV)** — em Equipamentos,
   Normas e no ensaio (prefixo da TAG `DTI`). No ensaio (etapa 4) a tela de hipot é trocada pela
-  tabela de **detecção por aproximação**: as tensões são fixas (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43;
-  52 e 60 kV) e o técnico preenche a **distância obtida (cm)** em que o detector sinalizou, com a
+  tabela de **detecção por aproximação**: as tensões são fixas (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43
+  e 50 kV — a tabela vai até 50 kV) e o técnico preenche a **distância obtida (cm)** em que o detector sinalizou, com a
   opção "Detectou" (desmarcar = não sinalizou). O gráfico **Detector de Tensão** (Tensão kV ×
   Distância cm) é desenhado na hora. Critério: aprovado quando sinaliza em todas as tensões
   (OBS: "Resultados satisfatórios conforme especificações do fabricante"); reprovado se não sinalizar
@@ -119,7 +119,17 @@
   cresce com a tensão gera só um aviso. Checklist visual próprio (carcaça, autoteste luminoso e
   sonoro, pilhas, botões, identificação). No laudo (tela, PDF e Word) a seção 3 traz a classe, a
   tabela Distância × Tensão, o gráfico e a observação, no lugar dos velocímetros. Norma oficial nova
-  (`norm-detector-inducao`) entra sozinha nos aparelhos; não precisa de script no banco.
+  (`norm-detector-inducao`) entra sozinha nos aparelhos; a versão que ia até 60 kV é atualizada no
+  app e pelo `schema.sql` no banco. Ensaio já gravado com a tabela até 60 kV mantém as tensões dele.
+- **Ponteiras de prova e cabos de ensaio (até 1 kV) — ABNT NBR 6881 a 1,2 kV:** norma oficial
+  (`norm-ponteira-nbr-6881`) com tensão de ensaio de **1,2 kV CA** por 1 minuto. Procedimento da norma (item
+  4.2.3) na tela do ensaio e no parecer: iniciar em no máximo **20 % da tensão nominal (0,2 kV)**, subir até
+  1,2 kV em 10 s a 60 s, manter, e reduzir até no máximo 20 % antes de desligar e aterrar. Critério da norma
+  (item 4.3): **sem perfuração** total ou parcial da isolação. A NBR 6881 não estipula corrente de fuga: o
+  limite de **5,0 mA é adotado pelo laboratório** e aparece assim no laudo ("Máximo 5 mA – limite adotado
+  pelo laboratório"). Antes não havia norma oficial (ensaio ficava "critério não configurado"); normas da
+  predefinição antiga (IEC 61010-031 a 5 kV) ou da NBR 6881 a 2,5 kV / 1,0 mA são atualizadas no app e no
+  banco; norma ajustada pela empresa e ensaios já emitidos não mudam. **Banco:** execute de novo `supabase/schema.sql`.
 - **Calçado de segurança dielétrico:** corrente de fuga máxima passou de 3,5 mA para **0,5 mA**
   (14 kV CA por 1 minuto, sem mudança). Normas gravadas com 3,5 mA são atualizadas no app e no banco;
   norma que a empresa já ajustou para outro valor fica como está. Ensaios e laudos já emitidos não

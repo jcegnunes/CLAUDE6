@@ -561,7 +561,10 @@ async function main() {
       ('norm-bastao-ajustada', '{"applicableEquipmentTypes": ["vara_manobra"], "testVoltage_kV": 75, "maxLeakageCurrent": 0.2, "currentUnit": "mA"}'),
       ('norm-bastao-texto', '{"applicableEquipmentTypes": ["bastao_manobra"], "testVoltage_kV": "cem", "currentUnit": "mA"}'),
       ('norm-calcado-antiga', '{"applicableEquipmentTypes": ["bota_dielétrica"], "testVoltage_kV": 14, "maxLeakageCurrent": 3.5, "currentUnit": "mA"}'),
-      ('norm-calcado-ajustada', '{"applicableEquipmentTypes": ["bota_dielétrica"], "testVoltage_kV": 14, "maxLeakageCurrent": 2, "currentUnit": "mA"}')`);
+      ('norm-calcado-ajustada', '{"applicableEquipmentTypes": ["bota_dielétrica"], "testVoltage_kV": 14, "maxLeakageCurrent": 2, "currentUnit": "mA"}'),
+      ('norm-ponteira-antiga', '{"applicableEquipmentTypes": ["ponteira_prova"], "normCode": "IEC 61010-031", "testVoltage_kV": 5, "maxLeakageCurrent": 1}'),
+      ('norm-ponteira-25kv', '{"applicableEquipmentTypes": ["ponteira_prova"], "normCode": "ABNT NBR 6881", "testVoltage_kV": 2.5, "maxLeakageCurrent": 1}'),
+      ('norm-ponteira-ajustada', '{"applicableEquipmentTypes": ["ponteira_prova"], "normCode": "ABNT NBR 6881", "testVoltage_kV": 3.5, "maxLeakageCurrent": 2}')`);
     await old.exec(SCHEMA);
     const poles = Object.fromEntries((await old.query(`SELECT id, payload FROM public.norms WHERE id LIKE 'norm-bastao-%'`)).rows
       .map(r => [r.id, typeof r.payload === 'string' ? JSON.parse(r.payload) : r.payload]));
@@ -573,6 +576,11 @@ async function main() {
     const shoes = Object.fromEntries((await old.query(`SELECT id, payload->>'maxLeakageCurrent' AS l, payload->>'testVoltage_kV' AS v FROM public.norms WHERE id LIKE 'norm-calcado-%'`)).rows.map(r => [r.id, r]));
     ok(shoes['norm-calcado-antiga'].l === '0.5' && shoes['norm-calcado-antiga'].v === '14', 'banco antigo: norma de calçado passa para 0,5 mA');
     ok(shoes['norm-calcado-ajustada'].l === '2', 'banco antigo: norma de calçado ajustada pela empresa não é alterada');
+    const probes = Object.fromEntries((await old.query(`SELECT id, payload->>'normCode' AS c, payload->>'testVoltage_kV' AS v, payload->>'maxLeakageCurrent' AS l FROM public.norms WHERE id LIKE 'norm-ponteira-%'`)).rows.map(r => [r.id, r]));
+    ok(probes['norm-ponteira-antiga'].c === 'ABNT NBR 6881' && probes['norm-ponteira-antiga'].v === '1.2' && probes['norm-ponteira-antiga'].l === '5.0',
+      'banco antigo: norma de ponteira (IEC 61010-031) passa para a NBR 6881 a 1,2 kV / 5,0 mA');
+    ok(probes['norm-ponteira-25kv'].v === '1.2' && probes['norm-ponteira-25kv'].l === '5.0', 'banco antigo: norma de ponteira a 2,5 kV passa para 1,2 kV / 5,0 mA');
+    ok(probes['norm-ponteira-ajustada'].v === '3.5', 'banco antigo: norma de ponteira ajustada pela empresa não é alterada');
     const tapetes = (await old.query(`SELECT id, payload->>'maxLeakageCurrent' AS l, payload->>'currentUnit' AS u FROM public.norms WHERE id LIKE 'norm-%-antiga' OR id = 'norm-tapete-texto' ORDER BY id`)).rows;
     const byId = Object.fromEntries(tapetes.map(t => [t.id, t]));
     ok(byId['norm-tapete-antiga'].l === '100' && byId['norm-tapete-antiga'].u === 'mA', 'banco antigo: norma de tapete corrigida para 100 mA');

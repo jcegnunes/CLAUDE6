@@ -812,6 +812,36 @@ UPDATE public.norms
              ELSE false END)
    AND COALESCE(payload->>'currentUnit', 'mA') = 'mA';
 
+-- Ponteiras de prova e cabos de ensaio (até 1 kV): ABNT NBR 6881 a 1,2 kV, aprovação
+-- sem perfuração e limite de fuga de 5,0 mA adotado pelo laboratório (normas da
+-- predefinição antiga IEC 61010-031 a 5 kV ou da NBR 6881 a 2,5 kV / 1,0 mA).
+-- Norma ajustada pela empresa e ensaios já emitidos NÃO mudam.
+UPDATE public.norms
+   SET payload = payload || jsonb_build_object(
+         'normCode', 'ABNT NBR 6881',
+         'normName', 'Ponteiras de Prova e Cabos de Ensaio (1,2 kV — NBR 6881)',
+         'testVoltage_kV', 1.2,
+         'maxLeakageCurrent', 5.0,
+         'notes', 'ABNT NBR 6881 — ensaio de tensão aplicada em ponteiras de prova e cabos de ensaio (até 1 kV) a 1,2 kV CA por 1 minuto. A tensão é elevada a partir de no máximo 20 % da tensão nominal (0,2 kV), atingindo 1,2 kV em 10 s a 60 s, e reduzida até no máximo 20 % da tensão nominal antes de desligar e aterrar. Critério da norma (item 4.3): sem perfuração total ou parcial da isolação. A norma não estipula corrente de fuga; limite adotado pelo laboratório: 5,0 mA.')
+ WHERE payload->'applicableEquipmentTypes' ? 'ponteira_prova'
+   AND (   (COALESCE(payload->>'normCode', '') LIKE '%61010%'
+            AND COALESCE(payload->>'testVoltage_kV', '') IN ('5', '5.0'))
+        OR (COALESCE(payload->>'normCode', '') LIKE '%6881%'
+            AND COALESCE(payload->>'testVoltage_kV', '') = '2.5'
+            AND COALESCE(payload->>'maxLeakageCurrent', '') IN ('1', '1.0')));
+
+-- Detector de tensão por indução: tabela de 1 kV a 50 kV (era até 60 kV).
+-- Ensaios e laudos já emitidos NÃO são alterados.
+UPDATE public.norms
+   SET payload = payload || jsonb_build_object(
+         'normName', 'Detector de Tensão por Indução (1 kV a 50 kV)',
+         'testVoltage_kV', 50,
+         'nominalVoltageMaxAC_kV', 50,
+         'nominalVoltageMaxDC_kV', 50,
+         'notes', 'Classe 1 kV a 50 kV. Em cada tensão da tabela (1; 2; 5; 8; 13,8; 19; 24; 34,5; 43 e 50 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão; o laudo traz a tabela Distância × Tensão e o gráfico. Aprovado quando o detector sinaliza em todas as tensões, conforme as especificações do fabricante.')
+ WHERE COALESCE(norm_id, id) = 'norm-detector-inducao'
+   AND COALESCE(payload->>'testVoltage_kV', '') IN ('60', '60.0');
+
 -- Funções antigas de login (senha conferida com a chave pública): removidas
 DROP FUNCTION IF EXISTS public.jvm_login(TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.jvm_set_initial_password(TEXT, TEXT);

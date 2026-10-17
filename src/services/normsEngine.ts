@@ -57,6 +57,29 @@ export function getNBR11854LeakageLimit_uA(diameter_mm?: number): number {
   return NBR11854_LEAKAGE_UA[getClosestPoleDiameter(diameter_mm)].kv50;
 }
 
+/**
+ * Ponteiras de prova e cabos de ensaio (até 1 kV): ABNT NBR 6881, ensaio a 1,2 kV.
+ * A norma aprova pela ausência de perfuração (item 4.3) e não estipula corrente
+ * de fuga: o limite de 5,0 mA é adotado pelo laboratório. Rampa da norma: início
+ * e fim em no máximo 20 % da tensão nominal; subida em 10 s a 60 s.
+ */
+export const PROBE_TEST_VOLTAGE_KV = 1.2;
+export const PROBE_NOMINAL_VOLTAGE_KV = 1.0;
+export const PROBE_RAMP_START_MAX_KV = 0.2 * PROBE_NOMINAL_VOLTAGE_KV;
+export const PROBE_LEAKAGE_LIMIT_MA = 5.0;
+export const PROBE_NORM_ID = 'norm-ponteira-nbr-6881';
+
+/**
+ * Norma de ponteira em valores anteriores: IEC 61010-031 a 5 kV (predefinição
+ * antiga) ou NBR 6881 a 2,5 kV com 1,0 mA. Norma ajustada pela empresa fica.
+ */
+export function isOldProbeNorm(n: Pick<NormCriterion, 'applicableEquipmentTypes' | 'normCode' | 'testVoltage_kV' | 'maxLeakageCurrent'> | null | undefined): boolean {
+  if (!n || !Array.isArray(n.applicableEquipmentTypes) || !n.applicableEquipmentTypes.includes('ponteira_prova')) return false;
+  const kv = Number(n.testVoltage_kV);
+  if (/61010/.test(n.normCode || '') && kv === 5) return true;
+  return /6881/.test(n.normCode || '') && kv === 2.5 && Number(n.maxLeakageCurrent) === 1;
+}
+
 /** Calçado de segurança dielétrico: corrente de fuga máxima da norma (mA). */
 export const FOOTWEAR_LEAKAGE_LIMIT_MA = 0.5;
 export const FOOTWEAR_NORM_ID = 'norm-calcado-dieletrico';
@@ -323,6 +346,8 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       : 1;
     appliedLimit = Math.max(1, totalToolsCount) * 1.0;
     normReferenceClause = 'ABNT NBR 9699:2022 / IEC 60900 (Item 5.5 / 1,0 mA por ferramenta)';
+  } else if (input.equipmentType === 'ponteira_prova') {
+    normReferenceClause = `ABNT NBR 6881 (item 4.3: sem perfuração; corrente de fuga: limite de ${appliedLimit} mA adotado pelo laboratório)`;
   } else if (isPoleEquipment(input.equipmentType)) {
     // NBR 11854: limite em µA pelo diâmetro do bastão (a corrente medida é digitada em µA)
     appliedLimit = getNBR11854LeakageLimit_uA(poleDiameter);
@@ -389,6 +414,8 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
         ? input.isolatedTools.reduce((acc, t) => acc + (Number(t.quantity) || 1), 0)
         : 1;
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA.toFixed(2)} mA) excedeu o limite normativo máximo de ${appliedLimit.toFixed(1)} mA para o lote de ${totalToolsCount} ferramenta(s) ensaiada(s) (1,0 mA por ferramenta conforme ABNT NBR 9699 / IEC 60900).`);
+    } else if (input.equipmentType === 'ponteira_prova') {
+      rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} mA) excedeu o limite de ${appliedLimit} mA adotado pelo laboratório (a ABNT NBR 6881 não estipula corrente de fuga; o critério da norma é a ausência de perfuração).`);
     } else if (isPoleEquipment(input.equipmentType)) {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} µA) excedeu o limite máximo de ${appliedLimit} µA da ABNT NBR 11854 para bastão de Ø ${poleDiameter} mm ensaiado a ${NBR11854_TEST_VOLTAGE_KV} kV.`);
     } else {
@@ -530,6 +557,13 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       );
     } else if (input.equipmentType === 'ferramenta_isolada') {
       // Parecer técnico completo e conclusivo já consolidado acima para ferramentas manuais isoladas
+    } else if (input.equipmentType === 'ponteira_prova') {
+      rationaleParts.push(
+        `Ponteiras de prova / cabos de ensaio CONFORMES com a ABNT NBR 6881. Ensaio de tensão aplicada a ${targetVoltage} kV ${input.voltageType} por ${input.durationSeconds} segundos, ` +
+        `com a tensão elevada a partir de no máximo 20 % da tensão nominal (${PROBE_RAMP_START_MAX_KV.toFixed(1).replace('.', ',')} kV) em 10 s a 60 s e reduzida até no máximo 20 % antes do desligamento, ` +
+        `sem perfuração total ou parcial da isolação (item 4.3 da norma). Corrente de fuga registrada: ${input.measuredLeakageCurrent_mA} mA ` +
+        `(limite de ${appliedLimit} mA adotado pelo laboratório; a NBR 6881 não estipula valor de corrente de fuga).`
+      );
     } else if (isPoleEquipment(input.equipmentType)) {
       const kind = input.equipmentType === 'vara_manobra' ? 'Vara de manobra telescópica / seccionável' : 'Bastão de manobra / bastão de resgate';
       rationaleParts.push(
@@ -840,14 +874,14 @@ export function getNormPresetForEquipment(
       return {
         normCode: 'Especificações do fabricante',
         normName: `Detector de Tensão por Indução (${INDUCTION_DETECTOR_CLASS})`,
-        testVoltage_kV: 60,
+        testVoltage_kV: 50,
         voltageType: 'AC',
         testDurationSeconds: 0,
         maxLeakageCurrent: 0,
         currentUnit: 'mA',
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-10 Rev.03',
-        description: 'Ensaio de detecção por aproximação: em cada tensão da tabela (1 kV a 60 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão, conforme as especificações do fabricante.'
+        description: 'Ensaio de detecção por aproximação: em cada tensão da tabela (1 kV a 50 kV) registra-se a distância (cm) em que o detector sinaliza a presença de tensão, conforme as especificações do fabricante.'
       };
     }
     case 'detector_tensao': {
@@ -881,16 +915,16 @@ export function getNormPresetForEquipment(
     }
     case 'ponteira_prova': {
       return {
-        normCode: 'IEC 61010-031',
-        normName: 'Ponteiras de Prova e Cabos de Ensaio',
-        testVoltage_kV: 5.0,
+        normCode: 'ABNT NBR 6881',
+        normName: 'Ponteiras de Prova e Cabos de Ensaio (1,2 kV — NBR 6881)',
+        testVoltage_kV: PROBE_TEST_VOLTAGE_KV,
         voltageType: 'AC',
         testDurationSeconds: 60,
-        maxLeakageCurrent: 1.0,
+        maxLeakageCurrent: PROBE_LEAKAGE_LIMIT_MA,
         currentUnit: 'mA',
         retestIntervalMonths: 12,
         standardProcedureCode: 'PR-JVM-LAB-11 Rev.01',
-        description: 'Ensaio de rigidez dielétrica de cabos e ponteiras conforme IEC 61010-031.'
+        description: 'Ensaio de tensão aplicada em cabos e ponteiras de prova (até 1 kV) a 1,2 kV CA por 1 minuto conforme ABNT NBR 6881: início e fim da rampa em no máximo 20 % da tensão nominal, subida em 10 s a 60 s; aprovado sem perfuração (corrente de fuga: limite de 5,0 mA adotado pelo laboratório).'
       };
     }
     case 'outro':

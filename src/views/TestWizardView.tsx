@@ -191,9 +191,9 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
     fullLabel: 'Escadas Isoladas em Fibra de Vidro (EN 50528:2024 BT / ABNT NBR IEC 61478 AT)'
   },
   detector_inducao: {
-    label: 'Detector de Tensão por Indução (1 kV a 60 kV)',
+    label: 'Detector de Tensão por Indução (1 kV a 50 kV)',
     norm: 'Especificações do fabricante',
-    fullLabel: 'Detector de Tensão por Indução — classe 1 kV a 60 kV (especificações do fabricante)'
+    fullLabel: 'Detector de Tensão por Indução — classe 1 kV a 50 kV (especificações do fabricante)'
   },
   detector_tensao: {
     label: 'Detectores de Tensão / Prova de Ausência de Tensão',
@@ -202,8 +202,8 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
   },
   ponteira_prova: {
     label: 'Ponteiras de Prova e Cabos de Ensaio',
-    norm: 'IEC 61010-031',
-    fullLabel: 'Ponteiras de Prova e Cabos de Ensaio (IEC 61010-031)'
+    norm: 'ABNT NBR 6881',
+    fullLabel: 'Ponteiras de Prova e Cabos de Ensaio (ABNT NBR 6881 — 1,2 kV)'
   },
   outro: {
     label: 'Outros Dispositivos Dielétricos',
@@ -2811,6 +2811,26 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
                   <span className="font-extrabold text-slate-800">Sem perfuração até 30 kV</span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Ponteiras de prova e cabos (ABNT NBR 6881): procedimento e critério */}
+          {selectedEquipmentType === 'ponteira_prova' && (
+            <div className="p-4 bg-blue-50/90 border border-blue-300 rounded-xl space-y-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-bold text-blue-950 uppercase tracking-wider">Ensaio de tensão aplicada — ABNT NBR 6881</span>
+                <span className="text-[11px] font-bold text-blue-800 bg-white px-2.5 py-0.5 rounded-full border border-blue-200">Cabos até 1 kV • 1,2 kV CA</span>
+              </div>
+              <ol className="list-decimal pl-4 space-y-0.5 text-slate-700">
+                <li>Iniciar a tensão em no máximo <b>20 % da tensão nominal (0,2 kV)</b>.</li>
+                <li>Elevar de forma uniforme até <b>1,2 kV</b>, atingindo o valor em <b>10 s a 60 s</b>.</li>
+                <li>Manter 1,2 kV pelo tempo de ensaio (60 s).</li>
+                <li>Reduzir até no máximo 20 % da tensão nominal, desligar e aterrar os condutores.</li>
+              </ol>
+              <p className="text-slate-600">
+                <b>Critério da norma (item 4.3):</b> sem perfuração total ou parcial da isolação. A NBR 6881 não estipula corrente de fuga:
+                o limite de <b>5,0 mA</b> é adotado pelo laboratório e aparece assim no laudo.
+              </p>
             </div>
           )}
 
