@@ -69,6 +69,8 @@ import {
   findMatchingCriterion,
   isTestEligibleForCertificate,
   isPoleEquipment,
+  isProbeEquipment,
+  criteriaEquipmentType,
   getClosestPoleDiameter,
   getNBR11854LeakageLimit_uA,
   NBR11854_POLE_DIAMETERS_MM,
@@ -209,6 +211,16 @@ export const EQUIPMENT_NORM_SPECIFICATIONS: Record<EquipmentType, EquipmentNormS
     label: 'Ponteiras de Prova e Cabos de Ensaio',
     norm: 'ABNT NBR 6881',
     fullLabel: 'Ponteiras de Prova e Cabos de Ensaio (ABNT NBR 6881 — 1,2 kV)'
+  },
+  aterramento_com_bastao: {
+    label: 'Aterramento Temporário com Bastão',
+    norm: 'ABNT NBR 11854',
+    fullLabel: 'Aterramento Temporário com Bastão (critério de vara de manobra — ABNT NBR 11854, 50 kV)'
+  },
+  aterramento_sem_bastao: {
+    label: 'Aterramento Temporário sem Bastão',
+    norm: 'ABNT NBR 6881',
+    fullLabel: 'Aterramento Temporário sem Bastão (critério de ponteira de prova — ABNT NBR 6881, 1,2 kV)'
   },
   outro: {
     label: 'Outros Dispositivos Dielétricos',
@@ -619,6 +631,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
       escada_isolada: 'ESC',
       detector_tensao: 'DET',
       detector_inducao: 'DTI',
+      aterramento_com_bastao: 'ATB',
+      aterramento_sem_bastao: 'ATS',
       outro: 'EPI'
     };
     const prefix = prefixMap[type] || 'EPI';
@@ -693,7 +707,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
   useEffect(() => {
     if (normsList.length === 0) return;
     const currentNorm = normsList.find(n => n.id === selectedNormId);
-    if (!currentNorm || !currentNorm.applicableEquipmentTypes?.includes(selectedEquipmentType)) {
+    if (!currentNorm || !currentNorm.applicableEquipmentTypes?.includes(criteriaEquipmentType(selectedEquipmentType))) {
       const effClass = selectedEquipmentType === 'ferramenta_isolada'
         ? '0'
         : (selectedEquipmentType === 'tapete_isolante' && selectedDielectricClass === '00' ? '0' : selectedDielectricClass);
@@ -2330,8 +2344,8 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
               className="w-full p-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 font-semibold bg-white"
             >
               {(() => {
-                const applicableNorms = normsList.filter(n => n.applicableEquipmentTypes?.includes(selectedEquipmentType));
-                const otherNorms = normsList.filter(n => !n.applicableEquipmentTypes?.includes(selectedEquipmentType));
+                const applicableNorms = normsList.filter(n => n.applicableEquipmentTypes?.includes(criteriaEquipmentType(selectedEquipmentType)));
+                const otherNorms = normsList.filter(n => !n.applicableEquipmentTypes?.includes(criteriaEquipmentType(selectedEquipmentType)));
                 const eqLabel = EQUIPMENT_NORM_SPECIFICATIONS[selectedEquipmentType]?.label || 'Equipamento Selecionado';
 
                 return (
@@ -2900,7 +2914,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
           )}
 
           {/* Ponteiras de prova e cabos (ABNT NBR 6881): procedimento e critério */}
-          {selectedEquipmentType === 'ponteira_prova' && (
+          {isProbeEquipment(selectedEquipmentType) && (
             <div className="p-4 bg-blue-50/90 border border-blue-300 rounded-xl space-y-2 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-bold text-blue-950 uppercase tracking-wider">Ensaio de tensão aplicada — ABNT NBR 6881</span>

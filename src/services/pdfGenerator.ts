@@ -163,6 +163,8 @@ export function formatEquipmentType(type?: string, customName?: string): string 
     bastao_manobra: 'BASTÃO DE MANOBRA',
     vara_manobra: 'VARA DE MANOBRA TELESCÓPICA',
     ponteira_prova: 'PONTEIRA DE PROVA',
+    aterramento_com_bastao: 'ATERRAMENTO TEMPORÁRIO COM BASTÃO',
+    aterramento_sem_bastao: 'ATERRAMENTO TEMPORÁRIO SEM BASTÃO',
     detector_tensao: 'DETECTOR DE TENSÃO',
     detector_inducao: 'DETECTOR DE TENSÃO POR INDUÇÃO',
     ferramenta_isolada: 'FERRAMENTA MANUAL ISOLADA',
@@ -1035,7 +1037,7 @@ export async function renderLaudoToDoc(
         ? `Máximo ${normLeakageLimit} mA (Limite adotado – ASTM D178-22)`
         : test.equipmentType === 'ferramenta_isolada'
         ? `Máximo ${test.leakageCurrentLimit_mA} mA (${(test.isolatedTools?.reduce((acc, t) => acc + (Number(t.quantity) || 1), 0) || 1)} un x 1,0 mA - NBR 9699)`
-        : test.equipmentType === 'ponteira_prova'
+        : (test.equipmentType === 'ponteira_prova' || test.equipmentType === 'aterramento_sem_bastao')
         ? `Máximo ${test.leakageCurrentLimit_mA} mA (limite adotado pelo laboratório – a NBR 6881 não estipula corrente de fuga)`
         : test.poleDiameter_mm
         ? `Máximo ${test.leakageCurrentLimit_mA} ${displayUnit(test.currentUnit)} (NBR 11854 – Ø ${test.poleDiameter_mm} mm a ${test.appliedVoltage_kV} kV${(test.testPoints ?? 1) > 1 ? ` – ${test.testPoints} pontos ensaiados` : ''})`

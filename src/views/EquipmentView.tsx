@@ -480,6 +480,8 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
               <option value="tapete_isolante">Tapetes Isolantes de Borracha (ASTM D178-22)</option>
               <option value="bastao_manobra">Bastões de Manobra e Salvamento</option>
               <option value="vara_manobra">Varas de Manobra Telescópicas</option>
+              <option value="aterramento_com_bastao">Aterramento Temporário com Bastão</option>
+              <option value="aterramento_sem_bastao">Aterramento Temporário sem Bastão</option>
               <option value="ferramenta_isolada">Ferramentas Manuais Isoladas (NBR 9699)</option>
               <option value="capacete_classe_b">Capacetes Classe B (NBR 8221)</option>
               <option value="cobertura_rigida">Coberturas Rígidas de Linha Viva</option>
@@ -828,6 +830,8 @@ export const EquipmentView: React.FC<EquipmentViewProps> = ({
                     <option value="detector_tensao">⚡ Detectores de Tensão (ABNT NBR IEC 61243-1)</option>
                     <option value="detector_inducao">📡 Detector de Tensão por Indução (1 kV a 50 kV)</option>
                     <option value="ponteira_prova">🔌 Ponteiras de Prova e Cabos (ABNT NBR 6881)</option>
+                    <option value="aterramento_com_bastao">🔗 Aterramento Temporário com Bastão (critério de vara de manobra — NBR 11854)</option>
+                    <option value="aterramento_sem_bastao">🔗 Aterramento Temporário sem Bastão (critério de ponteira de prova — NBR 6881)</option>
                     <option value="outro">📦 Outros Dispositivos Dielétricos</option>
                   </select>
                   {EQUIPMENT_NORM_SPECIFICATIONS[newType] && (

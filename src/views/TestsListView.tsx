@@ -743,6 +743,8 @@ export const TestsListView: React.FC<TestsListViewProps> = ({
               <option value="tapete_isolante">🟩 Tapetes Isolantes (ASTM D178-22)</option>
               <option value="bastao_manobra">🦯 Bastões de Manobra e de Resgate (NBR 11854)</option>
               <option value="vara_manobra">🔭 Varas Telescópicas</option>
+              <option value="aterramento_com_bastao">🔗 Aterramento Temporário com Bastão</option>
+              <option value="aterramento_sem_bastao">🔗 Aterramento Temporário sem Bastão</option>
               <option value="cobertura_rigida">🛡️ Coberturas Rígidas (ASTM F712)</option>
               <option value="ferramenta_isolada">🔧 Ferramentas Isoladas (NBR 9699)</option>
             </select>

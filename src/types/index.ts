@@ -86,6 +86,8 @@ export type EquipmentType =
   | 'bastao_manobra'
   | 'vara_manobra'
   | 'ponteira_prova'
+  | 'aterramento_com_bastao' // aterramento temporário com bastão: critério da vara de manobra (NBR 11854)
+  | 'aterramento_sem_bastao' // aterramento temporário sem bastão: critério da ponteira de prova (NBR 6881)
   | 'detector_tensao'
   | 'detector_inducao'
   | 'ferramenta_isolada'

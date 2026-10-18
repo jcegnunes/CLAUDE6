@@ -43,7 +43,17 @@ export const NBR11854_LEAKAGE_UA: Record<number, { kv50: number; kv100: number }
 /** Diâmetro padrão quando não informado: o de menor limite (mais exigente). */
 export const NBR11854_DEFAULT_DIAMETER_MM = 32;
 
-export const isPoleEquipment = (type?: string) => type === 'bastao_manobra' || type === 'vara_manobra';
+export const isPoleEquipment = (type?: string) => type === 'bastao_manobra' || type === 'vara_manobra' || type === 'aterramento_com_bastao';
+
+/** Ponteira de prova e aterramento temporário sem bastão: mesmo ensaio e critério (ABNT NBR 6881). */
+export const isProbeEquipment = (type?: string) => type === 'ponteira_prova' || type === 'aterramento_sem_bastao';
+
+/**
+ * Tipo cujos critérios da lista de normas valem para o equipamento: o aterramento temporário
+ * com bastão usa os da vara de manobra (NBR 11854) e o sem bastão os da ponteira de prova (NBR 6881).
+ */
+export const criteriaEquipmentType = (type: EquipmentType): EquipmentType =>
+  type === 'aterramento_com_bastao' ? 'vara_manobra' : type === 'aterramento_sem_bastao' ? 'ponteira_prova' : type;
 
 /** Diâmetro da tabela mais próximo do informado (32, 38, 51 ou 64 mm). */
 export function getClosestPoleDiameter(diameter_mm?: number): number {
@@ -200,7 +210,7 @@ export function findMatchingCriterion(
 ): NormCriterion | undefined {
   if (criterionId) {
     const directMatch = allCriteria.find(c => c.id === criterionId && c.status === 'active');
-    if (directMatch && directMatch.applicableEquipmentTypes.includes(equipmentType)) {
+    if (directMatch && directMatch.applicableEquipmentTypes.includes(criteriaEquipmentType(equipmentType))) {
       return directMatch;
     }
   }
@@ -208,7 +218,7 @@ export function findMatchingCriterion(
   // Find by equipment type and class
   return allCriteria.find(c => {
     if (c.status !== 'active') return false;
-    const typeMatches = c.applicableEquipmentTypes.includes(equipmentType);
+    const typeMatches = c.applicableEquipmentTypes.includes(criteriaEquipmentType(equipmentType));
     
     // Normalize class comparison (e.g. '0', '00', '1', '2', '3', '4', 'B', '1000V', 'Geral')
     const normClass = (c.dielectricClass || '').trim().toLowerCase();
@@ -362,7 +372,7 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       : 1;
     appliedLimit = Math.max(1, totalToolsCount) * 1.0;
     normReferenceClause = 'ABNT NBR 9699:2022 / IEC 60900 (Item 5.5 / 1,0 mA por ferramenta)';
-  } else if (input.equipmentType === 'ponteira_prova') {
+  } else if (isProbeEquipment(input.equipmentType)) {
     normReferenceClause = `ABNT NBR 6881 (item 4.3: sem perfuração; corrente de fuga: limite de ${appliedLimit} mA adotado pelo laboratório)`;
   } else if (isPoleEquipment(input.equipmentType)) {
     // NBR 11854: limite em µA pelo diâmetro do bastão (a corrente medida é digitada em µA)
@@ -432,7 +442,7 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
         ? input.isolatedTools.reduce((acc, t) => acc + (Number(t.quantity) || 1), 0)
         : 1;
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA.toFixed(2)} mA) excedeu o limite normativo máximo de ${appliedLimit.toFixed(1)} mA para o lote de ${totalToolsCount} ferramenta(s) ensaiada(s) (1,0 mA por ferramenta conforme ABNT NBR 9699 / IEC 60900).`);
-    } else if (input.equipmentType === 'ponteira_prova') {
+    } else if (isProbeEquipment(input.equipmentType)) {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} mA) excedeu o limite de ${appliedLimit} mA adotado pelo laboratório (a ABNT NBR 6881 não estipula corrente de fuga; o critério da norma é a ausência de perfuração).`);
     } else if (isPoleEquipment(input.equipmentType)) {
       rationaleParts.push(`Corrente de fuga medida (${input.measuredLeakageCurrent_mA} µA) excedeu o limite máximo de ${poleLimitText(appliedLimit)}.`);
@@ -577,15 +587,17 @@ export function evaluateDielectricTest(input: NormEvaluationInput): NormEvaluati
       );
     } else if (input.equipmentType === 'ferramenta_isolada') {
       // Parecer técnico completo e conclusivo já consolidado acima para ferramentas manuais isoladas
-    } else if (input.equipmentType === 'ponteira_prova') {
+    } else if (isProbeEquipment(input.equipmentType)) {
       rationaleParts.push(
-        `Ponteiras de prova / cabos de ensaio CONFORMES com a ABNT NBR 6881. Ensaio de tensão aplicada a ${targetVoltage} kV ${input.voltageType} por ${input.durationSeconds} segundos, ` +
+        `${input.equipmentType === 'aterramento_sem_bastao' ? 'Conjunto de aterramento temporário sem bastão CONFORME pelo critério de ponteiras de prova da ABNT NBR 6881' : 'Ponteiras de prova / cabos de ensaio CONFORMES com a ABNT NBR 6881'}. Ensaio de tensão aplicada a ${targetVoltage} kV ${input.voltageType} por ${input.durationSeconds} segundos, ` +
         `com a tensão elevada a partir de no máximo 20 % da tensão nominal (${PROBE_RAMP_START_MAX_KV.toFixed(1).replace('.', ',')} kV) em 10 s a 60 s e reduzida até no máximo 20 % antes do desligamento, ` +
         `sem perfuração total ou parcial da isolação (item 4.3 da norma). Corrente de fuga registrada: ${input.measuredLeakageCurrent_mA} mA ` +
         `(limite de ${appliedLimit} mA adotado pelo laboratório; a NBR 6881 não estipula valor de corrente de fuga).`
       );
     } else if (isPoleEquipment(input.equipmentType)) {
-      const kind = input.equipmentType === 'vara_manobra' ? 'Vara de manobra telescópica / seccionável' : 'Bastão de manobra / bastão de resgate';
+      const kind = input.equipmentType === 'vara_manobra' ? 'Vara de manobra telescópica / seccionável'
+        : input.equipmentType === 'aterramento_com_bastao' ? 'Conjunto de aterramento temporário com bastão (critério de vara de manobra)'
+        : 'Bastão de manobra / bastão de resgate';
       rationaleParts.push(
         `${kind} plenamente CONFORME com a ABNT NBR 11854. Aprovado na inspeção visual e no ensaio dielétrico a ${targetVoltage} kV ${input.voltageType} por ${input.durationSeconds} segundos, sem disrupção nem perfuração, ` +
         `com corrente de fuga de ${input.measuredLeakageCurrent_mA} µA (abaixo do limite de ${poleLimitText(appliedLimit)}).`
@@ -670,6 +682,24 @@ export function getDefaultChecklistForEquipment(type: EquipmentType): ChecklistI
       { id: 'chk-di4', item: 'Botão liga/desliga e seletor de sensibilidade funcionando', status: 'conforme' },
       { id: 'chk-di5', item: 'Identificação do fabricante, modelo e faixa de tensão legíveis', status: 'conforme' }
     ];
+  }
+
+  if (type === 'aterramento_com_bastao' || type === 'aterramento_sem_bastao') {
+    const items: ChecklistItem[] = [
+      { id: 'chk-at1', item: 'Grampos de linha e de terra sem trincas, com molas, parafusos e mordentes íntegros', status: 'conforme' },
+      { id: 'chk-at2', item: 'Cabos de aterramento sem fios rompidos, emendas ou capa isolante danificada', status: 'conforme' },
+      { id: 'chk-at3', item: 'Terminais e conexões prensados, firmes e sem corrosão', status: 'conforme' },
+      { id: 'chk-at4', item: 'Grampo / trado de terra e haste em bom estado', status: 'conforme' }
+    ];
+    if (type === 'aterramento_com_bastao') {
+      items.push(
+        { id: 'chk-at5', item: 'Bastão isolante sem trincas, delaminação ou umidade; cabeçote e encaixes firmes', status: 'conforme' },
+        { id: 'chk-at6', item: 'Identificação da tensão nominal e limites de empunhadura do bastão visíveis', status: 'conforme' }
+      );
+    } else {
+      items.push({ id: 'chk-at5', item: 'Identificação do fabricante, seção do cabo e tensão nominal legíveis', status: 'conforme' });
+    }
+    return items;
   }
 
   if (type === 'bastao_manobra' || type === 'vara_manobra') {
@@ -947,6 +977,10 @@ export function getNormPresetForEquipment(
         description: 'Ensaio de tensão aplicada em cabos e ponteiras de prova (até 1 kV) a 1,2 kV CA por 1 minuto conforme ABNT NBR 6881: início e fim da rampa em no máximo 20 % da tensão nominal, subida em 10 s a 60 s; aprovado sem perfuração (corrente de fuga: limite de 5,0 mA adotado pelo laboratório).'
       };
     }
+    case 'aterramento_com_bastao':
+      return { ...getNormPresetForEquipment('vara_manobra', dielectricClass), normName: 'Aterramento Temporário com Bastão — critério de vara de manobra (50 kV — NBR 11854)' };
+    case 'aterramento_sem_bastao':
+      return { ...getNormPresetForEquipment('ponteira_prova', dielectricClass), normName: 'Aterramento Temporário sem Bastão — critério de ponteira de prova (1,2 kV — NBR 6881)' };
     case 'outro':
     default: {
       return {

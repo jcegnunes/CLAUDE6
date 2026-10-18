@@ -22,6 +22,8 @@ export function getEquipmentTypeDescription(type: string, customName?: string): 
     bastao_manobra: 'Bastão de Manobra Isolado',
     vara_manobra: 'Vara de Manobra Telescópica',
     ponteira_prova: 'Ponteira / Terminal de Prova',
+    aterramento_com_bastao: 'Aterramento Temporário com Bastão',
+    aterramento_sem_bastao: 'Aterramento Temporário sem Bastão',
     detector_tensao: 'Detector de Tensão',
     detector_inducao: 'Detector de Tensão por Indução',
     ferramenta_isolada: 'Conjunto de Ferramentas Isoladas 1000V',
@@ -135,7 +137,7 @@ export function getApplicableNormsList(tests: TestRecord[]): NormInfo[] {
       normMap.set('ASTM D178', standardCatalog['ASTM D178']);
     } else if (test.equipmentType === 'escada_isolada') {
       normMap.set('ABNT IEC 61478', standardCatalog['ABNT IEC 61478']);
-    } else if (test.equipmentType === 'bastao_manobra' || test.equipmentType === 'vara_manobra') {
+    } else if (test.equipmentType === 'bastao_manobra' || test.equipmentType === 'vara_manobra' || test.equipmentType === 'aterramento_com_bastao') {
       normMap.set('ABNT NBR 16603', standardCatalog['ABNT NBR 16603']);
     } else if (test.equipmentType === 'ferramenta_isolada') {
       normMap.set('ABNT NBR 16604', standardCatalog['ABNT NBR 16604']);
