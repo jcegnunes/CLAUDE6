@@ -6,8 +6,13 @@ import { TestRecord, CompanyLabInfo } from '../types';
 import { formatDateBR } from '../utils/dateUtils';
 import { saveDocLocally } from '../utils/nativeFileSaver';
 import { ValidationPortalService } from './validationPortalService';
+import { buildLabelModel, drawLabelModel, modelMmScale } from './niimbotLabelModel';
 
-export type NiimbotRollSize = '50x30' | '50x50' | '50x40' | '40x30' | '50x80';
+export type NiimbotRollSize = '30x20' | '50x30' | '50x80';
+
+/** Tamanho válido (valores antigos salvos, como 50x50 ou 40x30, viram 50x30). */
+export const normalizeRollSize = (size?: string): NiimbotRollSize =>
+  size === '30x20' || size === '50x80' ? size : '50x30';
 
 export interface NiimbotRollConfig {
   id: NiimbotRollSize;
@@ -20,49 +25,31 @@ export interface NiimbotRollConfig {
 }
 
 export const NIIMBOT_ROLL_CONFIGS: Record<NiimbotRollSize, NiimbotRollConfig> = {
+  '30x20': {
+    id: '30x20',
+    name: '30 x 20 mm (Pequena)',
+    widthMm: 30,
+    heightMm: 20,
+    description: 'Modelo compacto: TAG, laudo, datas, QR do validador e status.',
+    recommendedFor: 'Ferramentas, ponteiras e equipamentos pequenos',
+    dpi: 203
+  },
   '50x30': {
     id: '50x30',
     name: '50 x 30 mm (Padrão Niimbot B1)',
     widthMm: 50,
     heightMm: 30,
     description: 'Tamanho padrão e mais utilizado na impressora Niimbot B1.',
-    recommendedFor: 'Luvas, Mangas, Capacetes e Ferramental NR-10',
-    dpi: 203
-  },
-  '50x50': {
-    id: '50x50',
-    name: '50 x 50 mm (Quadrada / QR Code Grande)',
-    widthMm: 50,
-    heightMm: 50,
-    description: 'Etiqueta quadrada com maior área para QR Code e especificações.',
-    recommendedFor: 'Tapetes, Mantas e Coberturas Isolantes',
-    dpi: 203
-  },
-  '50x40': {
-    id: '50x40',
-    name: '50 x 40 mm (Intermediária)',
-    widthMm: 50,
-    heightMm: 40,
-    description: 'Excelente equilíbrio entre detalhes técnicos e rastreabilidade.',
-    recommendedFor: 'Varas de Manobra e Conjuntos de Aterramento',
-    dpi: 203
-  },
-  '40x30': {
-    id: '40x30',
-    name: '40 x 30 mm (Compacta)',
-    widthMm: 40,
-    heightMm: 30,
-    description: 'Formato compacto para ferramentas menores e alicates isolados.',
-    recommendedFor: 'Alicates, Chaves Isoladas e Ferramentas 1000V',
+    recommendedFor: 'Luvas, mangas, capacetes e ferramental NR-10',
     dpi: 203
   },
   '50x80': {
     id: '50x80',
-    name: '50 x 80 mm (Estendida / Envoltória)',
+    name: '50 x 80 mm (Em pé)',
     widthMm: 50,
     heightMm: 80,
-    description: 'Formato longo ideal para envelopamento de bastões e cabos.',
-    recommendedFor: 'Bastões Telescópicos, Varas e Cabos de Aterramento',
+    description: 'Etiqueta em pé com QR Code grande, mesmas informações do modelo padrão.',
+    recommendedFor: 'Bastões, varas, escadas, tapetes e aterramentos',
     dpi: 203
   }
 };
@@ -109,528 +96,13 @@ export async function renderNiimbotLabelToCanvas(
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Não foi possível obter contexto 2D do canvas');
 
-  // Background - Pure White
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, widthPx, heightPx);
-
-  // Outer border with 0.8mm margin
-  const marginPx = Math.round(1 * dotsPerMm * scale);
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = Math.round(0.4 * dotsPerMm * scale);
-  ctx.strokeRect(marginPx, marginPx, widthPx - marginPx * 2, heightPx - marginPx * 2);
-
+  const size = normalizeRollSize(rollSize);
   const validationUrl = ValidationPortalService.buildPublicValidationUrl(test.validationCode);
   const qrDataUrl = await generateNiimbotQRCodeDataUrl(validationUrl);
 
-  const isApproved = test.result === 'APROVADO';
-
-  if (rollSize === '50x30') {
-    // 50x30mm Layout (Standard Niimbot B1)
-    render50x30Layout(ctx, test, company, widthPx, heightPx, marginPx, scale, dotsPerMm, qrDataUrl, isApproved);
-  } else if (rollSize === '50x50') {
-    // 50x50mm Square Layout
-    render50x50Layout(ctx, test, company, widthPx, heightPx, marginPx, scale, dotsPerMm, qrDataUrl, isApproved);
-  } else if (rollSize === '50x40') {
-    // 50x40mm Layout
-    render50x40Layout(ctx, test, company, widthPx, heightPx, marginPx, scale, dotsPerMm, qrDataUrl, isApproved);
-  } else if (rollSize === '40x30') {
-    // 40x30mm Compact Layout
-    render40x30Layout(ctx, test, company, widthPx, heightPx, marginPx, scale, dotsPerMm, qrDataUrl, isApproved);
-  } else {
-    // 50x80mm Extended Layout
-    render50x80Layout(ctx, test, company, widthPx, heightPx, marginPx, scale, dotsPerMm, qrDataUrl, isApproved);
-  }
-
+  // mesmo desenho da etiqueta do aplicativo (APK)
+  await drawLabelModel(ctx, buildLabelModel(test, size), widthPx, heightPx, qrDataUrl);
   return canvas;
-}
-
-// -----------------------------------------------------------------------------
-// LAYOUT 50 x 30 mm (Standard Niimbot B1)
-// -----------------------------------------------------------------------------
-function render50x30Layout(
-  ctx: CanvasRenderingContext2D,
-  test: TestRecord,
-  company: CompanyLabInfo,
-  w: number,
-  h: number,
-  m: number,
-  s: number,
-  d: number,
-  qrDataUrl: string,
-  isApproved: boolean
-) {
-  // Top Header Banner (Pure Black)
-  const headerHeight = Math.round(5.5 * d * s);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(m, m, w - m * 2, headerHeight);
-
-  // Header Text
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${Math.round(2.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  const companyTitle = (company.name || '').toUpperCase();
-  ctx.fillText(companyTitle.length > 20 ? companyTitle.substring(0, 20) + '...' : companyTitle, m + 2 * s * d, m + headerHeight / 2);
-
-  ctx.textAlign = 'right';
-  ctx.font = `bold ${Math.round(2.2 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText('NR-10', w - m - 2 * s * d, m + headerHeight / 2);
-
-  // Left Content Area
-  const leftX = m + 2 * s * d;
-  let curY = m + headerHeight + 2.5 * s * d;
-
-  // TAG (High visibility)
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(3.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`TAG: ${test.equipmentTag}`, leftX, curY);
-
-  curY += 4.0 * s * d;
-
-  // Equipment Type & Class
-  ctx.font = `bold ${Math.round(2.2 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  const eqDesc = `${test.equipmentType.replace(/_/g, ' ')} (CL. ${test.equipmentClass})`.toUpperCase();
-  ctx.fillText(eqDesc.length > 26 ? eqDesc.substring(0, 26) : eqDesc, leftX, curY);
-
-  curY += 3.0 * s * d;
-
-  // Client / User
-  ctx.font = `normal ${Math.round(2.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  const clientStr = `Cli: ${test.clientName}`.toUpperCase();
-  ctx.fillText(clientStr.length > 28 ? clientStr.substring(0, 28) : clientStr, leftX, curY);
-
-  curY += 3.2 * s * d;
-
-  // Status Badge (Black filled for APROVADO, Double Border for REPROVADO)
-  const badgeW = 27 * s * d;
-  const badgeH = 4.2 * s * d;
-  if (isApproved) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(leftX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold ${Math.round(2.4 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('STATUS: APROVADO', leftX + badgeW / 2, curY + 0.8 * s * d);
-  } else {
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1.2 * s;
-    ctx.strokeRect(leftX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${Math.round(2.3 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('STATUS: REPROVADO', leftX + badgeW / 2, curY + 0.8 * s * d);
-  }
-
-  curY += 5.2 * s * d;
-
-  // Dates & Technical Info
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#000000';
-  ctx.font = `normal ${Math.round(1.9 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Ensaio: ${formatDateBR(test.testDate)} (${test.appliedVoltage_kV}kV)`, leftX, curY);
-
-  curY += 2.6 * s * d;
-
-  // Retest Expiration (High emphasis)
-  ctx.font = `bold ${Math.round(2.3 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`VALIDADE: ${formatDateBR(test.retestDueDate)}`, leftX, curY);
-
-  // QR Code on the Right
-  const qrSize = Math.round(15.5 * d * s);
-  const qrX = w - m - qrSize - 1.5 * s * d;
-  const qrY = m + headerHeight + 1.2 * s * d;
-
-  if (qrDataUrl) {
-    const qrImg = new Image();
-    qrImg.src = qrDataUrl;
-    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-  }
-
-  // QR Code Sub-text
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(1.8 * d * s)}px "Courier New", monospace`;
-  ctx.fillText(test.validationCode, qrX + qrSize / 2, qrY + qrSize + 0.8 * s * d);
-
-  ctx.font = `bold ${Math.round(1.5 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText('VALIDAR NR-10', qrX + qrSize / 2, qrY + qrSize + 2.8 * s * d);
-}
-
-// -----------------------------------------------------------------------------
-// LAYOUT 50 x 50 mm (Square)
-// -----------------------------------------------------------------------------
-function render50x50Layout(
-  ctx: CanvasRenderingContext2D,
-  test: TestRecord,
-  company: CompanyLabInfo,
-  w: number,
-  h: number,
-  m: number,
-  s: number,
-  d: number,
-  qrDataUrl: string,
-  isApproved: boolean
-) {
-  // Top Header Banner
-  const headerHeight = Math.round(6.5 * d * s);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(m, m, w - m * 2, headerHeight);
-
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${Math.round(2.8 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText((company.name || '').toUpperCase(), m + 2 * s * d, m + headerHeight / 2);
-
-  ctx.textAlign = 'right';
-  ctx.font = `bold ${Math.round(2.3 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText('LAUDO NR-10', w - m - 2 * s * d, m + headerHeight / 2);
-
-  // TAG & Basic Info
-  let curY = m + headerHeight + 3 * s * d;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(4.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`TAG: ${test.equipmentTag}`, m + 2.5 * s * d, curY);
-
-  curY += 4.5 * s * d;
-  ctx.font = `bold ${Math.round(2.4 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`${test.equipmentType.replace(/_/g, ' ')} • CLASSE ${test.equipmentClass}`.toUpperCase(), m + 2.5 * s * d, curY);
-
-  curY += 3.2 * s * d;
-  ctx.font = `normal ${Math.round(2.2 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Cliente: ${test.clientName}`, m + 2.5 * s * d, curY);
-
-  // Center QR Code
-  const qrSize = Math.round(19 * d * s);
-  const qrX = (w - qrSize) / 2;
-  curY += 4.0 * s * d;
-
-  if (qrDataUrl) {
-    const qrImg = new Image();
-    qrImg.src = qrDataUrl;
-    ctx.drawImage(qrImg, qrX, curY, qrSize, qrSize);
-  }
-
-  curY += qrSize + 1.5 * s * d;
-
-  // Status and Dates
-  const badgeW = 34 * s * d;
-  const badgeH = 4.8 * s * d;
-  const badgeX = (w - badgeW) / 2;
-  if (isApproved) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(badgeX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold ${Math.round(2.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('STATUS: APROVADO', w / 2, curY + 1.0 * s * d);
-  } else {
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1.5 * s;
-    ctx.strokeRect(badgeX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${Math.round(2.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('STATUS: REPROVADO', w / 2, curY + 1.0 * s * d);
-  }
-
-  curY += 6.2 * s * d;
-  ctx.fillStyle = '#000000';
-  ctx.textAlign = 'center';
-  ctx.font = `bold ${Math.round(2.4 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Ensaio: ${formatDateBR(test.testDate)}  |  VALIDADE: ${formatDateBR(test.retestDueDate)}`, w / 2, curY);
-
-  curY += 3.0 * s * d;
-  ctx.font = `normal ${Math.round(1.8 * d * s)}px "Courier New", monospace`;
-  ctx.fillText(`Laudo: ${test.reportNumber} • Cód: ${test.validationCode}`, w / 2, curY);
-}
-
-// -----------------------------------------------------------------------------
-// LAYOUT 50 x 40 mm
-// -----------------------------------------------------------------------------
-function render50x40Layout(
-  ctx: CanvasRenderingContext2D,
-  test: TestRecord,
-  company: CompanyLabInfo,
-  w: number,
-  h: number,
-  m: number,
-  s: number,
-  d: number,
-  qrDataUrl: string,
-  isApproved: boolean
-) {
-  // Header
-  const headerHeight = Math.round(6 * d * s);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(m, m, w - m * 2, headerHeight);
-
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${Math.round(2.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'middle';
-  ctx.fillText((company.name || '').toUpperCase(), m + 2 * s * d, m + headerHeight / 2);
-
-  ctx.textAlign = 'right';
-  ctx.font = `bold ${Math.round(2.2 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText('ENSAIO NR-10', w - m - 2 * s * d, m + headerHeight / 2);
-
-  const leftX = m + 2 * s * d;
-  let curY = m + headerHeight + 2.5 * s * d;
-
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(3.8 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`TAG: ${test.equipmentTag}`, leftX, curY);
-
-  curY += 4.2 * s * d;
-  ctx.font = `bold ${Math.round(2.2 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`${test.equipmentType.replace(/_/g, ' ')} (CLASSE ${test.equipmentClass})`.toUpperCase(), leftX, curY);
-
-  curY += 3.0 * s * d;
-  ctx.font = `normal ${Math.round(2.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Cliente: ${test.clientName}`, leftX, curY);
-
-  curY += 3.0 * s * d;
-  ctx.fillText(`Tensão: ${test.appliedVoltage_kV} kV ${test.voltageType} • Fuga: ${test.measuredLeakageCurrent_mA}mA`, leftX, curY);
-
-  curY += 3.6 * s * d;
-  // Status Badge
-  const badgeW = 28 * s * d;
-  const badgeH = 4.5 * s * d;
-  if (isApproved) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(leftX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold ${Math.round(2.4 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('STATUS: APROVADO', leftX + badgeW / 2, curY + 0.9 * s * d);
-  } else {
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1.2 * s;
-    ctx.strokeRect(leftX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${Math.round(2.4 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('STATUS: REPROVADO', leftX + badgeW / 2, curY + 0.9 * s * d);
-  }
-
-  curY += 5.5 * s * d;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#000000';
-  ctx.font = `normal ${Math.round(2.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Data Ensaio: ${formatDateBR(test.testDate)}`, leftX, curY);
-
-  curY += 2.8 * s * d;
-  ctx.font = `bold ${Math.round(2.4 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`VALIDADE: ${formatDateBR(test.retestDueDate)}`, leftX, curY);
-
-  curY += 2.8 * s * d;
-  ctx.font = `normal ${Math.round(1.8 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Laudo: ${test.reportNumber}`, leftX, curY);
-
-  // QR Code on the Right
-  const qrSize = Math.round(17.5 * d * s);
-  const qrX = w - m - qrSize - 1.5 * s * d;
-  const qrY = m + headerHeight + 3.0 * s * d;
-
-  if (qrDataUrl) {
-    const qrImg = new Image();
-    qrImg.src = qrDataUrl;
-    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-  }
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(1.9 * d * s)}px "Courier New", monospace`;
-  ctx.fillText(test.validationCode, qrX + qrSize / 2, qrY + qrSize + 1.0 * s * d);
-
-  ctx.font = `bold ${Math.round(1.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText('VALIDAR NR-10', qrX + qrSize / 2, qrY + qrSize + 3.2 * s * d);
-}
-
-// -----------------------------------------------------------------------------
-// LAYOUT 40 x 30 mm (Compact)
-// -----------------------------------------------------------------------------
-function render40x30Layout(
-  ctx: CanvasRenderingContext2D,
-  test: TestRecord,
-  company: CompanyLabInfo,
-  w: number,
-  h: number,
-  m: number,
-  s: number,
-  d: number,
-  qrDataUrl: string,
-  isApproved: boolean
-) {
-  // Top Header
-  const headerHeight = Math.round(5 * d * s);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(m, m, w - m * 2, headerHeight);
-
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${Math.round(2.3 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(`${(company.name || '').toUpperCase()}${company.name ? ' • ' : ''}NR-10`, w / 2, m + headerHeight / 2);
-
-  const leftX = m + 1.5 * s * d;
-  let curY = m + headerHeight + 2.0 * s * d;
-
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(3.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`TAG: ${test.equipmentTag}`, leftX, curY);
-
-  curY += 3.5 * s * d;
-  ctx.font = `bold ${Math.round(1.9 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`CLASSE ${test.equipmentClass} • ${test.appliedVoltage_kV}kV`, leftX, curY);
-
-  curY += 2.8 * s * d;
-  const badgeW = 20 * s * d;
-  const badgeH = 3.6 * s * d;
-  if (isApproved) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(leftX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold ${Math.round(2.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('APROVADO', leftX + badgeW / 2, curY + 0.6 * s * d);
-  } else {
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1.0 * s;
-    ctx.strokeRect(leftX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${Math.round(2.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('REPROVADO', leftX + badgeW / 2, curY + 0.6 * s * d);
-  }
-
-  curY += 4.5 * s * d;
-  ctx.textAlign = 'left';
-  ctx.fillStyle = '#000000';
-  ctx.font = `normal ${Math.round(1.7 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Ensaio: ${formatDateBR(test.testDate)}`, leftX, curY);
-
-  curY += 2.4 * s * d;
-  ctx.font = `bold ${Math.round(2.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`VAL: ${formatDateBR(test.retestDueDate)}`, leftX, curY);
-
-  // QR Code on right
-  const qrSize = Math.round(13 * d * s);
-  const qrX = w - m - qrSize - 1.2 * s * d;
-  const qrY = m + headerHeight + 1.5 * s * d;
-
-  if (qrDataUrl) {
-    const qrImg = new Image();
-    qrImg.src = qrDataUrl;
-    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-  }
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(1.5 * d * s)}px "Courier New", monospace`;
-  ctx.fillText(test.validationCode, qrX + qrSize / 2, qrY + qrSize + 0.8 * s * d);
-}
-
-// -----------------------------------------------------------------------------
-// LAYOUT 50 x 80 mm (Extended Wrap)
-// -----------------------------------------------------------------------------
-function render50x80Layout(
-  ctx: CanvasRenderingContext2D,
-  test: TestRecord,
-  company: CompanyLabInfo,
-  w: number,
-  h: number,
-  m: number,
-  s: number,
-  d: number,
-  qrDataUrl: string,
-  isApproved: boolean
-) {
-  // Top Header
-  const headerHeight = Math.round(8 * d * s);
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(m, m, w - m * 2, headerHeight);
-
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = `bold ${Math.round(3.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(company.name.toUpperCase(), w / 2, m + headerHeight / 2);
-
-  let curY = m + headerHeight + 4 * s * d;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#000000';
-  ctx.font = `bold ${Math.round(4.4 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`TAG: ${test.equipmentTag}`, w / 2, curY);
-
-  curY += 5.5 * s * d;
-  ctx.font = `bold ${Math.round(2.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`${test.equipmentType.replace(/_/g, ' ')}`.toUpperCase(), w / 2, curY);
-
-  curY += 3.5 * s * d;
-  ctx.font = `bold ${Math.round(2.2 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`CLASSE ${test.equipmentClass} • TENSÃO: ${test.appliedVoltage_kV} kV`, w / 2, curY);
-
-  curY += 3.5 * s * d;
-  ctx.font = `normal ${Math.round(2.0 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Cliente: ${test.clientName}`, w / 2, curY);
-
-  // Center Big QR
-  const qrSize = Math.round(22 * d * s);
-  const qrX = (w - qrSize) / 2;
-  curY += 4.5 * s * d;
-
-  if (qrDataUrl) {
-    const qrImg = new Image();
-    qrImg.src = qrDataUrl;
-    ctx.drawImage(qrImg, qrX, curY, qrSize, qrSize);
-  }
-
-  curY += qrSize + 2 * s * d;
-  ctx.font = `bold ${Math.round(2.2 * d * s)}px "Courier New", monospace`;
-  ctx.fillText(test.validationCode, w / 2, curY);
-
-  curY += 4.5 * s * d;
-  const badgeW = 36 * s * d;
-  const badgeH = 5.5 * s * d;
-  const badgeX = (w - badgeW) / 2;
-  if (isApproved) {
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(badgeX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `bold ${Math.round(2.8 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.fillText('STATUS: APROVADO', w / 2, curY + 1.2 * s * d);
-  } else {
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1.5 * s;
-    ctx.strokeRect(badgeX, curY, badgeW, badgeH);
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold ${Math.round(2.8 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.fillText('STATUS: REPROVADO', w / 2, curY + 1.2 * s * d);
-  }
-
-  curY += 8.0 * s * d;
-  ctx.fillStyle = '#000000';
-  ctx.font = `normal ${Math.round(2.2 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Data do Ensaio: ${formatDateBR(test.testDate)}`, w / 2, curY);
-
-  curY += 3.5 * s * d;
-  ctx.font = `bold ${Math.round(2.6 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`VALIDADE: ${formatDateBR(test.retestDueDate)}`, w / 2, curY);
-
-  curY += 3.5 * s * d;
-  ctx.font = `normal ${Math.round(1.8 * d * s)}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`Laudo: ${test.reportNumber}`, w / 2, curY);
 }
 
 /**
@@ -860,190 +332,8 @@ export async function buildNiimbotJCPSObject(
     console.warn('Não foi possível gerar preview para JCPS:', err);
   }
 
-  // Define layout elements in mm based on roll size
-  const elements: NiimbotJCPSElement[] = [
-    // Header Banner Background
-    {
-      id: 'elem_header_bg',
-      type: 'rect',
-      x: 1.0,
-      y: 1.0,
-      width: config.widthMm - 2.0,
-      height: 5.5,
-      backgroundColor: '#000000'
-    },
-    // Header Company Title
-    {
-      id: 'elem_header_title',
-      type: 'text',
-      x: 2.0,
-      y: 2.0,
-      width: config.widthMm - 16.0,
-      height: 4.0,
-      content: (company.name || '').toUpperCase(),
-      fontSize: 8,
-      fontWeight: 'bold',
-      textAlign: 'left',
-      textColor: '#FFFFFF'
-    },
-    // Header Standard Tag
-    {
-      id: 'elem_header_norm',
-      type: 'text',
-      x: config.widthMm - 14.0,
-      y: 2.0,
-      width: 12.0,
-      height: 4.0,
-      content: 'NR-10',
-      fontSize: 8,
-      fontWeight: 'bold',
-      textAlign: 'right',
-      textColor: '#FFFFFF'
-    },
-    // TAG Field
-    {
-      id: 'elem_tag',
-      type: 'text',
-      x: 2.0,
-      y: 7.5,
-      width: config.widthMm - 20.0,
-      height: 4.5,
-      content: `TAG: ${firstTest.equipmentTag}`,
-      variableBinding: '{TAG}',
-      fontSize: 10,
-      fontWeight: 'bold',
-      textAlign: 'left',
-      textColor: '#000000'
-    },
-    // Equipment & Class Field
-    {
-      id: 'elem_equipment',
-      type: 'text',
-      x: 2.0,
-      y: 12.0,
-      width: config.widthMm - 20.0,
-      height: 3.5,
-      content: `${firstTest.equipmentType.replace(/_/g, ' ')} (CL. ${firstTest.equipmentClass})`.toUpperCase(),
-      variableBinding: '{EQUIPAMENTO}',
-      fontSize: 7,
-      fontWeight: 'bold',
-      textAlign: 'left',
-      textColor: '#000000'
-    },
-    // Client Field
-    {
-      id: 'elem_client',
-      type: 'text',
-      x: 2.0,
-      y: 15.5,
-      width: config.widthMm - 20.0,
-      height: 3.2,
-      content: `Cli: ${firstTest.clientName}`.toUpperCase(),
-      variableBinding: '{CLIENTE}',
-      fontSize: 6.5,
-      fontWeight: 'normal',
-      textAlign: 'left',
-      textColor: '#000000'
-    },
-    // Status Badge
-    {
-      id: 'elem_status_badge',
-      type: 'rect',
-      x: 2.0,
-      y: 19.0,
-      width: 26.0,
-      height: 4.2,
-      backgroundColor: isApproved ? '#000000' : '#FFFFFF',
-      borderColor: '#000000',
-      borderWidth: isApproved ? 0 : 1
-    },
-    {
-      id: 'elem_status_text',
-      type: 'text',
-      x: 2.0,
-      y: 19.8,
-      width: 26.0,
-      height: 3.2,
-      content: `STATUS: ${firstTest.result}`,
-      variableBinding: '{STATUS}',
-      fontSize: 7.5,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      textColor: isApproved ? '#FFFFFF' : '#000000'
-    },
-    // Test Date & Voltage
-    {
-      id: 'elem_test_date',
-      type: 'text',
-      x: 2.0,
-      y: 24.2,
-      width: config.widthMm - 20.0,
-      height: 2.8,
-      content: `Ensaio: ${formatDateBR(firstTest.testDate)} (${firstTest.appliedVoltage_kV}kV)`,
-      variableBinding: '{DATA_ENSAIO}',
-      fontSize: 6,
-      fontWeight: 'normal',
-      textAlign: 'left',
-      textColor: '#000000'
-    },
-    // Retest Due Date (Validade)
-    {
-      id: 'elem_retest_date',
-      type: 'text',
-      x: 2.0,
-      y: 27.0,
-      width: config.widthMm - 20.0,
-      height: 3.0,
-      content: `VALIDADE: ${formatDateBR(firstTest.retestDueDate)}`,
-      variableBinding: '{VALIDADE_REENSAIO}',
-      fontSize: 7.5,
-      fontWeight: 'bold',
-      textAlign: 'left',
-      textColor: '#000000'
-    },
-    // QR Code
-    {
-      id: 'elem_qrcode',
-      type: 'qrcode',
-      x: config.widthMm - 17.5,
-      y: 7.5,
-      width: 16.0,
-      height: 16.0,
-      content: validationUrl,
-      variableBinding: '{URL_VALIDACAO_QR}',
-      errorCorrectionLevel: 'M'
-    },
-    // Validation Code Sub-text
-    {
-      id: 'elem_val_code',
-      type: 'text',
-      x: config.widthMm - 17.5,
-      y: 24.0,
-      width: 16.0,
-      height: 2.5,
-      content: `Cod: ${firstTest.validationCode.substring(0, 10)}`,
-      variableBinding: '{CODIGO_VALIDACAO}',
-      fontSize: 5,
-      fontWeight: 'bold',
-      textAlign: 'center',
-      textColor: '#000000'
-    },
-    // Report Number Sub-text
-    {
-      id: 'elem_report_sub',
-      type: 'text',
-      x: config.widthMm - 17.5,
-      y: 26.8,
-      width: 16.0,
-      height: 2.5,
-      content: `L: ${firstTest.reportNumber}`,
-      variableBinding: '{NUM_LAUDO}',
-      fontSize: 5,
-      fontWeight: 'normal',
-      textAlign: 'center',
-      textColor: '#000000'
-    }
-  ];
+  // Define layout elements in mm based on roll size (modelo do aplicativo nos tamanhos 30x20, 50x30 e 80x50)
+  const elements: NiimbotJCPSElement[] = modelJcpsElements(firstTest, rollSize, config);
 
   // Records data source table
   const columns = [
@@ -1346,4 +636,62 @@ export async function printNiimbotDirect(
       document.body.removeChild(iframe);
     }, 1000);
   }, 400);
+}
+
+/** Elementos JCPS (mm) do modelo do aplicativo, com as variáveis de lote nos campos do ensaio. */
+function modelJcpsElements(test: TestRecord, rollSize: NiimbotRollSize, config: NiimbotRollConfig): NiimbotJCPSElement[] {
+  const model = buildLabelModel(test, normalizeRollSize(rollSize));
+  const qrPrim = model.primitives.find(p => p.kind === 'qr');
+  const qrSide = qrPrim && qrPrim.kind === 'qr' ? qrPrim.size : 120;
+  const { k, ox, oy } = modelMmScale(model, config.widthMm, config.heightMm);
+  const r = (v: number) => Math.round(v * 100) / 100;
+  const ptPerMm = 2.835;
+
+  return model.primitives.map((p): NiimbotJCPSElement => {
+    if (p.kind === 'rect') {
+      return {
+        id: `elem_${p.id}`, type: 'rect',
+        x: r(ox + p.x * k), y: r(oy + p.y * k), width: r(p.w * k), height: r(p.h * k),
+        ...(p.fill ? { backgroundColor: '#000000' } : { borderColor: '#000000', borderWidth: r((p.stroke || 1) * k) })
+      };
+    }
+    if (p.kind === 'qr') {
+      return {
+        id: `elem_${p.id}`, type: 'qrcode',
+        x: r(ox + p.x * k), y: r(oy + p.y * k), width: r(p.size * k), height: r(p.size * k),
+        content: p.content, variableBinding: p.binding, errorCorrectionLevel: 'M'
+      };
+    }
+    const h = p.size * 1.25 * k;
+    const align = p.align || 'left';
+    const xMm = ox + p.x * k;
+    const labelW = config.widthMm;
+    let width: number;
+    let x: number;
+    if (p.rotate) {
+      width = qrSide * k; // ao longo do QR
+      x = xMm - width / 2;
+    } else if (align === 'center') {
+      width = 2 * Math.min(xMm - ox, labelW - ox - xMm);
+      x = xMm - width / 2;
+    } else if (align === 'right') {
+      width = xMm - ox - 1;
+      x = xMm - width;
+    } else {
+      width = (p.maxWidth ? p.maxWidth * k : labelW - xMm - ox - 1);
+      x = xMm;
+    }
+    const y = p.middle || p.rotate ? oy + p.y * k - h / 2 : oy + (p.y - p.size * 0.95) * k;
+    return {
+      id: `elem_${p.id}`, type: 'text',
+      x: r(x), y: r(y), width: r(width), height: r(h),
+      content: p.content, variableBinding: p.binding,
+      fontSize: r(p.size * k * ptPerMm),
+      fontFamily: p.mono ? 'monospace' : 'sans-serif',
+      fontWeight: p.bold ? 'bold' : 'normal',
+      textAlign: align,
+      textColor: p.white ? '#FFFFFF' : '#000000',
+      ...(p.rotate ? { rotation: 270 } : {})
+    };
+  });
 }
