@@ -232,3 +232,41 @@ export async function fetchPublicTrainingCertificate(code: string): Promise<Publ
     return null;
   }
 }
+
+/** Certificado válido encontrado no servidor (campos usados para barrar emissão repetida). */
+export interface ServerValidCertificate {
+  courseId: string;
+  courseName: string;
+  participantCpf: string;
+  certificateNumber: string;
+  status: 'valido';
+}
+
+/**
+ * Consulta no banco (Supabase) os certificados válidos destes CPFs, sem depender
+ * da cópia do aparelho. Devolve null quando não dá para consultar (sem internet,
+ * sem login ou banco não configurado).
+ */
+export async function fetchValidCertificatesByCpf(cpfs: string[]): Promise<ServerValidCertificate[] | null> {
+  const digits = Array.from(new Set(cpfs.map(c => c.replace(/\D/g, '')).filter(d => d.length === 11)));
+  if (!digits.length) return [];
+  if (!(await canSync())) return null;
+  const client = SupabaseService.getClient();
+  // o CPF fica gravado com máscara; registros antigos podem estar só com dígitos
+  const variants = digits.flatMap(d => [d, `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`]);
+  const out: ServerValidCertificate[] = [];
+  for (let i = 0; i < variants.length; i += 200) {
+    const { data, error } = await client.from('training_certificates')
+      .select('course_id, course_name, participant_cpf, certificate_number')
+      .eq('company_id', currentCompanyId())
+      .eq('status', 'valido')
+      .is('deleted_at', null)
+      .in('participant_cpf', variants.slice(i, i + 200));
+    if (error) throw new Error(error.message);
+    (data || []).forEach((r: any) => out.push({
+      courseId: r.course_id || '', courseName: r.course_name || '', participantCpf: r.participant_cpf || '',
+      certificateNumber: r.certificate_number || '', status: 'valido'
+    }));
+  }
+  return out;
+}

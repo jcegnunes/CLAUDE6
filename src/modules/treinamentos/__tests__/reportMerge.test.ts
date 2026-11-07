@@ -89,9 +89,9 @@ describe('Planilha de emissão a partir dos relatórios', () => {
     expect(skipped.map(s => s.reason)).toEqual(['Desligado / removido da turma', 'Curso sem correspondência no sistema']);
   });
 
-  it('deixa de fora quem já tem certificado válido do mesmo curso, em qualquer data', () => {
+  it('separa quem já tem certificado válido do mesmo curso, em qualquer data', () => {
     const report = parseReport(parseCsv(CSV));
-    const { rows, skipped } = mergeReports(report, parseRoster(ROSTER), {
+    const { rows, certified, skipped } = mergeReports(report, parseRoster(ROSTER), {
       mapping: { [report[0].courseText]: 'nr06' }, courses: COURSES, company: '',
       existing: [
         { courseId: 'nr06', participantCpf: '529.982.247-25', status: 'valido', certificateNumber: 'TRE-2610-0033' },
@@ -99,7 +99,18 @@ describe('Planilha de emissão a partir dos relatórios', () => {
       ]
     });
     expect(rows).toHaveLength(0);
-    expect(skipped.map(s => s.reason)).toContain('Já tem certificado válido (TRE-2610-0033)');
+    expect(certified).toMatchObject([{ name: 'Maria da Silva', existingCertificate: 'TRE-2610-0033' }]);
+    expect(skipped.map(s => s.reason)).not.toContain('Já tem certificado válido (TRE-2610-0033)');
+  });
+
+  it('reconhece o certificado do servidor pelo nome do curso e CPF sem máscara', () => {
+    const report = parseReport(parseCsv(CSV));
+    const { rows, certified } = mergeReports(report, parseRoster(ROSTER), {
+      mapping: { [report[0].courseText]: 'nr06' }, courses: COURSES, company: '',
+      existing: [{ courseId: 'id-antigo', courseName: 'NR-06 – Equipamento de Proteção Individual', participantCpf: '52998224725', status: 'valido', certificateNumber: 'TRE-2609-0007' }]
+    });
+    expect(rows).toHaveLength(0);
+    expect(certified.map(r => r.existingCertificate)).toEqual(['TRE-2609-0007']);
   });
 
   it('gera as linhas com os títulos do modelo de importação', () => {

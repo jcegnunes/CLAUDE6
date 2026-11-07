@@ -1,9 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { FileSpreadsheet, Download, Upload, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Users, ClipboardList } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { FileSpreadsheet, Download, Upload, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Users, ClipboardList, Database, ShieldAlert } from 'lucide-react';
+import { fetchValidCertificatesByCpf, type ServerValidCertificate } from '../sync';
 import { downloadGeneratedSheet, readSheetsAsRows } from '../spreadsheetFiles';
 import { getCertificates, getCourses } from '../repository';
 import {
-  APPROVED_SITUATIONS, mergeReports, parseReport, parseRoster, suggestCourse, toImportRecords, type ReportEntry, type RosterEntry
+  APPROVED_SITUATIONS, mergeReports, parseReport, parseRoster, suggestCourse, toImportRecords, type ReportEntry, type RosterEntry, type SheetRow
 } from '../reportMerge';
 import { normalizeText } from '../spreadsheetImport';
 import { formatDateBr, todayIso } from '../rules';
@@ -89,26 +90,55 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
     return Array.from(map.values()).sort((a, b) => b.done - a.done || a.text.localeCompare(b.text));
   }, [report]);
 
+  // certificados válidos destes alunos no banco (não só os deste aparelho)
+  const [server, setServer] = useState<{ status: 'consultando' | 'ok' | 'sem-conexao' | 'erro'; certs: ServerValidCertificate[]; error?: string } | null>(null);
+  useEffect(() => {
+    if (!report) return;
+    let alive = true;
+    setServer({ status: 'consultando', certs: [] });
+    fetchValidCertificatesByCpf(report.rows.map(r => r.cpf))
+      .then(certs => { if (alive) setServer(certs ? { status: 'ok', certs } : { status: 'sem-conexao', certs: [] }); })
+      .catch(err => { if (alive) setServer({ status: 'erro', certs: [], error: err instanceof Error ? err.message : String(err) }); });
+    return () => { alive = false; };
+  }, [report]);
+
   const result = useMemo(
-    () => (report ? mergeReports(report.rows, roster?.rows || [], { mapping, courses: getCourses(), company, existing: getCertificates() }) : null),
-    [report, roster, mapping, company]
+    () => (report ? mergeReports(report.rows, roster?.rows || [], { mapping, courses: getCourses(), company, existing: [...getCertificates(), ...(server?.certs || [])] }) : null),
+    [report, roster, mapping, company, server]
   );
-  const records = useMemo(() => (result ? toImportRecords(result.rows) : []), [result]);
+  // quem já tem certificado válido só entra na planilha se for marcado aqui
+  const [includeCertified, setIncludeCertified] = useState<Set<string>>(new Set());
+  const certKey = (r: SheetRow) => `${r.cpf}|${r.course.id}`;
+  const chosenCertified = useMemo(() => (result?.certified || []).filter(r => includeCertified.has(certKey(r))), [result, includeCertified]);
+  const finalRows = useMemo(() => (result ? [...result.rows, ...chosenCertified.map(r => ({ ...r, warnings: [...r.warnings, `Já tinha o certificado ${r.existingCertificate}`] }))] : []), [result, chosenCertified]);
+  const records = useMemo(() => toImportRecords(finalRows), [finalRows]);
+  const skippedAll = useMemo(() => [
+    ...(result?.skipped || []),
+    ...(result?.certified || []).filter(r => !includeCertified.has(certKey(r)))
+      .map(r => ({ name: r.name, cpf: r.cpf, courseText: r.courseText, reason: `Já tem certificado válido (${r.existingCertificate})` }))
+  ], [result, includeCertified]);
+
+  /** Antes de usar/baixar: confirma quem vai receber um segundo certificado do mesmo curso. */
+  const confirmCertified = () => !chosenCertified.length || window.confirm(
+    `${chosenCertified.length} aluno(s) JÁ TÊM certificado válido do curso e vão constar na planilha:\n\n`
+    + chosenCertified.slice(0, 15).map(r => `• ${r.name} — ${r.course.code || r.course.name} (${r.existingCertificate})`).join('\n')
+    + (chosenCertified.length > 15 ? '\n…' : '') + '\n\nContinuar mesmo assim?'
+  );
   const needGrade = useMemo(() => {
-    const ids = new Set(result?.rows.map(r => r.course.id));
+    const ids = new Set(finalRows.map(r => r.course.id));
     return getCourses().filter(c => ids.has(c.id) && c.minGrade !== undefined && c.minGrade !== null && String(c.minGrade) !== '');
-  }, [result]);
+  }, [finalRows]);
   const skippedByReason = useMemo(() => {
     const acc: Record<string, number> = {};
-    result?.skipped.forEach(s => { acc[s.reason] = (acc[s.reason] || 0) + 1; });
+    skippedAll.forEach(s => { const k = s.reason.replace(/ \(TRE-.*\)$/, ''); acc[k] = (acc[k] || 0) + 1; });
     return Object.entries(acc).sort((a, b) => b[1] - a[1]);
-  }, [result]);
+  }, [skippedAll]);
 
   const fileName = `Emissao_certificados_${(company.trim() || 'relatorio').replace(/[^\p{L}\p{N}]+/gu, '_')}_${todayIso()}.xlsx`;
   const handleDownload = async () => {
-    if (!result) return;
+    if (!result || !confirmCertified()) return;
     setDownloading(true);
-    try { await downloadGeneratedSheet(records, result.skipped, fileName); } catch (err) { alertError(err, 'Falha ao gerar a planilha'); } finally { setDownloading(false); }
+    try { await downloadGeneratedSheet(records, skippedAll, fileName); } catch (err) { alertError(err, 'Falha ao gerar a planilha'); } finally { setDownloading(false); }
   };
 
   const FileBox: React.FC<{ kind: 'report' | 'roster'; icon: React.ElementType; title: string; hint: string; loaded: string | null; detail: string }> = ({ kind, icon: Icon, title, hint, loaded, detail }) => (
@@ -129,7 +159,7 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
       <button type="button" className={btnSecondary} disabled={!result || downloading} onClick={handleDownload}>
         {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Baixar planilha
       </button>
-      <button type="button" className={btnPrimary} disabled={!records.length} onClick={() => onUse(records, `Gerada de ${report?.file || 'relatório'}`)}>
+      <button type="button" className={btnPrimary} disabled={!records.length} onClick={() => confirmCertified() && onUse(records, `Gerada de ${report?.file || 'relatório'}`)}>
         <ArrowRight className="w-3.5 h-3.5" /> Usar na emissão ({records.length})
       </button>
     </>
@@ -183,12 +213,42 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
       {result && (
         <div className="mt-4">
           <div className="flex flex-wrap items-center gap-2 mb-2">
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold text-emerald-700 bg-emerald-50 border-emerald-200"><CheckCircle2 className="w-3.5 h-3.5" /> {result.rows.length} certificado(s)</span>
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold text-emerald-700 bg-emerald-50 border-emerald-200"><CheckCircle2 className="w-3.5 h-3.5" /> {finalRows.length} certificado(s)</span>
             <button type="button" className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100" onClick={() => setShowSkipped(s => !s)}>
-              {result.skipped.length} fora da planilha {showSkipped ? '▴' : '▾'}
+              {skippedAll.length} fora da planilha {showSkipped ? '▴' : '▾'}
             </button>
             {!roster && <span className="text-[11px] text-amber-700">Sem a lista de colaboradores: sem filial e com início = conclusão.</span>}
           </div>
+
+          <p className={`mb-2 text-[11px] flex items-center gap-1.5 ${server?.status === 'ok' ? 'text-slate-500' : 'text-amber-700'}`}>
+            {server?.status === 'consultando' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Database className="w-3.5 h-3.5" />}
+            {server?.status === 'consultando' && 'Consultando no banco de dados os certificados já emitidos…'}
+            {server?.status === 'ok' && `Banco de dados consultado: ${server.certs.length} certificado(s) válido(s) destes alunos.`}
+            {server?.status === 'sem-conexao' && 'Sem conexão com o banco de dados: conferido só com os certificados deste aparelho.'}
+            {server?.status === 'erro' && `Falha ao consultar o banco (${server.error}): conferido só com os certificados deste aparelho.`}
+          </p>
+
+          {result.certified.length > 0 && (
+            <div className="mb-3 border border-red-300 bg-red-50 rounded-xl p-3">
+              <p className="text-xs font-bold text-red-800 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4" /> {result.certified.length} aluno(s) já têm certificado válido deste curso
+              </p>
+              <p className="text-[11px] text-red-800 mt-0.5 mb-2">Por padrão ficam fora da planilha. Marque quem deve constar na planilha final para emissão (receberá um novo certificado).</p>
+              <div className="space-y-1">
+                {result.certified.map(r => {
+                  const k = certKey(r);
+                  return (
+                    <label key={k} className="flex items-start gap-2 text-[11px] text-slate-800 bg-white border border-red-200 rounded-lg px-2 py-1.5 cursor-pointer">
+                      <input type="checkbox" className="mt-0.5" checked={includeCertified.has(k)}
+                        onChange={e => setIncludeCertified(prev => { const n = new Set(prev); if (e.target.checked) n.add(k); else n.delete(k); return n; })} />
+                      <span className="flex-1 min-w-0"><b>{r.name}</b> · {r.cpf || 'sem CPF'} · {r.course.code || r.course.name}</span>
+                      <span className="font-mono text-red-700 whitespace-nowrap">{r.existingCertificate}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {showSkipped && (
             <div className="mb-3 border border-slate-200 rounded-xl p-2.5 bg-slate-50">
@@ -196,7 +256,7 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
               <div className="max-h-48 overflow-auto">
                 <table className="w-full text-[11px]">
                   <tbody>
-                    {result.skipped.map((s, i) => (
+                    {skippedAll.map((s, i) => (
                       <tr key={i} className="border-t border-slate-200 align-top">
                         <td className="py-1 pr-2 font-semibold text-slate-700">{s.name}</td>
                         <td className="py-1 pr-2 text-slate-500">{s.courseText}</td>
@@ -216,7 +276,7 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
             </p>
           )}
 
-          {result.rows.length > 0 ? (
+          {finalRows.length > 0 ? (
             <div className="overflow-x-auto border border-slate-200 rounded-xl">
               <table className="w-full text-[11px]">
                 <thead className="bg-slate-50 text-slate-600">
@@ -229,7 +289,7 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
                   </tr>
                 </thead>
                 <tbody>
-                  {result.rows.map((r, i) => (
+                  {finalRows.map((r, i) => (
                     <tr key={i} className="border-t border-slate-100 align-top">
                       <td className="px-2 py-1.5 font-semibold text-slate-700 whitespace-nowrap">{r.course.code || r.course.name}</td>
                       <td className="px-2 py-1.5 text-slate-800">

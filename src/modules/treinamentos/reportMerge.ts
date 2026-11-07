@@ -200,6 +200,8 @@ export interface SheetRow {
   endDate: string;
   completion: number;
   warnings: string[];
+  /** Número do certificado válido que a pessoa já tem neste curso (alerta antes de incluir) */
+  existingCertificate?: string;
 }
 
 export interface SkippedRow {
@@ -215,7 +217,7 @@ const DAY = 86400000;
  * Junta relatório e lista. Recebe certificado quem tem 100% de conclusão, data de
  * conclusão e situação aprovada, num curso associado a um curso do sistema e sem
  * estar entre os desligados. Início = data da liberação (quando coerente), término =
- * data de conclusão.
+ * data de conclusão. Quem já tem certificado válido do curso vem em "certified".
  */
 export function mergeReports(
   report: ReportEntry[],
@@ -223,9 +225,9 @@ export function mergeReports(
   ctx: {
     mapping: Record<string, string | undefined>; courses: TrainingCourse[]; company: string;
     /** Certificados já emitidos: quem já tem um válido do mesmo curso fica de fora */
-    existing?: Array<Pick<TrainingCertificate, 'courseId' | 'participantCpf' | 'status' | 'certificateNumber'>>;
+    existing?: Array<Pick<TrainingCertificate, 'courseId' | 'participantCpf' | 'status' | 'certificateNumber'> & { courseName?: string }>;
   }
-): { rows: SheetRow[]; skipped: SkippedRow[] } {
+): { rows: SheetRow[]; certified: SheetRow[]; skipped: SkippedRow[] } {
   const byCpf = new Map(roster.filter(r => r.cpf).map(r => [r.cpf, r]));
   const byName = new Map(roster.map(r => [normalizeText(r.name), r]));
   const rows: SheetRow[] = [];
@@ -247,8 +249,10 @@ export function mergeReports(
     const course = ctx.courses.find(c => c.id === courseId);
     if (!course) return skip('Curso sem correspondência no sistema');
     // a importação só barra repetido com a mesma data de término; aqui vale qualquer data
-    const issued = cpf ? ctx.existing?.find(c => c.status === 'valido' && c.courseId === course.id && onlyDigits(c.participantCpf) === cpf) : undefined;
-    if (issued) return skip(`Já tem certificado válido (${issued.certificateNumber})`);
+    // mesmo curso: pelo id ou pelo nome (curso recadastrado com outro id)
+    const sameCourse = (c: { courseId: string; courseName?: string }) =>
+      c.courseId === course.id || (!!c.courseName && normalizeText(c.courseName) === normalizeText(course.name));
+    const issued = cpf ? ctx.existing?.find(c => c.status === 'valido' && sameCourse(c) && onlyDigits(c.participantCpf) === cpf) : undefined;
 
     const warnings: string[] = [];
     if (!person) warnings.push('Não está na lista de colaboradores');
@@ -263,7 +267,7 @@ export function mergeReports(
     const row: SheetRow = {
       name, cpf: cpf ? formatCpf(cpf) : '', company: ctx.company.trim(), branch: person?.branch || '',
       course, courseText: e.courseText, startDate: coherent ? released! : end, endDate: end,
-      completion: e.completion ?? 100, warnings
+      completion: e.completion ?? 100, warnings, existingCertificate: issued?.certificateNumber
     };
     // mesma pessoa e curso repetidos no relatório: fica a conclusão mais recente
     const key = `${cpf || normalizeText(name)}|${course.id}`;
@@ -278,7 +282,8 @@ export function mergeReports(
   });
 
   rows.sort((a, b) => a.course.code.localeCompare(b.course.code) || a.name.localeCompare(b.name));
-  return { rows, skipped };
+  // quem já tem certificado válido do curso: fica separado, para o usuário decidir se entra
+  return { rows: rows.filter(r => !r.existingCertificate), certified: rows.filter(r => !!r.existingCertificate), skipped };
 }
 
 const br = (iso: string) => iso.split('-').reverse().join('/');
