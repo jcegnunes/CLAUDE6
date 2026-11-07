@@ -45,24 +45,22 @@
   o perfil de conclusão de cada aluno agrupado por filial. Cabeçalho com a turma do relatório EAD
   e rodapé com a data de emissão do relatório. Filiais conhecidas ganham a UF ("São Paulo/SP") e
   nomes todos em maiúsculas são ajustados ("Uilton Santos Ferreira").
-- **Curso a partir da norma (IA):** em Cursos › Novo curso, "Preencher a partir da norma (IA)":
-  envie a NR em PDF (com texto) ou TXT; o texto é lido no aparelho e analisado pela função
-  `analisar-norma` do Supabase com o Claude (Anthropic, modelo Claude Opus 5.5). A IA propõe um
-  curso por treinamento exigido (inicial, periódico, complementar…) com carga horária, validade,
-  modalidade, frequência, pré-requisito, observações e conteúdo programático com horas e o item da
-  norma de cada tópico. O formulário é preenchido sozinho; com mais de um curso, cada um fica numa
-  aba ("1. NR-…", "2. …") e é salvo individualmente ("Salvar este curso (1 de 2)"), passando
-  para a próxima aba pendente. Fechar com cursos não salvos pede confirmação. Erros da análise
-  (ex.: função não publicada) ficam escritos no quadro da IA. Sem nota mínima na norma, fica a
-  nota padrão 7.
-  **Curso a partir da norma — como ativar (uma vez):**
-  1. Crie uma chave em console.anthropic.com (API Keys).
-  2. No Supabase: Edge Functions → Secrets → `ANTHROPIC_API_KEY` = a chave.
-  3. Edge Functions → Deploy a new function → Via Editor → nome `analisar-norma` → cole
-     `supabase/functions/analisar-norma/index.ts` → Deploy (ou `supabase functions deploy analisar-norma`).
-  Custo aproximado: cerca de US$ 4 por milhão de tokens de entrada (uma NR média tem 20 a 90 mil
-  tokens, ou seja, de US$ 0,10 a 0,40 por análise, mais a resposta). PDF digitalizado (imagem)
-  não tem texto: use a versão com texto do site do Ministério do Trabalho.
+- **Curso a partir da norma (sem IA):** em Cursos › Novo curso, "Preencher a partir da norma (PDF)":
+  envie a NR em PDF (com texto) ou TXT; o texto é lido no próprio aparelho por regras
+  (`normParser.ts`), sem IA, sem internet e sem custo. Reconhece os dois formatos das NRs:
+  cursos definidos em itens (ex.: NR-36: "treinamento inicial ... quatro horas", "periódico
+  anual ... duas horas", conteúdo nas alíneas "a) b) c)" dos itens sobre o que os trabalhadores
+  devem saber) e cursos em anexo (ex.: NR-20: "Conteúdo programático", "a) Curso de ...",
+  "Carga horária: N horas", tópicos teóricos e práticos, tabelas de carga por classe e de
+  periodicidade). Treinamento eventual e complementações viram avisos. As horas por tópico são
+  divididas igualmente (alíneas vizinhas são agrupadas quando há mais tópicos do que blocos de
+  0,5 h). O formulário é preenchido sozinho; com mais de um curso, cada um fica numa aba e é salvo
+  individualmente ("Salvar este curso (1 de 2)"). Fechar com cursos não salvos pede confirmação.
+  Sem nota mínima na norma, fica a nota padrão 7. Testado com a NR-36 (2024) e a NR-20 (2025).
+  O leitor do PDF agora junta palavras que o PDF parte em pedaços ("uti lização" → "utilização").
+  A função `analisar-norma` (IA com Claude) continua no código e publicada no Supabase, mas a tela
+  não a usa; pode voltar a ser ligada quando houver uma chave da Anthropic.
+  PDF digitalizado (imagem) não tem texto: use a versão com texto do site do Ministério do Trabalho.
 - **Leitura de PDF no site publicado (correção):** em jvmlab.com.br a leitura de PDF falhava com
   "Setting up fake worker failed ... pdf.worker.min-….mjs": a Hostinger entrega arquivos .mjs como
   text/plain e, com o cabeçalho "nosniff", o navegador recusa. Agora o leitor de PDF é publicado

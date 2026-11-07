@@ -37,6 +37,32 @@ export interface NormAnalysis {
 /** Nota usada nos cursos da plataforma quando a norma não fixa nota mínima. */
 export const DEFAULT_MIN_GRADE = 7;
 
+/**
+ * Junta os trechos de texto de uma página do PDF. Os PDFs das NRs partem palavras
+ * em vários trechos ("uti" + "lização"): só entra espaço quando há distância real
+ * entre um trecho e o seguinte na mesma linha.
+ */
+export function joinPdfItems(items: Array<{ str?: string; hasEOL?: boolean; transform?: number[]; width?: number }>): string {
+  let out = '';
+  let prev: (typeof items)[number] | null = null;
+  for (const it of items) {
+    if (typeof it.str !== 'string') continue;
+    if (prev) {
+      const t = it.transform || [0, 0, 0, 0, 0, 0];
+      const p = prev.transform || [0, 0, 0, 0, 0, 0];
+      const sameLine = Math.abs(t[5] - p[5]) < 1;
+      const gap = t[4] - (p[4] + (prev.width || 0));
+      const size = Math.abs(p[0]) || 10;
+      if (!prev.hasEOL && !sameLine) out += '\n';
+      else if (!prev.hasEOL && gap > size * 0.12 && !/\s$/.test(out) && !/^\s/.test(it.str)) out += ' ';
+    }
+    out += it.str;
+    if (it.hasEOL) out += '\n';
+    prev = it;
+  }
+  return out;
+}
+
 /** Texto do arquivo da norma: PDF (texto de todas as páginas) ou TXT. */
 export async function extractNormText(file: File): Promise<{ text: string; pages: number }> {
   if (/\.txt$/i.test(file.name) || file.type === 'text/plain') {
@@ -53,8 +79,7 @@ export async function extractNormText(file: File): Promise<{ text: string; pages
     for (let n = 1; n <= pdf.numPages; n++) {
       const page = await pdf.getPage(n);
       const content = await page.getTextContent();
-      // quebra de linha onde o PDF marca fim de linha; espaço entre os demais trechos
-      parts.push(content.items.map((it: any) => `${it.str ?? ''}${it.hasEOL ? '\n' : ' '}`).join(''));
+      parts.push(joinPdfItems(content.items as any[]));
     }
     const text = parts.join('\n\n').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
     return { text, pages: pdf.numPages };

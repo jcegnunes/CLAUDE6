@@ -108,7 +108,9 @@ Deno.serve(async req => {
   try {
     const response = await client.messages.parse({
       model: MODEL,
-      max_tokens: 32000,
+      // sem streaming o SDK recusa max_tokens acima de ~21 mil (requisição que poderia passar de
+      // 10 min); 16 mil cobre a análise com folga e cabe no tempo máximo da Edge Function
+      max_tokens: 16000,
       output_config: { effort: 'medium', format: zodOutputFormat(Analysis) },
       system: SYSTEM,
       messages: [{

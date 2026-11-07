@@ -144,7 +144,7 @@ export const CoursesPanel: React.FC = () => {
 const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void; onDelete?: () => void }> = ({ course, onClose, onDelete }) => {
   const [c, setC] = useState<TrainingCourse>(course);
   const [filledFrom, setFilledFrom] = useState('');
-  // cursos propostos pela IA a partir da norma: um por aba, salvos um a um
+  // cursos lidos da norma: um por aba, salvos um a um
   const [drafts, setDrafts] = useState<Array<{ course: TrainingCourse; proposal: NormCourseProposal; saved: boolean }> | null>(null);
   const [tab, setTab] = useState(0);
 
@@ -240,7 +240,7 @@ const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void; onDe
         <p className="mb-3 text-[11px] text-violet-900 bg-violet-50 border border-violet-200 rounded-lg px-2.5 py-1.5">
           {drafts?.[tab]?.saved
             ? 'Este curso já foi salvo. Alterações aqui não são gravadas: edite o curso pela lista depois.'
-            : `Preenchido pela IA a partir da ${filledFrom}. Confira carga horária, validade, nota e o conteúdo programático com a norma e salve${drafts && drafts.length > 1 ? ' cada curso' : ''}.`}
+            : `Preenchido a partir da ${filledFrom} (leitura automática do texto). Confira carga horária, validade, nota e o conteúdo programático com a norma e salve${drafts && drafts.length > 1 ? ' cada curso' : ''}.`}
         </p>
       )}
       <div className="grid gap-3 sm:grid-cols-4">
