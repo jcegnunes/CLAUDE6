@@ -1,14 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FileSpreadsheet, Download, Upload, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Users, ClipboardList, Database, ShieldAlert } from 'lucide-react';
+import { FileSpreadsheet, Download, Upload, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Users, ClipboardList, Database, ShieldAlert, BarChart3, FileDown } from 'lucide-react';
 import { fetchValidCertificatesByCpf, type ServerValidCertificate } from '../sync';
-import { downloadGeneratedSheet, readSheetsAsRows } from '../spreadsheetFiles';
+import { downloadAnalyticsSheet, downloadGeneratedSheet, readSheetsAsRows } from '../spreadsheetFiles';
+import { analyticsSheets, buildAnalytics } from '../reportAnalytics';
+import { exportAnalyticsReport } from '../analyticsPdf';
+import { AnalyticsPanel } from './AnalyticsPanel';
 import { getCertificates, getCourses } from '../repository';
 import {
-  APPROVED_SITUATIONS, mergeReports, parseReport, parseRoster, suggestCourse, toImportRecords, type ReportEntry, type RosterEntry, type SheetRow
+  APPROVED_SITUATIONS, mergeReports, parseReport, parseRoster, reportIssuedAt, suggestCourse, toImportRecords, type ReportEntry, type RosterEntry, type SheetRow
 } from '../reportMerge';
 import { normalizeText } from '../spreadsheetImport';
 import { formatDateBr, todayIso } from '../rules';
-import { alertError, btnPrimary, btnSecondary, cardCls, Field, inputCls, Modal } from './ui';
+import { alertError, btnPrimary, btnSecondary, cardCls, Field, inputCls } from './ui';
 import { ImportCertificatesDialog } from './ImportCertificatesDialog';
 
 /** Primeira aba (ou o CSV) em que o leitor encontra as colunas esperadas. */
@@ -21,33 +24,29 @@ async function readFirstMatch<T>(file: File, parse: (rows: unknown[][]) => T[]):
   throw lastError || new Error('Nenhuma linha encontrada no arquivo.');
 }
 
-/**
- * Gera a planilha de emissão a partir do relatório de conclusão da plataforma EAD
- * e da lista de colaboradores da empresa. A planilha pode ser baixada ou usada
- * direto na importação de certificados.
- */
 type UseRecords = (records: Array<Record<string, string>>, label: string) => void;
 
-export const ReportsToSheetDialog: React.FC<{ onClose: () => void; onUse: UseRecords }> = ({ onClose, onUse }) => (
-  <ReportsToSheet onClose={onClose} onUse={onUse} />
-);
-
-/** Tela do menu Treinamentos › Emissão por relatórios: "Usar na emissão" abre a importação já preenchida. */
+/**
+ * Tela do menu Treinamentos › Emissão por relatórios: gera a planilha de emissão a
+ * partir do relatório de conclusão da plataforma EAD e da lista de colaboradores da
+ * empresa. A planilha pode ser baixada ou usada direto na emissão (abre a
+ * importação de certificados já preenchida).
+ */
 export const ReportsToSheetPage: React.FC = () => {
   const [importing, setImporting] = useState<{ records: Array<Record<string, string>>; label: string } | null>(null);
   return (
     <>
-      <ReportsToSheet page onUse={(records, label) => setImporting({ records, label })} />
+      <ReportsToSheet onUse={(records, label) => setImporting({ records, label })} />
       {importing && <ImportCertificatesDialog initialRows={importing.records} initialLabel={importing.label} onClose={() => setImporting(null)} />}
     </>
   );
 };
 
-const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: UseRecords }> = ({ page, onClose, onUse }) => {
+const ReportsToSheet: React.FC<{ onUse: UseRecords }> = ({ onUse }) => {
   const courses = getCourses().filter(c => c.active);
   const reportRef = useRef<HTMLInputElement | null>(null);
   const rosterRef = useRef<HTMLInputElement | null>(null);
-  const [report, setReport] = useState<{ file: string; rows: ReportEntry[] } | null>(null);
+  const [report, setReport] = useState<{ file: string; rows: ReportEntry[]; issuedAt: string | null } | null>(null);
   const [roster, setRoster] = useState<{ file: string; rows: RosterEntry[] } | null>(null);
   const [reading, setReading] = useState<'report' | 'roster' | null>(null);
   const [company, setCompany] = useState('');
@@ -61,7 +60,7 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
     try {
       if (kind === 'report') {
         const rows = await readFirstMatch(file, parseReport);
-        setReport({ file: file.name, rows });
+        setReport({ file: file.name, rows, issuedAt: reportIssuedAt((await readSheetsAsRows(file))[0] || []) });
         // sugestão de curso do sistema para cada curso do relatório (pode ser trocada)
         const next: Record<string, string | undefined> = {};
         [...new Set(rows.map(r => r.courseText))].forEach(t => { next[t] = mapping[t] ?? suggestCourse(t, courses)?.id; });
@@ -134,6 +133,27 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
     return Object.entries(acc).sort((a, b) => b[1] - a[1]);
   }, [skippedAll]);
 
+  // relatório analítico do desenvolvimento dos alunos (mesmos arquivos)
+  const [view, setView] = useState<'emissao' | 'analitico'>('emissao');
+  const [exporting, setExporting] = useState<'xlsx' | 'pdf' | null>(null);
+  const analytics = useMemo(() => (report ? buildAnalytics(report.rows, roster?.rows || [], { mapping, courses: getCourses() }) : null), [report, roster, mapping]);
+  const handleAnalytics = async (kind: 'xlsx' | 'pdf') => {
+    if (!analytics || !report) return;
+    setExporting(kind);
+    const now = new Date();
+    const generatedAt = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    const label = company.trim() || analytics.group || 'alunos';
+    const base = `Relatorio_analitico_${label.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '')}_${todayIso()}`;
+    try {
+      if (kind === 'xlsx') await downloadAnalyticsSheet(analyticsSheets(analytics, { title: `Relatório analítico de desempenho dos alunos${company.trim() ? ` — ${company.trim()}` : ''}`, generatedAt }), `${base}.xlsx`);
+      else await exportAnalyticsReport(analytics, { group: analytics.group || report.file, generatedAt, reportIssuedAt: report.issuedAt, hasRoster: !!roster, filename: `${base}.pdf` });
+    } catch (err) {
+      alertError(err, 'Falha ao gerar o relatório');
+    } finally {
+      setExporting(null);
+    }
+  };
+
   const fileName = `Emissao_certificados_${(company.trim() || 'relatorio').replace(/[^\p{L}\p{N}]+/gu, '_')}_${todayIso()}.xlsx`;
   const handleDownload = async () => {
     if (!result || !confirmCertified()) return;
@@ -154,7 +174,16 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
     </div>
   );
 
-  const actions = (
+  const actions = view === 'analitico' ? (
+    <>
+      <button type="button" className={btnSecondary} disabled={!analytics || exporting !== null} onClick={() => handleAnalytics('xlsx')}>
+        {exporting === 'xlsx' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Baixar Excel
+      </button>
+      <button type="button" className={btnPrimary} disabled={!analytics || exporting !== null} onClick={() => handleAnalytics('pdf')}>
+        {exporting === 'pdf' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />} Baixar PDF
+      </button>
+    </>
+  ) : (
     <>
       <button type="button" className={btnSecondary} disabled={!result || downloading} onClick={handleDownload}>
         {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Baixar planilha
@@ -184,6 +213,24 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
       </div>
 
       {report && (
+        <div className="mt-4 inline-flex rounded-xl border border-slate-300 overflow-hidden" role="tablist">
+          {([['emissao', 'Planilha de emissão'], ['analitico', 'Relatório analítico']] as const).map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={view === k} onClick={() => setView(k)}
+              className={`px-4 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 ${view === k ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
+              {k === 'analitico' ? <BarChart3 className="w-3.5 h-3.5" /> : <FileSpreadsheet className="w-3.5 h-3.5" />} {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {report && view === 'analitico' && analytics && (
+        <div className="mt-4">
+          {!roster && <p className="mb-2 text-[11px] text-amber-700">Sem a lista de colaboradores todos ficam em "Sem filial": envie a lista para ver o perfil por filial.</p>}
+          <AnalyticsPanel analytics={analytics} />
+        </div>
+      )}
+
+      {report && view === 'emissao' && (
         <>
           <Field label="Colaborador da Empresa (empresa dos alunos)" className="mt-3" hint="Sai na coluna Colaborador da Empresa de todas as linhas">
             <input className={inputCls} value={company} onChange={e => setCompany(e.target.value)} placeholder="Ex.: Escamax Elevadores Ltda" />
@@ -210,7 +257,7 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
         </>
       )}
 
-      {result && (
+      {result && view === 'emissao' && (
         <div className="mt-4">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-bold text-emerald-700 bg-emerald-50 border-emerald-200"><CheckCircle2 className="w-3.5 h-3.5" /> {finalRows.length} certificado(s)</span>
@@ -315,18 +362,10 @@ const ReportsToSheet: React.FC<{ page?: boolean; onClose?: () => void; onUse: Us
     </>
   );
 
-  if (page) {
-    return (
-      <div className={`${cardCls} p-4`}>
-        {body}
-        <div className="flex flex-wrap justify-end gap-2 mt-4 pt-3 border-t border-slate-200">{actions}</div>
-      </div>
-    );
-  }
   return (
-    <Modal title="Gerar planilha de emissão a partir dos relatórios" onClose={onClose || (() => {})} wide
-      footer={<><button type="button" className={btnSecondary} onClick={onClose}>Cancelar</button>{actions}</>}>
+    <div className={`${cardCls} p-4`}>
       {body}
-    </Modal>
+      <div className="flex flex-wrap justify-end gap-2 mt-4 pt-3 border-t border-slate-200">{actions}</div>
+    </div>
   );
 };

@@ -91,3 +91,17 @@ export async function downloadGeneratedSheet(records: Array<Record<string, strin
   const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   await saveFileLocally({ filename, data: new Uint8Array(bytes), mimeType: XLSX_MIME, title: 'Planilha para emissão de certificados', category: 'csv' });
 }
+
+/** Relatório analítico do desenvolvimento dos alunos em Excel (resumo, por curso, por filial, filial × curso e alunos). */
+export async function downloadAnalyticsSheet(sheets: Array<{ name: string; rows: Array<Array<string | number>> }>, filename: string): Promise<void> {
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+  sheets.forEach(s => {
+    const ws = XLSX.utils.aoa_to_sheet(s.rows);
+    const widths = s.rows.reduce<number[]>((w, r) => r.map((c, i) => Math.max(w[i] || 10, Math.min(60, String(c ?? '').length + 2))), []);
+    ws['!cols'] = widths.map(wch => ({ wch }));
+    XLSX.utils.book_append_sheet(wb, ws, s.name);
+  });
+  const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  await saveFileLocally({ filename, data: new Uint8Array(bytes), mimeType: XLSX_MIME, title: 'Relatório analítico dos alunos', category: 'csv' });
+}

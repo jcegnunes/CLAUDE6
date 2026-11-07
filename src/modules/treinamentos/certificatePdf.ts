@@ -18,7 +18,7 @@ import { companyHeaderLines, fillTemplate, getTrainingLayout, hexToRgb, type Tra
 type Rgb = [number, number, number];
 const GRAY: Rgb = [90, 100, 115];
 
-function imageFormat(dataUrl: string): 'PNG' | 'JPEG' {
+export function imageFormat(dataUrl: string): 'PNG' | 'JPEG' {
   return /^data:image\/jpe?g/i.test(dataUrl) ? 'JPEG' : 'PNG';
 }
 
@@ -48,9 +48,9 @@ function formatCnpj(v: string): string {
   return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : v;
 }
 
-interface Assets { logo: string; logo2: string; layout: TrainingCertificateLayout; navy: Rgb; orange: Rgb; }
+export interface Assets { logo: string; logo2: string; layout: TrainingCertificateLayout; navy: Rgb; orange: Rgb; }
 
-async function loadAssets(company: CompanyLabInfo, layout: TrainingCertificateLayout = getTrainingLayout()): Promise<Assets> {
+export async function loadAssets(company: CompanyLabInfo, layout: TrainingCertificateLayout = getTrainingLayout()): Promise<Assets> {
   const src = layout.logoSource === 'nenhum' ? '' : layout.logoSource === 'personalizado' ? (layout.customLogo || company.logoUrl) : company.logoUrl;
   return { logo: await safeImage(src), logo2: await safeImage(layout.logo2Image), layout, navy: hexToRgb(layout.primaryColor), orange: hexToRgb(layout.accentColor) };
 }
@@ -697,3 +697,4 @@ export async function exportAttendanceList(turma: TrainingClass, instructors: Tr
   const name = `Lista_Presenca_${turma.classNumber}.pdf`;
   await saveDocLocally(doc, name, name.replace(/\.pdf$/, ''), 'outro');
 }
+

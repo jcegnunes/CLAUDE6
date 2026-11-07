@@ -15,8 +15,10 @@
 - **Instrutor ou Instrutora:** escolha no cadastro do instrutor; o termo sai na assinatura do
   certificado (trocando a palavra inicial do "Cargo do instrutor" do modelo) e na lista de presença.
   Certificados já emitidos não mudam.
+- **Importar planilha (Certificados):** "Enviar planilha" e "Colar lista" ficam logo acima da área
+  de arrastar a planilha; a geração a partir dos relatórios fica só no menu próprio (abaixo).
 - **Planilha de emissão gerada dos relatórios:** no menu Treinamentos › **Emissão por relatórios**
-  (abaixo de Certificados), ou em Certificados › Importar planilha › "Gerar dos relatórios", envie o relatório de conclusão da plataforma EAD (CSV ou Excel) e a
+  (abaixo de Certificados), envie o relatório de conclusão da plataforma EAD (CSV ou Excel) e a
   lista de colaboradores da empresa (Excel). O sistema junta os dois pelo CPF, associa cada curso
   do relatório a um curso cadastrado (sugestão pela NR, editável) e gera as linhas de quem tem
   100% de conclusão e situação Aprovado/Sem média exigida: nome e filial da lista, início = data
@@ -29,6 +31,18 @@
   inicial (antes ficava inválido e a turma não salvava), reconhece a linha de títulos e avisa as
   linhas com erro. Na emissão por planilha, quando o curso exige nota e ela não foi informada,
   aparece um aviso com o botão "Informar nota" e o botão de emitir diz "Informe a nota para emitir".
+- **Relatório analítico do desenvolvimento dos alunos:** em Emissão por relatórios, a aba
+  "Relatório analítico" usa os mesmos dois arquivos e mostra o perfil de conclusão (aprovados,
+  reprovados, em andamento, não iniciados, conclusão média e % de aprovação) por curso, por
+  filial, filial × curso e por aluno (com filtro de filial). Exporta em Excel (abas Resumo, Por
+  curso, Por filial, Filial x Curso e Alunos) e em PDF.
+  O PDF segue o padrão "Relatório analítico de desempenho dos alunos" (A4 paisagem): página 1
+  com indicadores, situação das matrículas por curso, por filial e **pontos de atenção**
+  (reprovações após 100%, cursos sem nenhum início, alunos sem nenhum curso iniciado, matrículas
+  em andamento e alunos sem filial); página 2 com filial × curso e total da turma; página 3 com
+  o perfil de conclusão de cada aluno agrupado por filial. Cabeçalho com a turma do relatório EAD
+  e rodapé com a data de emissão do relatório. Filiais conhecidas ganham a UF ("São Paulo/SP") e
+  nomes todos em maiúsculas são ajustados ("Uilton Santos Ferreira").
 - **Assinatura do aluno:** o termo abaixo do nome passa a ser "Aluno" (antes "Participante");
   pode ser trocado em Modelo do Certificado › "Termo abaixo da assinatura do aluno".
 

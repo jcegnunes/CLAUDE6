@@ -20,6 +20,8 @@ export interface ReportEntry {
   completion?: number;
   completedAt: string | null;
   situation: string;
+  /** Turma / grupo da plataforma EAD */
+  group?: string;
 }
 
 /** Colaborador da lista da empresa. */
@@ -42,7 +44,8 @@ const REPORT_COLS = {
   course: ['curso', 'treinamento'],
   completion: ['conclusao', '% conclusao', 'percentual de conclusao', 'progresso'],
   date: ['data de conclusao', 'data conclusao', 'concluido em'],
-  situation: ['situacao', 'status', 'resultado']
+  situation: ['situacao', 'status', 'resultado'],
+  group: ['turma / grupo', 'turma/grupo', 'turma', 'grupo']
 };
 const ROSTER_COLS = {
   name: ['colaborador', 'nome', 'aluno', 'participante', 'funcionario'],
@@ -126,10 +129,20 @@ export function parseReport(rows: Cell[][]): ReportEntry[] {
       courseText,
       completion,
       completedAt: cellText(dateCell) === '-' ? null : parseDateCell(dateCell),
-      situation: cleanName(at(r, 'situation'))
+      situation: cleanName(at(r, 'situation')),
+      group: cleanName(at(r, 'group')) || undefined
     });
   });
   return out;
+}
+
+/** Data/hora de emissão nas linhas de informação do relatório ("Relatório emitido em 07/11/2026 14:11"). */
+export function reportIssuedAt(rows: Cell[][]): string | null {
+  for (const r of rows.slice(0, 15)) {
+    const m = String((r || []).join(' ')).match(/emitido em\s+(\d{2}\/\d{2}\/\d{4}(?:\s+\d{2}:\d{2})?)/i);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 export function parseRoster(rows: Cell[][]): RosterEntry[] {

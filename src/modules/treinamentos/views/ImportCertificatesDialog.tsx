@@ -9,7 +9,6 @@ import {
 import { formatDateBr, todayIso } from '../rules';
 import type { TrainingCertificate } from '../types';
 import { alertError, btnPrimary, btnSecondary, Field, inputCls, Modal } from './ui';
-import { ReportsToSheetDialog } from './ReportsToSheetDialog';
 
 const STATUS_UI = {
   ok: { label: 'Emitir', cls: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: CheckCircle2 },
@@ -29,7 +28,6 @@ export const ImportCertificatesDialog: React.FC<{
   const [raw, setRaw] = useState<Array<Record<string, unknown>> | null>(initialRows || null);
   const [fileName, setFileName] = useState(initialRows ? initialLabel || 'Planilha gerada' : '');
   const [pasting, setPasting] = useState(false);
-  const [fromReports, setFromReports] = useState(false);
   const [reading, setReading] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [createClasses, setCreateClasses] = useState(true);
@@ -141,22 +139,12 @@ export const ImportCertificatesDialog: React.FC<{
         <div className="text-xs text-slate-600 space-y-1">
           <p>1. Baixe o modelo e preencha uma pessoa por linha: <b>Nome, CPF, Colaborador da Empresa e Filial</b>.</p>
           <p>2. Escolha abaixo o curso, as datas, o local, o instrutor e a nota (valem para todos).</p>
-          <p>3. Envie a planilha ou <b>cole a lista</b>: a prévia mostra o que será emitido, quem foi reprovado e as linhas com erro.</p>
+          <p>3. Envie a planilha ou <b>cole a lista</b> (abaixo): a prévia mostra o que será emitido, quem foi reprovado e as linhas com erro.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button type="button" className={btnSecondary} onClick={() => downloadParticipantsTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}>
             <Download className="w-3.5 h-3.5" /> Baixar modelo
           </button>
-          <button type="button" className={btnSecondary} onClick={() => setFromReports(true)} title="Relatório de conclusão da plataforma EAD + lista de colaboradores da empresa">
-            <FileSpreadsheet className="w-3.5 h-3.5" /> Gerar dos relatórios
-          </button>
-          <button type="button" className={btnPrimary} disabled={reading} onClick={() => fileRef.current?.click()}>
-            {reading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} {raw ? 'Trocar planilha' : 'Enviar planilha'}
-          </button>
-          <button type="button" className={btnSecondary} disabled={reading} onClick={() => setPasting(true)}>
-            <ClipboardPaste className="w-3.5 h-3.5" /> Colar lista
-          </button>
-          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.ods" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
         </div>
       </div>
 
@@ -200,8 +188,19 @@ export const ImportCertificatesDialog: React.FC<{
         </label>
       </div>
 
+      {/* enviar/colar logo acima da área de arrastar (e da prévia, para trocar a lista) */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button type="button" className={btnPrimary} disabled={reading} onClick={() => fileRef.current?.click()}>
+          {reading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} {raw ? 'Trocar planilha' : 'Enviar planilha'}
+        </button>
+        <button type="button" className={btnSecondary} disabled={reading} onClick={() => setPasting(true)}>
+          <ClipboardPaste className="w-3.5 h-3.5" /> Colar lista
+        </button>
+        <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.ods" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
+      </div>
+
       {!raw ? (
-        <div className="mt-4 border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center"
+        <div className="mt-2 border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center"
           onDragOver={e => e.preventDefault()}
           onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files?.[0]); }}>
           <FileSpreadsheet className="w-10 h-10 text-emerald-600 mx-auto mb-2" />
@@ -269,12 +268,6 @@ export const ImportCertificatesDialog: React.FC<{
         </div>
       )}
       {pasting && <PasteList onClose={() => setPasting(false)} onUse={handlePasted} />}
-      {fromReports && (
-        <ReportsToSheetDialog
-          onClose={() => setFromReports(false)}
-          onUse={(records, label) => { setRaw(records); setFileName(label); setFilter('todas'); setFromReports(false); }}
-        />
-      )}
     </Modal>
   );
 };
