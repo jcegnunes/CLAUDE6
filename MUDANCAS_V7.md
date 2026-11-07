@@ -1,5 +1,16 @@
 # JVM Dielectric Lab — Mudanças da versão 7.0 (segurança do banco)
 
+## Versão 7.5.0 (07/11/2026) — resumo
+
+- **Treinamentos › Cursos:** o editor mostra o texto de cada tópico do conteúdo programático
+  (antes o campo de horas ocupava a linha e escondia o texto); os cartões têm
+  "Ver conteúdo programático" com a lista dos tópicos e o link "Editar conteúdo".
+- **Habilitar/desabilitar curso:** botão de chave no cartão; curso desabilitado fica
+  esmaecido ("inativo") e não aparece para novas turmas.
+- **Excluir curso:** liberado para quem pode editar cursos (antes só Admin), pela lixeira do
+  cartão ou pelo botão "Excluir curso" no editor. Turmas, certificados e instrutores
+  continuam com exclusão só para Admin.
+
 ## Versão 7.4.0 (08/10/2026) — resumo
 
 - **Treinamentos:** tela **Modelo do Certificado** em Configuração do Sistema (logo e segundo logo, dados da empresa na
@@ -191,7 +202,7 @@
    `public_html`: o deploy substitui essa pasta inteira e falha em "Syncing public_html".
 2. Ative o **SSL** (HTTPS é obrigatório para instalar o app e usar a câmera).
 3. **Supabase → Authentication → URL Configuration:** *Site URL* = `https://jvmlab.com.br`.
-4. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.4.0";
+4. Confira: `https://jvmlab.com.br` mostra o login com "Versão 7.5.0";
    `https://jvmlab.com.br/validador` mostra só o "Portal de Validação de Autenticidade".
 
 ### Página do validador no site Wix (www.jvmengenharia.com.br)

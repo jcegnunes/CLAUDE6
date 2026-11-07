@@ -130,6 +130,8 @@ export function getTrainingRecord(table: TrainingTable, id: string): AnyRecord |
 }
 
 // --------------------------------------------------------------------- cursos
+/** Excluir curso: quem pode editar cursos (a confirmação avisa sobre turmas e certificados afetados). */
+export const canDeleteCourse = (): boolean => canEditTraining();
 export const getCourses = () => listOf<TrainingCourse>('training_courses').sort((a, b) => a.name.localeCompare(b.name));
 export const getCourse = (id: string) => getCourses().find(c => c.id === id);
 export const saveCourse = (c: TrainingCourse) => putRecord('training_courses', c);

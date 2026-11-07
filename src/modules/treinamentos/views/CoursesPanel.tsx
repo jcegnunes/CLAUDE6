@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { BookOpen, Plus, Pencil, Trash2, ArrowUp, ArrowDown, RotateCcw, Copy } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, ArrowUp, ArrowDown, RotateCcw, Copy, ToggleLeft, ToggleRight } from 'lucide-react';
 import {
-  activeCourseCertificates, canDeleteTraining, canEditTraining, deleteCourse, deleteCourseAndCancelCertificates, getClasses, getCourses, restoreDefaultCourses, saveCourse
+  activeCourseCertificates, canDeleteCourse, canEditTraining, deleteCourse, deleteCourseAndCancelCertificates, getClasses, getCourses, restoreDefaultCourses, saveCourse
 } from '../repository';
 import { formatHours, newId, totalTopicHours } from '../rules';
 import type { TrainingCourse } from '../types';
 import { btnPrimary, btnSecondary, cardCls, EmptyState, Field, inputCls, Modal } from './ui';
+
+// inputCls traz w-full, que numa linha flex esmaga o texto do tópico; aqui a largura é definida por campo
+const rowInputCls = inputCls.replace('w-full ', '');
 
 const emptyCourse = (): TrainingCourse => ({
   id: '', companyId: '', createdAt: '', updatedAt: '',
@@ -74,9 +77,17 @@ export const CoursesPanel: React.FC = () => {
                   </div>
                   {canEdit && (
                     <div className="flex gap-1 shrink-0">
+                      <button
+                        type="button"
+                        title={c.active ? 'Desabilitar curso (deixa de aparecer para novas turmas)' : 'Habilitar curso'}
+                        className={`p-1.5 rounded-lg ${c.active ? 'hover:bg-slate-100 text-emerald-600' : 'hover:bg-emerald-50 text-slate-400'}`}
+                        onClick={() => saveCourse({ ...c, active: !c.active })}
+                      >
+                        {c.active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                      </button>
                       <button type="button" title="Duplicar" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500" onClick={() => setEditing({ ...c, id: '', code: `${c.code} (cópia)`, topics: c.topics.map(t => ({ ...t })), serverUpdatedAt: undefined })}><Copy className="w-4 h-4" /></button>
                       <button type="button" title="Editar" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500" onClick={() => setEditing({ ...c, topics: c.topics.map(t => ({ ...t })) })}><Pencil className="w-4 h-4" /></button>
-                      {canDeleteTraining() && <button type="button" title="Excluir" className="p-1.5 rounded-lg hover:bg-red-50 text-red-600" onClick={() => handleDelete(c)}><Trash2 className="w-4 h-4" /></button>}
+                      {canDeleteCourse() && <button type="button" title="Excluir curso" className="p-1.5 rounded-lg hover:bg-red-50 text-red-600" onClick={() => handleDelete(c)}><Trash2 className="w-4 h-4" /></button>}
                     </div>
                   )}
                 </div>
@@ -86,6 +97,23 @@ export const CoursesPanel: React.FC = () => {
                   <span>Aprovação: presença ≥ {c.minAttendance}%{c.minGrade !== undefined && c.minGrade !== null ? `, nota ≥ ${c.minGrade}` : ''}</span>
                   <span>{c.topics.length} tópico(s)</span>
                 </div>
+                {c.topics.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] font-semibold text-blue-700 hover:underline select-none">Ver conteúdo programático</summary>
+                    <ol className="mt-1.5 space-y-1 text-[11px] text-slate-700">
+                      {c.topics.map((t, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="font-bold text-slate-400 w-4 shrink-0 text-right">{i + 1}</span>
+                          <span className="flex-1 min-w-0 whitespace-pre-line break-words">{t.title}</span>
+                          <span className="shrink-0 text-slate-500">{formatHours(Number(t.hours) || 0)}</span>
+                        </li>
+                      ))}
+                    </ol>
+                    {canEdit && (
+                      <button type="button" className="mt-1.5 text-[11px] font-semibold text-blue-700 hover:underline" onClick={() => setEditing({ ...c, topics: c.topics.map(t => ({ ...t })) })}>Editar conteúdo</button>
+                    )}
+                  </details>
+                )}
                 {topicsTotal !== Number(c.workloadHours) && (
                   <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
                     A soma dos tópicos ({formatHours(topicsTotal)}) é diferente da carga horária do curso.
@@ -97,12 +125,21 @@ export const CoursesPanel: React.FC = () => {
         </div>
       )}
 
-      {editing && <CourseEditor course={editing} onClose={() => setEditing(null)} />}
+      {editing && (
+        <CourseEditor
+          course={editing}
+          onClose={() => setEditing(null)}
+          onDelete={editing.id && canDeleteCourse() ? () => {
+            handleDelete(editing);
+            if (!getCourses().some(x => x.id === editing.id)) setEditing(null);
+          } : undefined}
+        />
+      )}
     </div>
   );
 };
 
-const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void }> = ({ course, onClose }) => {
+const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void; onDelete?: () => void }> = ({ course, onClose, onDelete }) => {
   const [c, setC] = useState<TrainingCourse>(course);
   const set = <K extends keyof TrainingCourse>(k: K, v: TrainingCourse[K]) => setC(prev => ({ ...prev, [k]: v }));
   const total = totalTopicHours(c.topics);
@@ -142,6 +179,7 @@ const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void }> = 
       onClose={onClose}
       wide
       footer={<>
+        {onDelete && <button type="button" className={`${btnSecondary} mr-auto text-red-600 hover:bg-red-50`} onClick={onDelete}><Trash2 className="w-3.5 h-3.5" /> Excluir curso</button>}
         <button type="button" className={btnSecondary} onClick={onClose}>Cancelar</button>
         <button type="button" className={btnPrimary} onClick={handleSave}>Salvar curso</button>
       </>}
@@ -179,8 +217,8 @@ const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void }> = 
           {c.topics.map((t, i) => (
             <div key={i} className="flex gap-2 items-start">
               <span className="text-[11px] font-bold text-slate-400 w-5 pt-2 text-right">{i + 1}</span>
-              <textarea rows={2} className={`${inputCls} flex-1`} value={t.title} onChange={e => setTopic(i, { title: e.target.value })} placeholder="Tópico" />
-              <input type="number" min={0} step={0.5} className={`${inputCls} w-20`} value={t.hours} onChange={e => setTopic(i, { hours: e.target.value as any })} title="Horas" />
+              <textarea rows={Math.min(6, Math.max(2, Math.ceil(t.title.length / 80)))} className={`${rowInputCls} flex-1 min-w-0 resize-y`} value={t.title} onChange={e => setTopic(i, { title: e.target.value })} placeholder="Tópico" />
+              <input type="number" min={0} step={0.5} className={`${rowInputCls} w-20 shrink-0`} value={t.hours} onChange={e => setTopic(i, { hours: e.target.value as any })} title="Horas" />
               <div className="flex flex-col">
                 <button type="button" className="p-1 text-slate-400 hover:text-slate-700" onClick={() => moveTopic(i, -1)} aria-label="Subir"><ArrowUp className="w-3.5 h-3.5" /></button>
                 <button type="button" className="p-1 text-slate-400 hover:text-slate-700" onClick={() => moveTopic(i, 1)} aria-label="Descer"><ArrowDown className="w-3.5 h-3.5" /></button>
