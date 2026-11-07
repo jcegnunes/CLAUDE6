@@ -146,7 +146,7 @@ export const DEFAULT_LAYOUT: TrainingCertificateLayout = {
   showParticipant: true,
   instructorLabel: 'Instrutor',
   technicalResponsibleLabel: 'Responsável Técnico',
-  participantLabel: 'Participante',
+  participantLabel: 'Aluno',
   showBackPage: true,
   backTitle: 'CONTEÚDO PROGRAMÁTICO',
   showPerformance: true
@@ -233,7 +233,8 @@ export function normalizeLayout(raw?: Partial<TrainingCertificateLayout> | Recor
     showParticipant: bool(r.showParticipant, d.showParticipant),
     instructorLabel: text(r.instructorLabel, d.instructorLabel, 60),
     technicalResponsibleLabel: text(r.technicalResponsibleLabel, d.technicalResponsibleLabel, 60),
-    participantLabel: text(r.participantLabel, d.participantLabel, 60),
+    // "Participante" era o padrão até a v7.5: modelos salvos com ele passam a mostrar "Aluno"
+    participantLabel: text(r.participantLabel === 'Participante' ? undefined : r.participantLabel, d.participantLabel, 60),
     showBackPage: bool(r.showBackPage, d.showBackPage),
     backTitle: text(r.backTitle, d.backTitle, 80),
     showPerformance: bool(r.showPerformance, d.showPerformance)

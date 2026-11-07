@@ -291,7 +291,7 @@ function instructorSnapshot(ids: string[]) {
   return {
     instructorIds: chosen.map(i => i.id),
     instructorNames: chosen.map(i => i.name),
-    instructors: chosen.map(i => ({ name: i.name, qualification: i.qualification, registration: i.registration, signatureUrl: i.signatureUrl }))
+    instructors: chosen.map(i => ({ name: i.name, title: i.title, qualification: i.qualification, registration: i.registration, signatureUrl: i.signatureUrl }))
   };
 }
 

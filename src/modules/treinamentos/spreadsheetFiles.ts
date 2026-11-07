@@ -2,6 +2,7 @@
 import { saveFileLocally } from '../../utils/nativeFileSaver';
 import { getCourses, getInstructors } from './repository';
 import { MAX_IMPORT_ROWS, OPTIONAL_HEADERS, TEMPLATE_HEADERS } from './spreadsheetImport';
+import { parseCsv, SHEET_HEADERS, type SkippedRow } from './reportMerge';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -57,4 +58,36 @@ export async function readSpreadsheet(file: File): Promise<Array<Record<string, 
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[sheetName], { defval: '', raw: true });
   if (!rows.length) throw new Error('Nenhuma linha encontrada. Use a primeira linha para os títulos das colunas (Nome, CPF, Colaborador da Empresa, Filial).');
   return rows;
+}
+
+/** Todas as abas do arquivo como linhas (CSV ou Excel), para a planilha gerada dos relatórios. */
+export async function readSheetsAsRows(file: File): Promise<unknown[][][]> {
+  const buf = await file.arrayBuffer();
+  if (/\.(csv|txt)$/i.test(file.name) || file.type === 'text/csv') {
+    let text = new TextDecoder('utf-8').decode(buf);
+    // CSV salvo pelo Excel em ANSI: acentos viram "�" em UTF-8
+    if (text.includes('�')) text = new TextDecoder('windows-1252').decode(buf);
+    return [parseCsv(text)];
+  }
+  const XLSX = await import('xlsx');
+  // datas como número de série do Excel (sem fuso horário); convertidas em parseDateCell
+  const wb = XLSX.read(buf, { cellDates: false });
+  return wb.SheetNames.map(n => XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[n], { header: 1, defval: '', raw: true }));
+}
+
+/** Planilha de emissão gerada dos relatórios: aba "Alunos" (formato da importação) e "Não incluídos". */
+export async function downloadGeneratedSheet(records: Array<Record<string, string>>, skipped: SkippedRow[], filename: string): Promise<void> {
+  const XLSX = await import('xlsx');
+  const ws = XLSX.utils.aoa_to_sheet([SHEET_HEADERS, ...records.map(r => SHEET_HEADERS.map(h => r[h] ?? ''))]);
+  ws['!cols'] = [{ wch: 40 }, { wch: 16 }, { wch: 28 }, { wch: 20 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 60 }, { wch: 40 }];
+  const out = XLSX.utils.aoa_to_sheet([
+    ['Nome', 'CPF', 'Curso no relatório', 'Motivo'],
+    ...skipped.map(s => [s.name, s.cpf, s.courseText, s.reason])
+  ]);
+  out['!cols'] = [{ wch: 40 }, { wch: 16 }, { wch: 70 }, { wch: 36 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Alunos');
+  XLSX.utils.book_append_sheet(wb, out, 'Não incluídos');
+  const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  await saveFileLocally({ filename, data: new Uint8Array(bytes), mimeType: XLSX_MIME, title: 'Planilha para emissão de certificados', category: 'csv' });
 }

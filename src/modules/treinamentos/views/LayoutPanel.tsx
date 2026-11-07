@@ -443,7 +443,7 @@ export const LayoutPanel: React.FC = () => {
               <Toggle label="Assinatura do Responsável Técnico" checked={L.showTechnicalResponsible} disabled={disabled} onChange={v => set({ showTechnicalResponsible: v })} />
               <Field label="Cargo do RT"><input className={inputCls} disabled={disabled || !L.showTechnicalResponsible} value={L.technicalResponsibleLabel} maxLength={60} onChange={e => set({ technicalResponsibleLabel: e.target.value })} /></Field>
               <Toggle label="Linha de assinatura do participante" checked={L.showParticipant} disabled={disabled} onChange={v => set({ showParticipant: v })} />
-              <Field label="Rótulo do participante"><input className={inputCls} disabled={disabled || !L.showParticipant} value={L.participantLabel} maxLength={60} onChange={e => set({ participantLabel: e.target.value })} /></Field>
+              <Field label="Termo abaixo da assinatura do aluno"><input className={inputCls} disabled={disabled || !L.showParticipant} value={L.participantLabel} maxLength={60} onChange={e => set({ participantLabel: e.target.value })} /></Field>
             </div>
             <p className="text-[11px] text-slate-500">
               A assinatura digital (ICP-Brasil) é aplicada só para quem aparece no certificado. A imagem da assinatura de cada pessoa

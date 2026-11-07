@@ -12,6 +12,23 @@
   continuam com exclusão só para Admin.
 - **Nome da turma:** campo opcional no cadastro da turma, além do código gerado (TUR-…);
   aparece como título no cartão da turma, na busca, no título do editor e na lista de presença.
+- **Instrutor ou Instrutora:** escolha no cadastro do instrutor; o termo sai na assinatura do
+  certificado (trocando a palavra inicial do "Cargo do instrutor" do modelo) e na lista de presença.
+  Certificados já emitidos não mudam.
+- **Planilha de emissão gerada dos relatórios:** no menu Treinamentos › **Emissão por relatórios**
+  (abaixo de Certificados), ou em Certificados › Importar planilha › "Gerar dos relatórios", envie o relatório de conclusão da plataforma EAD (CSV ou Excel) e a
+  lista de colaboradores da empresa (Excel). O sistema junta os dois pelo CPF, associa cada curso
+  do relatório a um curso cadastrado (sugestão pela NR, editável) e gera as linhas de quem tem
+  100% de conclusão e situação Aprovado/Sem média exigida: nome e filial da lista, início = data
+  da liberação, término = data de conclusão. Desligados, quem já tem certificado válido do curso
+  e linhas repetidas ficam de fora (aba "Não incluídos"). A planilha pode ser baixada ou usada
+  direto na emissão.
+- **Colar lista:** na turma, a lista colada passa a corrigir o CPF que o Excel deixou sem o zero
+  inicial (antes ficava inválido e a turma não salvava), reconhece a linha de títulos e avisa as
+  linhas com erro. Na emissão por planilha, quando o curso exige nota e ela não foi informada,
+  aparece um aviso com o botão "Informar nota" e o botão de emitir diz "Informe a nota para emitir".
+- **Assinatura do aluno:** o termo abaixo do nome passa a ser "Aluno" (antes "Participante");
+  pode ser trocado em Modelo do Certificado › "Termo abaixo da assinatura do aluno".
 
 ## Versão 7.4.0 (08/10/2026) — resumo
 

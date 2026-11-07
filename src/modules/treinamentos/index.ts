@@ -1,5 +1,5 @@
 /** Manifesto do módulo Treinamentos (lido pelo registro de módulos). */
-import { GraduationCap, Palette, LayoutDashboard, Users, Award, BookOpen, UserCheck } from 'lucide-react';
+import { GraduationCap, Palette, LayoutDashboard, Users, Award, BookOpen, UserCheck, FileSpreadsheet } from 'lucide-react';
 import { lazyView } from '../../utils/lazyView';
 import type { PlatformModule } from '../types';
 
@@ -17,6 +17,8 @@ export const treinamentosModule: PlatformModule = {
     { id: 'treinamentos', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], top: true },
     { id: 'treinamentos_turmas', label: 'Turmas', icon: Users, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingClassesView') },
     { id: 'treinamentos_certificados', label: 'Certificados', icon: Award, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingCertificatesView') },
+    // planilha de emissão gerada do relatório EAD + lista de colaboradores (emitir exige editar)
+    { id: 'treinamentos_relatorios', label: 'Emissão por relatórios', icon: FileSpreadsheet, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingReportsView') },
     { id: 'treinamentos_cursos', label: 'Cursos', icon: BookOpen, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingCoursesView') },
     { id: 'treinamentos_instrutores', label: 'Instrutores', icon: UserCheck, roles: ['admin', 'responsavel_tecnico', 'tecnico', 'administrativo'], View: lazyView(() => import('./views/TrainingModuleView'), 'TrainingInstructorsView') }
   ],

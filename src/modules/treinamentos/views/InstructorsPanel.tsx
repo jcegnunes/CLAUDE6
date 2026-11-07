@@ -5,7 +5,7 @@ import { DielectricStorageService } from '../../../services/syncEngine';
 import {
   canDeleteTraining, canEditTraining, currentCompanyId, deleteInstructor, getClasses, getInstructors, saveInstructor
 } from '../repository';
-import { newId } from '../rules';
+import { instructorTitle, newId } from '../rules';
 import type { TrainingInstructor } from '../types';
 import { btnPrimary, btnSecondary, cardCls, EmptyState, Field, inputCls, Modal } from './ui';
 import { DigitalCertBadge, DigitalCertBox, PendingCertFields, useSigningCerts, type PendingCert } from './DigitalCertBox';
@@ -15,7 +15,7 @@ import { syncTraining } from '../sync';
 
 const emptyInstructor = (): TrainingInstructor => ({
   id: '', companyId: '', createdAt: '', updatedAt: '',
-  name: '', qualification: '', registration: '', email: '', phone: '', signatureUrl: '', active: true
+  name: '', title: 'Instrutor', qualification: '', registration: '', email: '', phone: '', signatureUrl: '', active: true
 });
 
 export const InstructorsPanel: React.FC = () => {
@@ -66,6 +66,7 @@ export const InstructorsPanel: React.FC = () => {
             <div key={i.id} className={`${cardCls} p-4 ${i.active ? '' : 'opacity-60'}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
+                  <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wide">{instructorTitle(i)}</span>
                   <h4 className="font-bold text-sm text-slate-900">{i.name}{i.active ? '' : ' (inativo)'}</h4>
                   <p className="text-[11px] text-slate-600">{i.qualification || 'Qualificação não informada'}</p>
                   <p className="text-[11px] text-slate-500">{i.registration}</p>
@@ -146,6 +147,18 @@ const InstructorEditor: React.FC<{ instructor: TrainingInstructor; onClose: () =
     >
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Nome completo *" className="sm:col-span-2"><input className={inputCls} value={i.name} onChange={e => set('name', e.target.value)} /></Field>
+        <Field label="Termo na assinatura" className="sm:col-span-2" hint="Impresso no certificado e na lista de presença">
+          <div className="inline-flex rounded-xl border border-slate-300 overflow-hidden" role="radiogroup" aria-label="Termo na assinatura">
+            {(['Instrutor', 'Instrutora'] as const).map(opt => {
+              const on = instructorTitle(i) === opt;
+              return (
+                <button key={opt} type="button" role="radio" aria-checked={on}
+                  className={`px-4 py-1.5 text-xs font-semibold ${on ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}
+                  onClick={() => set('title', opt)}>{opt}</button>
+              );
+            })}
+          </div>
+        </Field>
         <Field label="Qualificação"><input className={inputCls} value={i.qualification} onChange={e => set('qualification', e.target.value)} placeholder="Engenheiro Eletricista" /></Field>
         <Field label="Registro profissional"><input className={inputCls} value={i.registration} onChange={e => set('registration', e.target.value)} placeholder="CREA-SP 0000000000" /></Field>
         <Field label="E-mail"><input type="email" className={inputCls} value={i.email || ''} onChange={e => set('email', e.target.value)} /></Field>
@@ -158,7 +171,7 @@ const InstructorEditor: React.FC<{ instructor: TrainingInstructor; onClose: () =
         <SignatureCanvas
           title="Assinatura do instrutor"
           signerName={i.name || 'Instrutor'}
-          signerRole={i.qualification || 'Instrutor'}
+          signerRole={i.qualification || instructorTitle(i)}
           initialSignature={i.signatureUrl}
           onSave={dataUrl => set('signatureUrl', dataUrl)}
         />

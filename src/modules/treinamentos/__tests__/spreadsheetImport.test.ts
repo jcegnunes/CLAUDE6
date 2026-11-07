@@ -186,3 +186,14 @@ describe('Colar lista na emissão de certificados', () => {
     expect(list).toEqual([{ CPF: '529.982.247-25', Nome: 'Maria', Nota: '8' }]);
   });
 });
+
+describe('Lista colada na turma', () => {
+  it('corrige o CPF sem o zero inicial e ignora a linha de títulos', async () => {
+    const { parseParticipantRows, parsePastedList } = await import('../spreadsheetImport');
+    const semTitulo = parseParticipantRows(parsePastedList('Marcelo Santos Ribeiro\t6313993560\tEscamax\tSão Paulo'), 'Cliente');
+    expect(semTitulo).toMatchObject([{ name: 'Marcelo Santos Ribeiro', cpf: '063.139.935-60', company: 'Escamax', branch: 'São Paulo' }]);
+    expect(semTitulo[0].error).toBeUndefined();
+    const comTitulo = parseParticipantRows(parsePastedList('Colaborador\tCPF\tE_mail\tFilial\nMarcelo Santos Ribeiro\t6313993560\tm@x.com\tSão Paulo'), 'Escamax');
+    expect(comTitulo).toMatchObject([{ name: 'Marcelo Santos Ribeiro', cpf: '063.139.935-60', company: 'Escamax', branch: 'São Paulo' }]);
+  });
+});

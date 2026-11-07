@@ -7,6 +7,15 @@ export const CERTIFICATE_PREFIX = 'TRE-';
 /** Aviso de reciclagem: certificados que vencem nos próximos N dias */
 export const EXPIRY_WARNING_DAYS = 60;
 
+/**
+ * Termo do instrutor na assinatura: "Instrutora" quando o cadastro pede, trocando
+ * só a palavra inicial do cargo do modelo (ex.: "Instrutor Responsável" → "Instrutora Responsável").
+ */
+export function instructorTitle(ins: { title?: string } | undefined, label = 'Instrutor'): string {
+  if (ins?.title !== 'Instrutora') return label;
+  return label.replace(/^instrutor\b/i, m => m + (m === m.toUpperCase() ? 'A' : 'a'));
+}
+
 export function onlyDigits(value: string): string {
   return (value || '').replace(/\D/g, '');
 }

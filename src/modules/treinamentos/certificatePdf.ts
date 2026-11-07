@@ -11,7 +11,7 @@ import { saveDocLocally, saveFileLocally } from '../../utils/nativeFileSaver';
 import { buildValidationUrl } from '../../config/validationPortalConfig';
 import { DielectricStorageService } from '../../services/syncEngine';
 import type { CompanyLabInfo } from '../../types';
-import { courseNrTag, displayCompany, formatCpf, formatDateBr, formatHours, totalTopicHours, onlyDigits } from './rules';
+import { courseNrTag, displayCompany, formatCpf, formatDateBr, formatHours, instructorTitle, totalTopicHours, onlyDigits } from './rules';
 import type { TrainingCertificate, TrainingClass, TrainingInstructor } from './types';
 import { companyHeaderLines, fillTemplate, getTrainingLayout, hexToRgb, type TrainingCertificateLayout } from './layout';
 
@@ -416,7 +416,7 @@ export async function drawCertificate(
   // stampKey: carimbo da assinatura digital do papel (o participante não assina digitalmente)
   const signers: Array<{ image: string; name: string; l2: string; l3?: string; stampKey?: string }> = [];
   for (const [i, ins] of cert.instructors.slice(0, L.maxInstructors).entries()) {
-    signers.push({ image: await safeImage(ins.signatureUrl, true), name: ins.name, l2: [L.instructorLabel, ins.qualification].filter(Boolean).join(' – '), l3: ins.registration, stampKey: cert.instructorIds[i] ? `ins:${cert.instructorIds[i]}` : undefined });
+    signers.push({ image: await safeImage(ins.signatureUrl, true), name: ins.name, l2: [instructorTitle(ins, L.instructorLabel), ins.qualification].filter(Boolean).join(' – '), l3: ins.registration, stampKey: cert.instructorIds[i] ? `ins:${cert.instructorIds[i]}` : undefined });
   }
   if (L.showTechnicalResponsible && cert.technicalResponsibleName) {
     signers.push({
@@ -692,7 +692,7 @@ export async function exportAttendanceList(turma: TrainingClass, instructors: Tr
   const colW = (w - 32) / Math.max(1, ins.length || 1);
   for (let i = 0; i < Math.max(1, ins.length); i++) {
     const it = ins[i];
-    drawSignature(doc, assets.navy, 16 + i * colW, y, colW, await safeImage(it?.signatureUrl, true), it?.name || 'Instrutor', it ? `Instrutor${it.qualification ? ` – ${it.qualification}` : ''}` : '', it?.registration);
+    drawSignature(doc, assets.navy, 16 + i * colW, y, colW, await safeImage(it?.signatureUrl, true), it?.name || 'Instrutor', it ? `${instructorTitle(it)}${it.qualification ? ` – ${it.qualification}` : ''}` : '', it?.registration);
   }
   const name = `Lista_Presenca_${turma.classNumber}.pdf`;
   await saveDocLocally(doc, name, name.replace(/\.pdf$/, ''), 'outro');

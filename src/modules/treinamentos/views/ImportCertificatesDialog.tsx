@@ -9,6 +9,7 @@ import {
 import { formatDateBr, todayIso } from '../rules';
 import type { TrainingCertificate } from '../types';
 import { alertError, btnPrimary, btnSecondary, Field, inputCls, Modal } from './ui';
+import { ReportsToSheetDialog } from './ReportsToSheetDialog';
 
 const STATUS_UI = {
   ok: { label: 'Emitir', cls: 'text-emerald-700 bg-emerald-50 border-emerald-200', icon: CheckCircle2 },
@@ -16,13 +17,19 @@ const STATUS_UI = {
   erro: { label: 'Erro', cls: 'text-red-700 bg-red-50 border-red-200', icon: XCircle }
 } as const;
 
-export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+export const ImportCertificatesDialog: React.FC<{
+  onClose: () => void;
+  /** Linhas já prontas (ex.: planilha gerada dos relatórios EAD) */
+  initialRows?: Array<Record<string, unknown>>;
+  initialLabel?: string;
+}> = ({ onClose, initialRows, initialLabel }) => {
   const courses = getCourses().filter(c => c.active);
   const instructors = getInstructors().filter(i => i.active);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [raw, setRaw] = useState<Array<Record<string, unknown>> | null>(null);
-  const [fileName, setFileName] = useState('');
+  const [raw, setRaw] = useState<Array<Record<string, unknown>> | null>(initialRows || null);
+  const [fileName, setFileName] = useState(initialRows ? initialLabel || 'Planilha gerada' : '');
   const [pasting, setPasting] = useState(false);
+  const [fromReports, setFromReports] = useState(false);
   const [reading, setReading] = useState(false);
   const [issuing, setIssuing] = useState(false);
   const [createClasses, setCreateClasses] = useState(true);
@@ -36,6 +43,10 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
   const counts = rows.reduce((acc, r) => { acc[rowStatus(r)]++; return acc; }, { ok: 0, reprovado: 0, erro: 0 });
   const groups = useMemo(() => groupImportRows(rows), [rows]);
   const shown = filter === 'todas' ? rows : rows.filter(r => rowStatus(r) === filter);
+  // reprovados só por falta de nota (curso com nota mínima e sem coluna Nota nem nota padrão)
+  const missingGrade = rows.filter(r => !r.errors.length && !r.approved && r.grade === undefined
+    && r.course?.minGrade !== undefined && r.course?.minGrade !== null && r.attendance >= (Number(r.course.minAttendance) || 0));
+  const gradeRef = useRef<HTMLInputElement | null>(null);
 
   const handleFile = async (file?: File | null) => {
     if (!file) return;
@@ -122,7 +133,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
         <button type="button" className={btnSecondary} onClick={onClose}>Cancelar</button>
         <button type="button" className={btnPrimary} disabled={!counts.ok || issuing} onClick={handleIssue}>
           {issuing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Award className="w-3.5 h-3.5" />}
-          {issuing ? 'Emitindo…' : `Emitir ${counts.ok || ''} certificado(s)`}
+          {issuing ? 'Emitindo…' : !counts.ok && missingGrade.length ? 'Informe a nota para emitir' : `Emitir ${counts.ok || ''} certificado(s)`}
         </button>
       </>}
     >
@@ -135,6 +146,9 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
         <div className="flex flex-wrap gap-2">
           <button type="button" className={btnSecondary} onClick={() => downloadParticipantsTemplate().catch(err => alertError(err, 'Falha ao gerar o modelo'))}>
             <Download className="w-3.5 h-3.5" /> Baixar modelo
+          </button>
+          <button type="button" className={btnSecondary} onClick={() => setFromReports(true)} title="Relatório de conclusão da plataforma EAD + lista de colaboradores da empresa">
+            <FileSpreadsheet className="w-3.5 h-3.5" /> Gerar dos relatórios
           </button>
           <button type="button" className={btnPrimary} disabled={reading} onClick={() => fileRef.current?.click()}>
             {reading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} {raw ? 'Trocar planilha' : 'Enviar planilha'}
@@ -161,7 +175,7 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
           <Field label="Filial (se vazia na planilha)" className="sm:col-span-2"><input className={inputCls} value={defaults.branch || ''} onChange={e => setDefaults({ ...defaults, branch: e.target.value })} placeholder="Cidade/UF — local junto à data do certificado" /></Field>
           <Field label="Presença (%)"><input type="number" min={0} max={100} className={inputCls} value={defaults.attendance ?? ''} onChange={e => setDefaults({ ...defaults, attendance: e.target.value === '' ? undefined : Number(e.target.value) })} /></Field>
           <Field label={defaultCourse?.minGrade !== undefined ? `Nota * (mínima ${defaultCourse.minGrade})` : 'Nota'} hint="0 a 10">
-            <input type="number" min={0} max={10} step={0.1}
+            <input ref={gradeRef} type="number" min={0} max={10} step={0.1}
               className={`${inputCls} ${defaultCourse?.minGrade !== undefined && defaults.grade === undefined ? 'border-amber-400' : ''}`}
               value={defaults.grade ?? ''} onChange={e => setDefaults({ ...defaults, grade: e.target.value === '' ? undefined : Number(e.target.value) })} />
           </Field>
@@ -196,6 +210,16 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
         </div>
       ) : (
         <div className="mt-4">
+          {missingGrade.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-amber-900 bg-amber-50 border border-amber-300 rounded-xl px-3 py-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="flex-1 min-w-0">
+                <b>{missingGrade.length} aluno(s) sem nota.</b> {Array.from(new Set(missingGrade.map(r => `${r.course!.code || r.course!.name} (mínima ${r.course!.minGrade})`))).join(', ')} exige(m) nota:
+                preencha o campo <b>Nota</b> acima (vale para todos) ou inclua a coluna Nota na lista.
+              </span>
+              <button type="button" className={btnSecondary} onClick={() => { gradeRef.current?.scrollIntoView({ block: 'center' }); gradeRef.current?.focus(); }}>Informar nota</button>
+            </div>
+          )}
           <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
             <p className="text-xs text-slate-600">
               <b>{fileName}</b>: {rows.length} linha(s){raw.length > MAX_IMPORT_ROWS ? ` (só as ${MAX_IMPORT_ROWS} primeiras)` : ''}
@@ -245,6 +269,12 @@ export const ImportCertificatesDialog: React.FC<{ onClose: () => void }> = ({ on
         </div>
       )}
       {pasting && <PasteList onClose={() => setPasting(false)} onUse={handlePasted} />}
+      {fromReports && (
+        <ReportsToSheetDialog
+          onClose={() => setFromReports(false)}
+          onUse={(records, label) => { setRaw(records); setFileName(label); setFilter('todas'); setFromReports(false); }}
+        />
+      )}
     </Modal>
   );
 };

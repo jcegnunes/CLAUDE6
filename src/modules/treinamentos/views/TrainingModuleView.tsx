@@ -9,16 +9,18 @@ import { TrainingDashboard } from './TrainingDashboard';
 import { ClassesPanel } from './ClassesPanel';
 import { CertificatesPanel } from './CertificatesPanel';
 import { CoursesPanel } from './CoursesPanel';
+import { ReportsToSheetPage } from './ReportsToSheetDialog';
 import { InstructorsPanel } from './InstructorsPanel';
 import { alertError, btnSecondary, cardCls } from './ui';
 
-type Tab = 'painel' | 'turmas' | 'certificados' | 'cursos' | 'instrutores';
+type Tab = 'painel' | 'turmas' | 'certificados' | 'relatorios' | 'cursos' | 'instrutores';
 type CertFilter = 'todos' | 'vencendo' | 'vencido';
 
 const TAB_TITLE: Record<Tab, string> = {
   painel: 'Dashboard — Treinamentos',
   turmas: 'Turmas',
   certificados: 'Certificados de treinamento',
+  relatorios: 'Emissão por relatórios',
   cursos: 'Cursos',
   instrutores: 'Instrutores'
 };
@@ -91,6 +93,7 @@ const TrainingScreen: React.FC<{ tab: Tab }> = ({ tab }) => {
       {tab === 'painel' && <TrainingDashboard onOpen={openTab} />}
       {tab === 'turmas' && <ClassesPanel />}
       {tab === 'certificados' && <CertificatesPanel key={certFilter} initialFilter={certFilter} />}
+      {tab === 'relatorios' && <ReportsToSheetPage />}
       {tab === 'cursos' && <CoursesPanel />}
       {tab === 'instrutores' && <InstructorsPanel />}
     </div>
@@ -101,6 +104,7 @@ const TrainingScreen: React.FC<{ tab: Tab }> = ({ tab }) => {
 export const TrainingModuleView: React.FC = () => <TrainingScreen tab="painel" />;
 export const TrainingClassesView: React.FC = () => <TrainingScreen tab="turmas" />;
 export const TrainingCertificatesView: React.FC = () => <TrainingScreen tab="certificados" />;
+export const TrainingReportsView: React.FC = () => <TrainingScreen tab="relatorios" />;
 export const TrainingCoursesView: React.FC = () => <TrainingScreen tab="cursos" />;
 export const TrainingInstructorsView: React.FC = () => <TrainingScreen tab="instrutores" />;
 

@@ -40,6 +40,8 @@ export interface TrainingCourse extends TrainingRecordBase {
 
 export interface TrainingInstructor extends TrainingRecordBase {
   name: string;
+  /** Termo impresso na assinatura (vazio = "Instrutor") */
+  title?: 'Instrutor' | 'Instrutora';
   /** Ex.: "Engenheiro Eletricista" */
   qualification: string;
   /** Ex.: "CREA-SP 123456" */
@@ -120,7 +122,7 @@ export interface TrainingCertificate extends TrainingRecordBase {
   instructorIds: string[];
   instructorNames: string[];
   /** Cópia do instrutor no momento da emissão (nome, qualificação, assinatura) */
-  instructors: Array<Pick<TrainingInstructor, 'name' | 'qualification' | 'registration' | 'signatureUrl'>>;
+  instructors: Array<Pick<TrainingInstructor, 'name' | 'title' | 'qualification' | 'registration' | 'signatureUrl'>>;
   technicalResponsibleName?: string;
   technicalResponsibleTitle?: string;
   technicalResponsibleRegistration?: string;

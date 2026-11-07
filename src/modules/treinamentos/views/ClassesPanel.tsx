@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Users, Plus, Pencil, Trash2, Award, ClipboardList, Download, Loader2, ClipboardPaste, Search, FileSpreadsheet } from 'lucide-react';
 import { downloadParticipantsTemplate, readSpreadsheet } from '../spreadsheetFiles';
-import { normalizeText, parseParticipantRows } from '../spreadsheetImport';
+import { normalizeText, parseParticipantRows, parsePastedList, type ParticipantImport } from '../spreadsheetImport';
 import { DielectricStorageService } from '../../../services/syncEngine';
 import {
   activeClassCertificates, canDeleteTraining, canEditTraining, cancelCertificate, currentCompanyId, deleteClass, deleteClassAndCancelCertificates, getCertificate, getCertificates,
@@ -169,28 +169,37 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
   const [readingSheet, setReadingSheet] = useState(false);
   const sheetRef = useRef<HTMLInputElement | null>(null);
 
+  /**
+   * Inclui na turma os alunos lidos da planilha ou da lista colada (CPF corrigido,
+   * linhas com erro e quem já está na turma ficam de fora, com aviso).
+   */
+  const addParticipantRows = (rows: ParticipantImport[], source: string) => {
+    const current = t.participants.filter(x => x.name.trim());
+    const cpfs = new Set(current.map(x => x.cpf.replace(/\D/g, '')).filter(Boolean));
+    const names = new Set(current.map(x => normalizeText(x.name)));
+    const added: TrainingParticipant[] = [];
+    const skipped: string[] = [];
+    rows.forEach(r => {
+      const digits = r.cpf.replace(/\D/g, '');
+      if (r.error) return skipped.push(`linha ${r.line} (${r.name || 'sem nome'}): ${r.error}`);
+      if (digits ? cpfs.has(digits) : names.has(normalizeText(r.name))) return skipped.push(`linha ${r.line} (${r.name}): já está na turma`);
+      if (digits) cpfs.add(digits); else names.add(normalizeText(r.name));
+      added.push({ ...emptyParticipant(r.company), name: r.name, cpf: r.cpf, role: r.role, company: r.company, branch: r.branch, attendance: r.attendance, grade: r.grade });
+    });
+    set('participants', [...current, ...added]);
+    const needGrade = course?.minGrade !== undefined && course?.minGrade !== null && added.some(p => p.grade === undefined);
+    window.alert(`${added.length} aluno(s) incluído(s) da ${source}.`
+      + (skipped.length ? `\n\nNão incluídos (${skipped.length}):\n${skipped.slice(0, 15).join('\n')}${skipped.length > 15 ? '\n…' : ''}` : '')
+      + (needGrade ? `\n\nO curso exige nota mínima ${course!.minGrade}: preencha a nota dos alunos, senão não recebem certificado.` : '')
+      + (added.length ? '\n\nConfira presença e nota e clique em "Salvar turma".' : ''));
+  };
+
   /** Planilha com Nome, CPF, Colaborador da Empresa e Filial: inclui os alunos na turma. */
   const importSheet = async (file?: File | null) => {
     if (!file) return;
     setReadingSheet(true);
     try {
-      const rows = parseParticipantRows(await readSpreadsheet(file), t.clientName || '');
-      const current = t.participants.filter(x => x.name.trim());
-      const cpfs = new Set(current.map(x => x.cpf.replace(/\D/g, '')).filter(Boolean));
-      const names = new Set(current.map(x => normalizeText(x.name)));
-      const added: TrainingParticipant[] = [];
-      const skipped: string[] = [];
-      rows.forEach(r => {
-        const digits = r.cpf.replace(/\D/g, '');
-        if (r.error) return skipped.push(`linha ${r.line} (${r.name || 'sem nome'}): ${r.error}`);
-        if (digits ? cpfs.has(digits) : names.has(normalizeText(r.name))) return skipped.push(`linha ${r.line} (${r.name}): já está na turma`);
-        if (digits) cpfs.add(digits); else names.add(normalizeText(r.name));
-        added.push({ ...emptyParticipant(r.company), name: r.name, cpf: r.cpf, role: r.role, company: r.company, branch: r.branch, attendance: r.attendance, grade: r.grade });
-      });
-      set('participants', [...current, ...added]);
-      window.alert(`${added.length} aluno(s) incluído(s) da planilha.`
-        + (skipped.length ? `\n\nNão incluídos (${skipped.length}):\n${skipped.slice(0, 15).join('\n')}${skipped.length > 15 ? '\n…' : ''}` : '')
-        + (added.length ? '\n\nConfira presença e nota e clique em "Salvar turma".' : ''));
+      addParticipantRows(parseParticipantRows(await readSpreadsheet(file), t.clientName || ''), 'planilha');
     } catch (err) {
       alertError(err, 'Não foi possível ler a planilha');
     } finally {
@@ -411,7 +420,7 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
         <PasteParticipants
           defaultCompany={t.clientName || ''}
           onClose={() => setPasting(false)}
-          onAdd={list => set('participants', [...t.participants.filter(p => p.name.trim()), ...list])}
+          onAdd={rows => addParticipantRows(rows, 'lista colada')}
         />
       )}
     </Modal>
@@ -419,12 +428,12 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
 };
 
 /** Lista copiada da planilha: Nome; CPF; Empresa; Filial; Função (separados por TAB, ; ou ,). */
-const PasteParticipants: React.FC<{ defaultCompany: string; onClose: () => void; onAdd: (list: TrainingParticipant[]) => void }> = ({ defaultCompany, onClose, onAdd }) => {
+// mesma leitura da emissão por planilha: linha de títulos opcional e CPF sem o zero inicial corrigido
+const PasteParticipants: React.FC<{ defaultCompany: string; onClose: () => void; onAdd: (rows: ParticipantImport[]) => void }> = ({ defaultCompany, onClose, onAdd }) => {
   const [text, setText] = useState('');
-  const parsed = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
-    const cols = line.split(line.includes('\t') ? '\t' : line.includes(';') ? ';' : ',').map(c => c.trim());
-    return { ...emptyParticipant(defaultCompany), name: cols[0] || '', cpf: cols[1] ? formatCpf(cols[1]) : '', company: cols[2] || defaultCompany, branch: cols[3] || '', role: cols[4] || '' };
-  }).filter(p => p.name && !/^nome$/i.test(p.name) && !/^cpf$/i.test(p.cpf));
+  const rows = useMemo(() => parseParticipantRows(parsePastedList(text), defaultCompany), [text, defaultCompany]);
+  const parsed = rows.filter(r => !r.error);
+  const withError = rows.filter(r => r.error);
 
   return (
     <Modal
@@ -432,14 +441,15 @@ const PasteParticipants: React.FC<{ defaultCompany: string; onClose: () => void;
       onClose={onClose}
       footer={<>
         <button type="button" className={btnSecondary} onClick={onClose}>Cancelar</button>
-        <button type="button" className={btnPrimary} disabled={!parsed.length} onClick={() => { onAdd(parsed); onClose(); }}>Incluir {parsed.length || ''} aluno(s)</button>
+        <button type="button" className={btnPrimary} disabled={!parsed.length} onClick={() => { onAdd(rows); onClose(); }}>Incluir {parsed.length || ''} aluno(s)</button>
       </>}
     >
       <p className="text-xs text-slate-500 mb-2">Uma pessoa por linha, nas colunas <b>Nome, CPF, Colaborador da Empresa, Filial</b> (e, se quiser, Função). Copie direto do Excel ou separe por ponto e vírgula.</p>
       <textarea rows={10} className={`${inputCls} font-mono`} value={text} onChange={e => setText(e.target.value)} placeholder={'Maria Souza;529.982.247-25;Cliente X;Campinas/SP\nJoão Lima;11144477735;Cliente X;São Paulo/SP'} />
-      {parsed.length > 0 && (
+      {rows.length > 0 && (
         <p className="text-[11px] text-slate-600 mt-2">
-          {parsed.length} aluno(s) reconhecido(s){parsed.some(p => p.cpf && !isValidCpf(p.cpf)) ? ' — há CPF inválido; corrija antes de salvar a turma.' : '.'}
+          {parsed.length} aluno(s) reconhecido(s).
+          {withError.length > 0 && <span className="block text-red-700">Ficam de fora: {withError.slice(0, 5).map(r => `${r.name || `linha ${r.line}`} (${r.error})`).join('; ')}{withError.length > 5 ? '…' : ''}</span>}
         </p>
       )}
     </Modal>
