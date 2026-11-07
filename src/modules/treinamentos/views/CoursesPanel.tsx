@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { BookOpen, Plus, Pencil, Trash2, ArrowUp, ArrowDown, RotateCcw, Copy, ToggleLeft, ToggleRight } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, ArrowUp, ArrowDown, RotateCcw, Copy, ToggleLeft, ToggleRight, CheckCircle2 } from 'lucide-react';
 import {
   activeCourseCertificates, canDeleteCourse, canEditTraining, deleteCourse, deleteCourseAndCancelCertificates, getClasses, getCourses, restoreDefaultCourses, saveCourse
 } from '../repository';
 import { formatHours, newId, totalTopicHours } from '../rules';
 import type { TrainingCourse } from '../types';
 import { btnPrimary, btnSecondary, cardCls, EmptyState, Field, inputCls, Modal } from './ui';
+import { NormImportBox } from './NormImportBox';
+import { proposalToCourse, type NormAnalysis, type NormCourseProposal } from '../normAnalysis';
 
 // inputCls traz w-full, que numa linha flex esmaga o texto do tópico; aqui a largura é definida por campo
 const rowInputCls = inputCls.replace('w-full ', '');
@@ -141,7 +143,31 @@ export const CoursesPanel: React.FC = () => {
 
 const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void; onDelete?: () => void }> = ({ course, onClose, onDelete }) => {
   const [c, setC] = useState<TrainingCourse>(course);
-  const set = <K extends keyof TrainingCourse>(k: K, v: TrainingCourse[K]) => setC(prev => ({ ...prev, [k]: v }));
+  const [filledFrom, setFilledFrom] = useState('');
+  // cursos propostos pela IA a partir da norma: um por aba, salvos um a um
+  const [drafts, setDrafts] = useState<Array<{ course: TrainingCourse; proposal: NormCourseProposal; saved: boolean }> | null>(null);
+  const [tab, setTab] = useState(0);
+
+  const applyAnalysis = (a: NormAnalysis, source: string) => {
+    if ((course.id || c.name.trim()) && !window.confirm(`Substituir os dados do formulário pelo${a.courses.length > 1 ? 's' : ''} curso${a.courses.length > 1 ? 's' : ''} proposto${a.courses.length > 1 ? 's' : ''} a partir da norma?`)) return false;
+    // o 1º curso ocupa este formulário (inclusive um curso em edição); os demais são cursos novos
+    const blank = emptyCourse();
+    const list = a.courses.map((p, i) => ({ proposal: p, saved: false, course: proposalToCourse(p, i === 0 ? c : blank) }));
+    setDrafts(list);
+    setTab(0);
+    setC(list[0].course);
+    setFilledFrom(source);
+    return true;
+  };
+
+  /** Troca de aba guardando o que foi editado na aba atual. */
+  const openTab = (i: number) => {
+    if (!drafts || i === tab) return;
+    setDrafts(drafts.map((d, idx) => (idx === tab ? { ...d, course: c } : d)));
+    setTab(i);
+    setC(drafts[i].course);
+  };
+  const set =<K extends keyof TrainingCourse>(k: K, v: TrainingCourse[K]) => setC(prev => ({ ...prev, [k]: v }));
   const total = totalTopicHours(c.topics);
 
   const setTopic = (i: number, patch: Partial<TrainingCourse['topics'][number]>) =>
@@ -159,9 +185,10 @@ const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void; onDe
     if (!(Number(c.workloadHours) > 0)) return window.alert('Informe a carga horária.');
     const topics = c.topics.filter(t => t.title.trim()).map(t => ({ title: t.title.trim(), hours: Number(t.hours) || 0 }));
     if (!topics.length) return window.alert('Inclua pelo menos um tópico no conteúdo programático.');
+    const id = c.id || newId('crs');
     saveCourse({
       ...c,
-      id: c.id || newId('crs'),
+      id,
       name: c.name.trim(),
       code: c.code.trim(),
       workloadHours: Number(c.workloadHours),
@@ -170,6 +197,13 @@ const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void; onDe
       minGrade: c.minGrade === undefined || c.minGrade === null || (c.minGrade as any) === '' ? undefined : Number(c.minGrade),
       topics
     });
+    if (drafts && drafts.length > 1) {
+      // vários cursos da norma: marca esta aba como salva e abre a próxima pendente
+      const next = drafts.map((d, idx) => (idx === tab ? { ...d, course: { ...c, id }, saved: true } : d));
+      setDrafts(next);
+      const pending = next.findIndex(d => !d.saved);
+      if (pending >= 0) { setTab(pending); setC(next[pending].course); return; }
+    }
     onClose();
   };
 
@@ -180,10 +214,35 @@ const CourseEditor: React.FC<{ course: TrainingCourse; onClose: () => void; onDe
       wide
       footer={<>
         {onDelete && <button type="button" className={`${btnSecondary} mr-auto text-red-600 hover:bg-red-50`} onClick={onDelete}><Trash2 className="w-3.5 h-3.5" /> Excluir curso</button>}
-        <button type="button" className={btnSecondary} onClick={onClose}>Cancelar</button>
-        <button type="button" className={btnPrimary} onClick={handleSave}>Salvar curso</button>
+        <button type="button" className={btnSecondary} onClick={() => {
+          const unsaved = drafts ? drafts.filter(d => !d.saved).length : 0;
+          if (drafts && drafts.length > 1 && unsaved && !window.confirm(`${unsaved} curso(s) proposto(s) ainda não foram salvos e serão descartados. Fechar mesmo assim?`)) return;
+          onClose();
+        }}>{drafts?.some(d => d.saved) ? 'Fechar' : 'Cancelar'}</button>
+        <button type="button" className={btnPrimary} onClick={handleSave} disabled={!!drafts?.[tab]?.saved}>
+          {drafts && drafts.length > 1 ? (drafts[tab].saved ? 'Curso salvo' : `Salvar este curso (${tab + 1} de ${drafts.length})`) : 'Salvar curso'}
+        </button>
       </>}
     >
+      <NormImportBox onAnalyzed={applyAnalysis} active={drafts?.[tab]?.proposal} />
+      {drafts && drafts.length > 1 && (
+        <div className="mb-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Cursos propostos a partir da norma">
+          {drafts.map((d, i) => (
+            <button key={i} type="button" role="tab" aria-selected={i === tab} onClick={() => openTab(i)}
+              className={`px-3 py-1.5 rounded-lg border text-[11px] font-semibold inline-flex items-center gap-1.5 ${i === tab ? 'bg-violet-600 border-violet-600 text-white' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
+              {d.saved && <CheckCircle2 className={`w-3.5 h-3.5 ${i === tab ? 'text-white' : 'text-emerald-600'}`} />}
+              {i + 1}. {(i === tab ? c.code : d.course.code) || d.proposal.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {filledFrom && (
+        <p className="mb-3 text-[11px] text-violet-900 bg-violet-50 border border-violet-200 rounded-lg px-2.5 py-1.5">
+          {drafts?.[tab]?.saved
+            ? 'Este curso já foi salvo. Alterações aqui não são gravadas: edite o curso pela lista depois.'
+            : `Preenchido pela IA a partir da ${filledFrom}. Confira carga horária, validade, nota e o conteúdo programático com a norma e salve${drafts && drafts.length > 1 ? ' cada curso' : ''}.`}
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-4">
         <Field label="Sigla" className="sm:col-span-1"><input className={inputCls} value={c.code} onChange={e => set('code', e.target.value)} placeholder="NR-10 BÁSICO" /></Field>
         <Field label="Nome do curso *" className="sm:col-span-3"><input className={inputCls} value={c.name} onChange={e => set('name', e.target.value)} /></Field>
