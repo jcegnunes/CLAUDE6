@@ -101,6 +101,9 @@ export default defineConfig(() => {
           manualChunks: {
             vendor: ['react', 'react-dom', 'lucide-react', '@supabase/supabase-js'],
           },
+          // leitor de PDF (pdf.worker.min.mjs) publicado como .js: a hospedagem serve .mjs como
+          // text/plain e o navegador recusa; .js também entra no cache offline do PWA
+          assetFileNames: info => (/\.mjs$/i.test(info.names?.[0] ?? '') ? 'assets/[name]-[hash].js' : 'assets/[name]-[hash][extname]'),
         },
       },
     },

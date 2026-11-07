@@ -63,6 +63,11 @@
   Custo aproximado: cerca de US$ 4 por milhão de tokens de entrada (uma NR média tem 20 a 90 mil
   tokens, ou seja, de US$ 0,10 a 0,40 por análise, mais a resposta). PDF digitalizado (imagem)
   não tem texto: use a versão com texto do site do Ministério do Trabalho.
+- **Leitura de PDF no site publicado (correção):** em jvmlab.com.br a leitura de PDF falhava com
+  "Setting up fake worker failed ... pdf.worker.min-….mjs": a Hostinger entrega arquivos .mjs como
+  text/plain e, com o cabeçalho "nosniff", o navegador recusa. Agora o leitor de PDF é publicado
+  como .js (vite.config.ts) e o .htaccess declara .mjs como JavaScript. Vale para a norma da IA e
+  para a importação de modelo do certificado em PDF.
 - **Assinatura do aluno:** o termo abaixo do nome passa a ser "Aluno" (antes "Participante");
   pode ser trocado em Modelo do Certificado › "Termo abaixo da assinatura do aluno".
 

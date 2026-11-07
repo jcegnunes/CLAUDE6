@@ -40,6 +40,9 @@
 
 <IfModule mod_mime.c>
   AddType application/manifest+json .webmanifest
+  # módulos JavaScript (.mjs): sem isso a Hostinger serve como text/plain e, com "nosniff",
+  # o navegador recusa (ex.: leitor de PDF "pdf.worker")
+  AddType text/javascript .mjs
 </IfModule>
 
 # Validador: páginas /validar e /validador (e o antigo validador.jvmlab.com.br)
