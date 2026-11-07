@@ -71,6 +71,8 @@ export type TrainingClassStatus = 'planejada' | 'em_andamento' | 'concluida' | '
 
 export interface TrainingClass extends TrainingRecordBase {
   classNumber: string;
+  /** Nome livre da turma (ex.: "Turma Manhã – Obra Centro"), além do código gerado. */
+  className?: string;
   courseId: string;
   courseName: string;
   clientId?: string;

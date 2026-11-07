@@ -561,6 +561,6 @@ export function recordLabel(table: TrainingTable, id: string): string {
   if (!r) return id;
   if (table === 'training_courses') return `Curso ${r.name}`;
   if (table === 'training_instructors') return `Instrutor ${r.name}`;
-  if (table === 'training_classes') return `Turma ${r.classNumber} – ${r.courseName}`;
+  if (table === 'training_classes') return `Turma ${r.classNumber}${r.className ? ` (${r.className})` : ''} – ${r.courseName}`;
   return `Certificado ${r.certificateNumber} – ${r.participantName}`;
 }

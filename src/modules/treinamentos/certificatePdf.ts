@@ -658,7 +658,7 @@ export async function exportAttendanceList(turma: TrainingClass, instructors: Tr
   doc.setTextColor(40, 40, 40);
   const ins = instructors.filter(i => turma.instructorIds.includes(i.id));
   const meta = [
-    `Turma: ${turma.classNumber}   ·   Curso: ${turma.courseName}`,
+    `Turma: ${turma.classNumber}${turma.className ? ` – ${turma.className}` : ''}   ·   Curso: ${turma.courseName}`,
     `Período: ${formatDateBr(turma.startDate)}${turma.endDate && turma.endDate !== turma.startDate ? ` a ${formatDateBr(turma.endDate)}` : ''}   ·   Carga horária: ${formatHours(turma.workloadHours)}   ·   Local: ${turma.location || '-'}`,
     `Instrutor(es): ${ins.map(i => i.name).join(', ') || '-'}${turma.clientName ? `   ·   Cliente: ${turma.clientName}` : ''}`
   ];

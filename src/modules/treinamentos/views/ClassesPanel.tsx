@@ -40,7 +40,7 @@ export const ClassesPanel: React.FC = () => {
   const classes = getClasses().filter(t => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
-    return [t.classNumber, t.courseName, t.clientName, t.location, ...t.participants.map(p => p.name)].some(v => (v || '').toLowerCase().includes(q));
+    return [t.classNumber, t.className, t.courseName, t.clientName, t.location, ...t.participants.map(p => p.name)].some(v => (v || '').toLowerCase().includes(q));
   });
 
   const handleIssue = async (t: TrainingClass) => {
@@ -122,7 +122,14 @@ export const ClassesPanel: React.FC = () => {
                       <span className="font-mono text-[11px] font-bold text-slate-500">{t.classNumber}</span>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_CLS[t.status]}`}>{STATUS_LABEL[t.status]}</span>
                     </div>
-                    <h4 className="font-bold text-sm text-slate-900 leading-snug mt-0.5">{t.courseName}</h4>
+                    {t.className ? (
+                      <>
+                        <h4 className="font-bold text-sm text-slate-900 leading-snug mt-0.5">{t.className}</h4>
+                        <p className="text-[11px] font-semibold text-slate-600">{t.courseName}</p>
+                      </>
+                    ) : (
+                      <h4 className="font-bold text-sm text-slate-900 leading-snug mt-0.5">{t.courseName}</h4>
+                    )}
                     {!course && <p className="text-[11px] text-amber-700">Curso excluído — edite a turma e escolha outro curso para emitir certificados.</p>}
                     <p className="text-[11px] text-slate-500">
                       {formatDateBr(t.startDate)}{t.endDate && t.endDate !== t.startDate ? ` a ${formatDateBr(t.endDate)}` : ''} · {formatHours(t.workloadHours)}
@@ -251,7 +258,7 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
     }
     if (toCancel.length && !window.confirm(`Salvar a turma e cancelar ${toCancel.length} certificado(s)? O validador do QR Code passará a mostrá-lo(s) como CANCELADO.`)) return;
 
-    saveClass({ ...t, id: t.id || newId('tur'), endDate: t.endDate || t.startDate, workloadHours: Number(t.workloadHours) || course.workloadHours, participants });
+    saveClass({ ...t, id: t.id || newId('tur'), className: t.className?.trim() || undefined, endDate: t.endDate || t.startDate, workloadHours: Number(t.workloadHours) || course.workloadHours, participants });
     toUpdate.forEach(c => c && saveCertificate(c));
     toCancel.forEach(c => cancelCertificate(c.id, c.reason));
     onClose();
@@ -268,7 +275,7 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
 
   return (
     <Modal
-      title={turma.id ? `Turma ${turma.classNumber}` : 'Nova turma'}
+      title={turma.id ? `Turma ${turma.classNumber}${turma.className ? ` – ${turma.className}` : ''}` : 'Nova turma'}
       onClose={onClose}
       wide
       footer={<>
@@ -277,6 +284,12 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
       </>}
     >
       <div className="grid gap-3 sm:grid-cols-4">
+        <Field label="Nome da turma" className="sm:col-span-3" hint="Opcional; aparece na lista e na lista de presença">
+          <input className={inputCls} value={t.className || ''} onChange={e => set('className', e.target.value)} placeholder="Ex.: Turma Manhã – Obra Centro" />
+        </Field>
+        <Field label="Código da turma" hint={turma.id ? undefined : 'Gerado ao salvar'}>
+          <input className={inputCls} value={t.classNumber} disabled placeholder="TUR-…" />
+        </Field>
         <Field label="Curso *" className="sm:col-span-3">
           <select className={inputCls} value={t.courseId} onChange={e => chooseCourse(e.target.value)}>
             <option value="">Escolha…</option>

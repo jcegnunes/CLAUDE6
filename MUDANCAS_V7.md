@@ -10,6 +10,8 @@
 - **Excluir curso:** liberado para quem pode editar cursos (antes só Admin), pela lixeira do
   cartão ou pelo botão "Excluir curso" no editor. Turmas, certificados e instrutores
   continuam com exclusão só para Admin.
+- **Nome da turma:** campo opcional no cadastro da turma, além do código gerado (TUR-…);
+  aparece como título no cartão da turma, na busca, no título do editor e na lista de presença.
 
 ## Versão 7.4.0 (08/10/2026) — resumo
 
