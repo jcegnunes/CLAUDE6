@@ -155,8 +155,20 @@ const ReportsToSheet: React.FC<{ onUse: UseRecords }> = ({ onUse }) => {
   };
 
   const fileName = `Emissao_certificados_${(company.trim() || 'relatorio').replace(/[^\p{L}\p{N}]+/gu, '_')}_${todayIso()}.xlsx`;
+  /** A empresa vai em "Colaborador da Empresa" de todas as linhas: em branco, os certificados saem sem empresa. */
+  const companyRef = useRef<HTMLInputElement | null>(null);
+  const [companyWarned, setCompanyWarned] = useState(false);
+  const checkCompany = () => {
+    if (company.trim()) return true;
+    setCompanyWarned(true);
+    window.alert('Informe o nome da empresa (Colaborador da Empresa) antes de gerar a planilha.\n\nEle sai em todas as linhas e no certificado de cada aluno.');
+    companyRef.current?.scrollIntoView({ block: 'center' });
+    companyRef.current?.focus();
+    return false;
+  };
+
   const handleDownload = async () => {
-    if (!result || !confirmCertified()) return;
+    if (!result || !checkCompany() || !confirmCertified()) return;
     setDownloading(true);
     try { await downloadGeneratedSheet(records, skippedAll, fileName); } catch (err) { alertError(err, 'Falha ao gerar a planilha'); } finally { setDownloading(false); }
   };
@@ -188,7 +200,7 @@ const ReportsToSheet: React.FC<{ onUse: UseRecords }> = ({ onUse }) => {
       <button type="button" className={btnSecondary} disabled={!result || downloading} onClick={handleDownload}>
         {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Baixar planilha
       </button>
-      <button type="button" className={btnPrimary} disabled={!records.length} onClick={() => confirmCertified() && onUse(records, `Gerada de ${report?.file || 'relatório'}`)}>
+      <button type="button" className={btnPrimary} disabled={!records.length} onClick={() => checkCompany() && confirmCertified() && onUse(records, `Gerada de ${report?.file || 'relatório'}`)}>
         <ArrowRight className="w-3.5 h-3.5" /> Usar na emissão ({records.length})
       </button>
     </>
@@ -232,8 +244,10 @@ const ReportsToSheet: React.FC<{ onUse: UseRecords }> = ({ onUse }) => {
 
       {report && view === 'emissao' && (
         <>
-          <Field label="Colaborador da Empresa (empresa dos alunos)" className="mt-3" hint="Sai na coluna Colaborador da Empresa de todas as linhas">
-            <input className={inputCls} value={company} onChange={e => setCompany(e.target.value)} placeholder="Ex.: Escamax Elevadores Ltda" />
+          <Field label="Colaborador da Empresa (empresa dos alunos) *" className="mt-3" hint="Sai na coluna Colaborador da Empresa de todas as linhas e no certificado">
+            <input ref={companyRef} className={`${inputCls} ${!company.trim() ? `border-amber-400 ${companyWarned ? 'ring-2 ring-amber-300' : ''}` : ''}`}
+              value={company} onChange={e => setCompany(e.target.value)} placeholder="Ex.: Escamax Elevadores Ltda" />
+            {!company.trim() && <p className="text-[11px] text-amber-700 mt-1">Nome da empresa em branco: preencha antes de gerar a planilha.</p>}
           </Field>
 
           <div className="mt-4">

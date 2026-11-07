@@ -27,6 +27,8 @@
   Antes de gerar, o sistema consulta no banco de dados (e no aparelho) os certificados válidos
   de cada aluno: quem já tem certificado válido do mesmo curso aparece num alerta com o número
   do certificado e só entra na planilha se for marcado (com confirmação ao usar/baixar).
+  O nome da empresa (Colaborador da Empresa) é obrigatório: em branco, o campo fica destacado
+  e "Baixar planilha"/"Usar na emissão" mostram um alerta e levam até o campo.
 - **Colar lista:** na turma, a lista colada passa a corrigir o CPF que o Excel deixou sem o zero
   inicial (antes ficava inválido e a turma não salvava), reconhece a linha de títulos e avisa as
   linhas com erro. Na emissão por planilha, quando o curso exige nota e ela não foi informada,
