@@ -68,6 +68,25 @@
   para a importação de modelo do certificado em PDF.
 - **Assinatura do aluno:** o termo abaixo do nome passa a ser "Aluno" (antes "Participante");
   pode ser trocado em Modelo do Certificado › "Termo abaixo da assinatura do aluno".
+- **Data de emissão no certificado:** a linha "Cidade, data." abaixo do texto agora é opcional
+  (Modelo do Certificado › "Mostrar data de emissão"), **desligada por padrão**; o rodapé não
+  mostra mais "Emitido em …" (só nº do certificado e turma). A data continua na validação online.
+- **Nome do aluno em maiúsculas** também na assinatura do aluno e no quadro "Participante" do verso
+  (como já era no destaque da frente).
+- **Verso:** o campo "Período / local" passa a ser só "Período" (datas do treinamento, sem o local).
+- **Verso, quadro de dados:** o instrutor sai com o nome numa linha e a formação/registro abaixo;
+  o quadro (participante, instrutor, pré-requisito, observações) mostra o texto inteiro — se não
+  couber, a letra diminui um pouco em vez de cortar.
+- **NR-18 Elevadores (montagem):** retirado "; eventual a critério do empregador" das observações,
+  no curso padrão, no curso já cadastrado e nos certificados já emitidos dele (correção única,
+  sincronizada com a nuvem; o restante do texto não muda). Depois, as observações desse curso
+  ficaram só com: "Carga horária e conteúdo do treinamento inicial definidos pelo empregador;
+  treinamento periódico anual (Anexo I, Quadro 1). Capacitação compatível com o equipamento
+  utilizado (item 18.14.2)." (saiu o texto de responsabilidade dos itens 18.11.3 e 18.11.5).
+- **NR-18 Elevadores (montagem): carga horária de 24 h para 16 h** (10 h teóricas + 6 h práticas,
+  horas dos tópicos redistribuídas). O curso já cadastrado recebe a mudança uma única vez, se
+  ainda estiver com 24 h. Os certificados já emitidos desse curso com 24 h também passam para
+  16 h, com as horas dos tópicos do verso (correção única, a pedido; sincronizada com a nuvem).
 
 ## Versão 7.4.0 (08/10/2026) — resumo
 

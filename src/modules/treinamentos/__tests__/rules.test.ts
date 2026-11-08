@@ -168,9 +168,9 @@ describe('Treinamentos — NR-18 elevadores (Anexo I, Quadro 1)', () => {
   it('inicial e periódico anual, com parte prática e responsabilidade do item 18.11.5', () => {
     const ini = DEFAULT_COURSES.find(c => c.key === 'nr18-elevadores-montagem')!;
     const rec = DEFAULT_COURSES.find(c => c.key === 'nr18-elevadores-montagem-reciclagem')!;
-    expect([ini.workloadHours, ini.validityMonths, rec.workloadHours, rec.validityMonths]).toEqual([24, 12, 8, 12]);
+    expect([ini.workloadHours, ini.validityMonths, rec.workloadHours, rec.validityMonths]).toEqual([16, 12, 8, 12]);
     [ini, rec].forEach(c => expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true));
-    expect(ini.notes).toMatch(/18.11.5/);
+    expect(ini.notes).toBe('Carga horária e conteúdo do treinamento inicial definidos pelo empregador; treinamento periódico anual (Anexo I, Quadro 1). Capacitação compatível com o equipamento utilizado (item 18.14.2).');
   });
 });
 

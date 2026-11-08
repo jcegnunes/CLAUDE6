@@ -89,6 +89,8 @@ export interface TrainingCertificateLayout {
   bodyTemplate: string;
   showIdLine: boolean;
   showValidity: boolean;
+  /** Linha "Cidade, data de emissão." abaixo do texto (desligada por padrão) */
+  showIssueDate: boolean;
   /** Texto livre abaixo do corpo (opcional) */
   closingText: string;
   // ------------------------------------------------------ assinaturas
@@ -140,6 +142,7 @@ export const DEFAULT_LAYOUT: TrainingCertificateLayout = {
   bodyTemplate: DEFAULT_BODY_TEMPLATE,
   showIdLine: true,
   showValidity: true,
+  showIssueDate: false,
   closingText: '',
   maxInstructors: 2,
   showTechnicalResponsible: true,
@@ -227,6 +230,7 @@ export function normalizeLayout(raw?: Partial<TrainingCertificateLayout> | Recor
     bodyTemplate: typeof r.bodyTemplate === 'string' && r.bodyTemplate.trim() ? r.bodyTemplate.slice(0, 1200) : d.bodyTemplate,
     showIdLine: bool(r.showIdLine, d.showIdLine),
     showValidity: bool(r.showValidity, d.showValidity),
+    showIssueDate: bool(r.showIssueDate, d.showIssueDate),
     closingText: text(r.closingText, d.closingText, 400),
     maxInstructors: Number.isFinite(maxIns) ? Math.min(2, Math.max(0, Math.round(maxIns))) : d.maxInstructors,
     showTechnicalResponsible: bool(r.showTechnicalResponsible, d.showTechnicalResponsible),

@@ -406,11 +406,13 @@ export async function drawCertificate(
     y += 6;
   }
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  doc.setTextColor(...GRAY);
-  // local junto à data: a filial do aluno; sem filial, a cidade do laboratório
-  const city = cert.participantBranch?.trim() || cityOf(company);
-  doc.text(`${city ? `${city}, ` : ''}${longDate(cert.issueDate)}.`, w / 2, y + 4, { align: 'center' });
+  if (L.showIssueDate) {
+    doc.setFontSize(10);
+    doc.setTextColor(...GRAY);
+    // local junto à data: a filial do aluno; sem filial, a cidade do laboratório
+    const city = cert.participantBranch?.trim() || cityOf(company);
+    doc.text(`${city ? `${city}, ` : ''}${longDate(cert.issueDate)}.`, w / 2, y + 4, { align: 'center' });
+  }
 
   // ------------------------------------------------------------ assinaturas
   // stampKey: carimbo da assinatura digital do papel (o participante não assina digitalmente)
@@ -427,7 +429,7 @@ export async function drawCertificate(
       stampKey: 'rt'
     });
   }
-  if (L.showParticipant) signers.push({ image: '', name: cert.participantName, l2: L.participantLabel });
+  if (L.showParticipant) signers.push({ image: '', name: cert.participantName.toUpperCase(), l2: L.participantLabel });
   const sigY = 170 + L.signatureOffsetY;
   const areaX = 18;
   const areaW = w - 18 - 60; // à direita fica o QR Code
@@ -454,7 +456,7 @@ export async function drawCertificate(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...GRAY);
-  doc.text(`Certificado nº ${cert.certificateNumber}${cert.classNumber ? `  ·  Turma ${cert.classNumber}` : ''}  ·  Emitido em ${formatDateBr(cert.issueDate)}`, 16, h - 14);
+  doc.text(`Certificado nº ${cert.certificateNumber}${cert.classNumber ? `  ·  Turma ${cert.classNumber}` : ''}`, 16, h - 14);
   doc.text(url, w - 16, h - 14, { align: 'right', maxWidth: 140 });
   if (digitalLine && !L.showBackPage) {
     // sem verso: o aviso da assinatura digital vai na frente
@@ -502,32 +504,46 @@ export async function drawCertificate(
 
   // Duas colunas: dados do participante à esquerda, pré-requisito e observações à direita
   const left: Array<[string, string]> = [
-    ['Participante', `${cert.participantName}${cert.participantCpf ? ` – CPF ${formatCpf(cert.participantCpf)}` : ''}`],
-    ['Período / local', `${formatDateBr(cert.startDate)}${cert.endDate && cert.endDate !== cert.startDate ? ` a ${formatDateBr(cert.endDate)}` : ''}${cert.location ? ` – ${cert.location}` : ''}`],
-    ['Instrutor(es)', cert.instructors.map(i => [i.name, i.qualification, i.registration].filter(Boolean).join(', ')).join('; ')],
+    ['Participante', `${cert.participantName.toUpperCase()}${cert.participantCpf ? ` – CPF ${formatCpf(cert.participantCpf)}` : ''}`],
+    ['Período', `${formatDateBr(cert.startDate)}${cert.endDate && cert.endDate !== cert.startDate ? ` a ${formatDateBr(cert.endDate)}` : ''}`],
+    // nome do instrutor numa linha e a formação/registro logo abaixo
+    ['Instrutor(es)', cert.instructors.map(i => [i.name, [i.qualification, i.registration].filter(Boolean).join(', ')].filter(Boolean).join('\n')).join('\n')],
     ['Aproveitamento', !L.showPerformance ? '' : [cert.attendance !== undefined ? `presença ${cert.attendance}%` : '', cert.grade !== undefined && cert.grade !== null ? `nota ${String(cert.grade).replace('.', ',')}` : ''].filter(Boolean).join(' · ')]
   ];
   const right: Array<[string, string]> = [
     ['Pré-requisito', cert.prerequisite || ''],
     ['Observações', cert.courseNotes || '']
   ];
-  const drawInfo = (items: Array<[string, string]>, x: number, width: number) => {
+  // o quadro termina acima do aviso da assinatura digital / rodapé; se o texto
+  // não couber, a letra diminui (até 5,6 pt) para mostrar tudo
+  const bottom = h - (digitalLine ? 22 : 18);
+  const infoW = (w - 32) / 2 - 4;
+  const labelW = 26;
+  const layoutInfo = (items: Array<[string, string]>, size: number) => {
+    doc.setFontSize(size);
+    const lh = size * 0.45;
+    return { lh, rows: items.filter(([, v]) => v).map(([label, value]) => ({ label, lines: doc.splitTextToSize(value, infoW - labelW) as string[] })) };
+  };
+  const heightOf = (l: ReturnType<typeof layoutInfo>) => l.rows.reduce((s, r) => s + r.lines.length * l.lh + 1, 0);
+  let size = 7.6;
+  while (size > 5.6 && Math.max(heightOf(layoutInfo(left, size)), heightOf(layoutInfo(right, size))) > bottom - vy + 2) size -= 0.2;
+  const drawInfo = (items: Array<[string, string]>, x: number) => {
+    const l = layoutInfo(items, size);
     let cy = vy;
-    doc.setFontSize(7.6);
-    items.filter(([, v]) => v).forEach(([label, value]) => {
-      if (cy > h - 20) return;
+    l.rows.forEach(({ label, lines }) => {
+      if (cy > bottom) return;
+      const fit = lines.slice(0, Math.max(1, Math.floor((bottom - cy) / l.lh) + 1));
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...NAVY);
       doc.text(`${label}:`, x, cy);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(40, 40, 40);
-      const lines = doc.splitTextToSize(value, width - 30).slice(0, Math.max(1, Math.floor((h - 20 - cy) / 3.4)));
-      doc.text(lines, x + 30, cy);
-      cy += Math.max(1, lines.length) * 3.4 + 1;
+      doc.text(fit, x + labelW, cy, { lineHeightFactor: 1.15 });
+      cy += fit.length * l.lh + 1;
     });
   };
-  drawInfo(left, 16, (w - 32) / 2 - 4);
-  drawInfo(right, w / 2 + 4, (w - 32) / 2 - 4);
+  drawInfo(left, 16);
+  drawInfo(right, w / 2 + 4);
 
   doc.setFontSize(7.5);
   doc.setTextColor(...GRAY);

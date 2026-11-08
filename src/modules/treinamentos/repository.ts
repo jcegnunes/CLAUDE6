@@ -12,6 +12,7 @@ import {
   remaining, takeFromBlocks, type NumberBlockState
 } from '../../services/numberBlocks';
 import { DEFAULT_COURSES } from './defaultCourses';
+import { RESPONSABILIDADE } from './defaultCoursesNr18';
 import { TRAINING_KEYS, TRAINING_MANAGED_KEYS } from './storageKeys';
 import type { ImportGroup } from './spreadsheetImport';
 import { normalizeText } from './spreadsheetImport';
@@ -169,6 +170,60 @@ export const DEFAULT_COURSE_REMOVALS: Array<{ key: string; mark: string }> = [
   { key: 'epi-epc-isolantes', mark: 'remover:epi-epc-isolantes' }
 ];
 
+/**
+ * Correções pontuais de texto nas observações de cursos padrão: trocam só o
+ * trecho indicado (o resto, editado pelo usuário, fica) no curso e nos
+ * certificados já emitidos dele. Aplicadas uma única vez por empresa.
+ */
+export const DEFAULT_COURSE_NOTE_FIXES: Array<{ key: string; mark: string; from: string; to: string }> = [
+  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@sem-eventual', from: '; eventual a critério do empregador.', to: '.' },
+  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@sem-responsabilidade', from: ` ${RESPONSABILIDADE}`, to: '' }
+];
+
+/**
+ * Mudanças de carga horária em cursos padrão: o curso já cadastrado recebe a
+ * nova carga e as horas dos tópicos do padrão, só se ainda estiver com a carga
+ * antiga (curso alterado à mão fica como está). Certificados emitidos não mudam.
+ */
+export const DEFAULT_COURSE_WORKLOAD_FIXES: Array<{ key: string; mark: string; previousHours: number }> = [
+  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@16h', previousHours: 24 }
+];
+
+/** Certificados já emitidos que passam para a nova carga horária (e horas dos tópicos) do curso padrão. */
+export const DEFAULT_CERTIFICATE_WORKLOAD_FIXES: Array<{ key: string; mark: string; previousHours: number }> = [
+  { key: 'nr18-elevadores-montagem', mark: 'certificados:nr18-elevadores-montagem@16h', previousHours: 24 }
+];
+
+/** Aplica as correções de texto e de carga horária pendentes (uma vez por empresa). */
+function applyNoteFixes(done: Set<string>, company: string): void {
+  DEFAULT_COURSE_WORKLOAD_FIXES.filter(f => !done.has(f.mark)).forEach(f => {
+    done.add(f.mark);
+    const course = getCourses().find(c => c.id === `crs-${company}-${f.key}`);
+    const seed = DEFAULT_COURSES.find(c => c.key === f.key);
+    if (!course || !seed || course.workloadHours !== f.previousHours) return;
+    putRecord<TrainingCourse>('training_courses', { ...course, workloadHours: seed.workloadHours, topics: seed.topics.map(t => ({ ...t })) });
+  });
+  // certificados já emitidos que o usuário pediu para corrigir junto
+  DEFAULT_CERTIFICATE_WORKLOAD_FIXES.filter(f => !done.has(f.mark)).forEach(f => {
+    done.add(f.mark);
+    const id = `crs-${company}-${f.key}`;
+    const seed = DEFAULT_COURSES.find(c => c.key === f.key);
+    if (!seed) return;
+    listOf<TrainingCertificate>('training_certificates')
+      .filter(c => c.courseId === id && c.workloadHours === f.previousHours)
+      .forEach(c => putRecord<TrainingCertificate>('training_certificates', { ...c, workloadHours: seed.workloadHours, topics: seed.topics.map(t => ({ ...t })) }));
+  });
+  DEFAULT_COURSE_NOTE_FIXES.filter(f => !done.has(f.mark)).forEach(f => {
+    done.add(f.mark);
+    const id = `crs-${company}-${f.key}`;
+    const course = getCourses().find(c => c.id === id);
+    if (course?.notes?.includes(f.from)) putRecord<TrainingCourse>('training_courses', { ...course, notes: course.notes.split(f.from).join(f.to) });
+    listOf<TrainingCertificate>('training_certificates')
+      .filter(c => c.courseId === id && c.courseNotes?.includes(f.from))
+      .forEach(c => putRecord<TrainingCertificate>('training_certificates', { ...c, courseNotes: c.courseNotes!.split(f.from).join(f.to) }));
+  });
+}
+
 /** Cursos padrão da primeira versão: empresas marcadas só com "true" já receberam estes. */
 const FIRST_DEFAULT_KEYS = ['nr10-basico', 'nr10-sep', 'nr35', 'epi-epc-isolantes'];
 
@@ -186,6 +241,7 @@ export function ensureDefaultCourses(): number {
   const missing = DEFAULT_COURSES.filter(c => !done.has(c.key));
   const updates = DEFAULT_COURSE_UPDATES.filter(u => !done.has(u.mark));
   const removals = DEFAULT_COURSE_REMOVALS.filter(r => !done.has(r.mark));
+  applyNoteFixes(done, company);
   if (!missing.length && !updates.length && !removals.length) {
     write(TRAINING_KEYS.SEEDED, { ...seeded, [company]: Array.from(done) });
     return 0;

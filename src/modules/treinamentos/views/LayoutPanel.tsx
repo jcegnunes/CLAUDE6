@@ -426,6 +426,7 @@ export const LayoutPanel: React.FC = () => {
             </Field>
             <Toggle label="Mostrar CPF, função e empresa abaixo do nome" checked={L.showIdLine} disabled={disabled} onChange={v => set({ showIdLine: v })} />
             <Toggle label='Mostrar "Válido até" (vencimento)' checked={L.showValidity} disabled={disabled} onChange={v => set({ showValidity: v })} />
+            <Toggle label="Mostrar data de emissão (cidade e data abaixo do texto)" checked={L.showIssueDate} disabled={disabled} onChange={v => set({ showIssueDate: v })} />
           </Section>
 
           <Section icon={PenLine} title="Assinaturas">
