@@ -4,7 +4,7 @@ import { downloadParticipantsTemplate, readSpreadsheet } from '../spreadsheetFil
 import { normalizeText, parseParticipantRows, parsePastedList, type ParticipantImport } from '../spreadsheetImport';
 import { DielectricStorageService } from '../../../services/syncEngine';
 import {
-  activeClassCertificates, canDeleteTraining, canEditTraining, cancelCertificate, currentCompanyId, deleteClass, deleteClassAndCancelCertificates, getCertificate, getCertificates,
+  activeClassCertificates, canDeleteTraining, certificateChanged, certificateWithClassData, canEditTraining, cancelCertificate, currentCompanyId, deleteClass, deleteClassAndCancelCertificates, getCertificate, getCertificates,
   getClasses, getCourse, getCourses, getInstructors, issueCertificatesForClass, saveCertificate, saveClass
 } from '../repository';
 import { exportAttendanceList, exportTrainingCertificates } from '../certificatePdf';
@@ -267,10 +267,18 @@ const ClassEditor: React.FC<{ turma: TrainingClass; onClose: () => void }> = ({ 
     }
     if (toCancel.length && !window.confirm(`Salvar a turma e cancelar ${toCancel.length} certificado(s)? O validador do QR Code passará a mostrá-lo(s) como CANCELADO.`)) return;
 
-    saveClass({ ...t, id: t.id || newId('tur'), className: t.className?.trim() || undefined, endDate: t.endDate || t.startDate, workloadHours: Number(t.workloadHours) || course.workloadHours, participants });
-    toUpdate.forEach(c => c && saveCertificate(c));
+    const saved = saveClass({ ...t, id: t.id || newId('tur'), className: t.className?.trim() || undefined, endDate: t.endDate || t.startDate, workloadHours: Number(t.workloadHours) || course.workloadHours, participants });
+    // dados da turma (datas, local, carga, instrutores, curso…) vão para os certificados já emitidos
+    const cancelIds = new Set(toCancel.map(c => c.id));
+    const edited = new Map(toUpdate.filter(Boolean).map(c => [c!.id, c!]));
+    let updated = 0;
+    activeClassCertificates(saved.id).filter(c => !cancelIds.has(c.id)).forEach(original => {
+      const next = certificateWithClassData(edited.get(original.id) || original, saved, course);
+      if (certificateChanged(original, next)) { saveCertificate(next); updated++; }
+    });
     toCancel.forEach(c => cancelCertificate(c.id, c.reason));
     onClose();
+    if (updated) window.alert(`${updated} certificado(s) da turma atualizado(s) com os dados salvos (mesmo número e QR Code). Baixe o PDF de novo para ter a versão corrigida.`);
   };
 
   const removeParticipant = (p: TrainingParticipant) => {

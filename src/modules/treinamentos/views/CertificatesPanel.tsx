@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Award, Plus, Download, Link2, Ban, RotateCcw, Trash2, Loader2, Search, FileSpreadsheet } from 'lucide-react';
+import { Award, Plus, Download, Link2, Ban, RotateCcw, Trash2, Loader2, Search, FileSpreadsheet, Pencil } from 'lucide-react';
+import { EditCertificate } from './EditCertificate';
 import { ImportCertificatesDialog } from './ImportCertificatesDialog';
 import { buildValidationUrl } from '../../../config/validationPortalConfig';
 import { DielectricStorageService } from '../../../services/syncEngine';
@@ -20,6 +21,7 @@ export const CertificatesPanel: React.FC<{ initialFilter?: Filter }> = ({ initia
   const [issuing, setIssuing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [editing, setEditing] = useState<TrainingCertificate | null>(null);
   const canEdit = canEditTraining();
   const today = todayIso();
   const all = getCertificates();
@@ -114,6 +116,7 @@ export const CertificatesPanel: React.FC<{ initialFilter?: Filter }> = ({ initia
                   <button type="button" title="Baixar PDF" className="p-2 rounded-lg hover:bg-slate-100 text-slate-600" disabled={!!busy} onClick={() => download([c], c.id)}>
                     {busy === c.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   </button>
+                  {canEdit && <button type="button" title="Editar certificado" className="p-2 rounded-lg hover:bg-slate-100 text-slate-600" onClick={() => setEditing(c)}><Pencil className="w-4 h-4" /></button>}
                   <button type="button" title="Copiar link de validação" className="p-2 rounded-lg hover:bg-slate-100 text-slate-600" onClick={() => copyLink(c)}><Link2 className="w-4 h-4" /></button>
                   {canEdit && (c.status === 'cancelado'
                     ? <button type="button" title="Reativar" className="p-2 rounded-lg hover:bg-slate-100 text-slate-600" onClick={() => window.confirm('Reativar este certificado?') && reactivateCertificate(c.id)}><RotateCcw className="w-4 h-4" /></button>
@@ -129,6 +132,7 @@ export const CertificatesPanel: React.FC<{ initialFilter?: Filter }> = ({ initia
       )}
 
       {importing && <ImportCertificatesDialog onClose={() => setImporting(false)} />}
+      {editing && <EditCertificate cert={editing} onClose={() => setEditing(null)} onSaved={c => window.confirm(`Certificado ${c.certificateNumber} atualizado (mesmo número e QR Code). Baixar o PDF corrigido agora?`) && download([c], c.id)} />}
       {issuing && <IndividualIssue onClose={() => setIssuing(false)} onIssued={c => download([c], c.id)} />}
     </div>
   );

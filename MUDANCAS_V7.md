@@ -68,6 +68,14 @@
   para a importação de modelo do certificado em PDF.
 - **Assinatura do aluno:** o termo abaixo do nome passa a ser "Aluno" (antes "Participante");
   pode ser trocado em Modelo do Certificado › "Termo abaixo da assinatura do aluno".
+- **Turma editada atualiza os certificados:** ao salvar a turma, os certificados já emitidos dela
+  recebem datas, local, modalidade, carga horária, instrutores, número da turma e, se o curso da
+  turma mudou, nome/norma/conteúdo/observações do novo curso (vencimento recalculado). Mesmo
+  número e QR Code; um aviso mostra quantos foram atualizados.
+- **Editar certificado:** botão de lápis em cada certificado da lista (Certificados) abre a edição
+  de curso, aluno (nome, CPF, função, empresa, filial), datas, local, modalidade, carga horária,
+  presença, nota, emissão, vencimento e instrutores. Número e QR Code não mudam; os dados do aluno
+  também são corrigidos na turma de origem.
 - **Data de emissão no certificado:** a linha "Cidade, data." abaixo do texto agora é opcional
   (Modelo do Certificado › "Mostrar data de emissão"), **desligada por padrão**; o rodapé não
   mostra mais "Emitido em …" (só nº do certificado e turma). A data continua na validação online.
@@ -87,6 +95,12 @@
   horas dos tópicos redistribuídas). O curso já cadastrado recebe a mudança uma única vez, se
   ainda estiver com 24 h. Os certificados já emitidos desse curso com 24 h também passam para
   16 h, com as horas dos tópicos do verso (correção única, a pedido; sincronizada com a nuvem).
+- **NR-12 Elevadores:** observações trocadas por "Capacitação com carga horária mínima definida
+  pelo empregador (item 12.16.3); ministrada por profissional legalmente habilitado." no curso e
+  nos certificados emitidos dele (inclusive os que chegarem pela sincronização com o texto antigo).
+  **Carga horária de 16 h para 8 h** (8 tópicos teóricos de 0,5 h + 4 práticos de 1 h); o curso
+  cadastrado muda uma vez, se ainda estiver com 16 h. Os certificados já emitidos desse curso com
+  16 h também passam para 8 h, com as horas dos tópicos do verso (a pedido).
 
 ## Versão 7.4.0 (08/10/2026) — resumo
 

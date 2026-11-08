@@ -13,6 +13,7 @@ import {
 } from '../../services/numberBlocks';
 import { DEFAULT_COURSES } from './defaultCourses';
 import { RESPONSABILIDADE } from './defaultCoursesNr18';
+import { NR12_ELEVADORES_NOTES } from './defaultCoursesNr12';
 import { TRAINING_KEYS, TRAINING_MANAGED_KEYS } from './storageKeys';
 import type { ImportGroup } from './spreadsheetImport';
 import { normalizeText } from './spreadsheetImport';
@@ -186,16 +187,37 @@ export const DEFAULT_COURSE_NOTE_FIXES: Array<{ key: string; mark: string; from:
  * antiga (curso alterado à mão fica como está). Certificados emitidos não mudam.
  */
 export const DEFAULT_COURSE_WORKLOAD_FIXES: Array<{ key: string; mark: string; previousHours: number }> = [
-  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@16h', previousHours: 24 }
+  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@16h', previousHours: 24 },
+  { key: 'nr12-elevadores', mark: 'nr12-elevadores@8h', previousHours: 16 }
 ];
 
 /** Certificados já emitidos que passam para a nova carga horária (e horas dos tópicos) do curso padrão. */
 export const DEFAULT_CERTIFICATE_WORKLOAD_FIXES: Array<{ key: string; mark: string; previousHours: number }> = [
-  { key: 'nr18-elevadores-montagem', mark: 'certificados:nr18-elevadores-montagem@16h', previousHours: 24 }
+  { key: 'nr18-elevadores-montagem', mark: 'certificados:nr18-elevadores-montagem@16h', previousHours: 24 },
+  { key: 'nr12-elevadores', mark: 'certificados:nr12-elevadores@8h', previousHours: 16 }
+];
+
+/** Observações trocadas por inteiro (a pedido) no curso e nos certificados já emitidos dele. */
+// oldStart: começo do texto antigo. Os certificados com ele são corrigidos a cada
+// abertura (inclusive os que chegam depois pela sincronização, emitidos em outro
+// aparelho com a versão anterior); o curso é corrigido uma única vez.
+export const DEFAULT_COURSE_NOTE_SETS: Array<{ key: string; mark: string; notes: string; oldStart: string }> = [
+  { key: 'nr12-elevadores', mark: 'nr12-elevadores@observacoes-2026-11', notes: NR12_ELEVADORES_NOTES, oldStart: 'Capacitação antes de o trabalhador assumir a função' }
 ];
 
 /** Aplica as correções de texto e de carga horária pendentes (uma vez por empresa). */
 function applyNoteFixes(done: Set<string>, company: string): void {
+  DEFAULT_COURSE_NOTE_SETS.forEach(f => {
+    const id = `crs-${company}-${f.key}`;
+    if (!done.has(f.mark)) {
+      done.add(f.mark);
+      const course = getCourses().find(c => c.id === id);
+      if (course && course.notes !== f.notes) putRecord<TrainingCourse>('training_courses', { ...course, notes: f.notes });
+    }
+    listOf<TrainingCertificate>('training_certificates')
+      .filter(c => c.courseId === id && (c.courseNotes || '').startsWith(f.oldStart))
+      .forEach(c => putRecord<TrainingCertificate>('training_certificates', { ...c, courseNotes: f.notes }));
+  });
   DEFAULT_COURSE_WORKLOAD_FIXES.filter(f => !done.has(f.mark)).forEach(f => {
     done.add(f.mark);
     const course = getCourses().find(c => c.id === `crs-${company}-${f.key}`);
@@ -391,6 +413,45 @@ function buildCertificate(course: TrainingCourse, data: {
     status: 'valido'
   };
 }
+
+/** Dados do curso copiados para o certificado (nome, norma, conteúdo, pré-requisito e observações). */
+export function courseSnapshot(course: TrainingCourse): Pick<TrainingCertificate, 'courseId' | 'courseName' | 'normReference' | 'topics' | 'prerequisite' | 'courseNotes'> {
+  return {
+    courseId: course.id, courseName: course.name, normReference: course.normReference,
+    topics: course.topics.map(t => ({ ...t })), prerequisite: course.prerequisite, courseNotes: course.notes
+  };
+}
+
+/** Instrutores copiados para o certificado (nome, qualificação e assinatura atuais do cadastro). */
+export const certificateInstructors = (ids: string[]) => instructorSnapshot(ids);
+
+/**
+ * Certificado já emitido com os dados atuais da turma (mesmo número e QR Code):
+ * datas, local, modalidade, carga horária, instrutores, número da turma e, se a
+ * turma mudou de curso, os dados do novo curso. O vencimento é recalculado
+ * quando muda o término ou o curso.
+ */
+export function certificateWithClassData(cert: TrainingCertificate, turma: TrainingClass, course?: TrainingCourse): TrainingCertificate {
+  const endDate = turma.endDate || turma.startDate;
+  const courseChanged = !!course && course.id !== cert.courseId;
+  const sameInstructors = cert.instructorIds.join('|') === turma.instructorIds.join('|');
+  const next: TrainingCertificate = {
+    ...cert,
+    ...(courseChanged ? courseSnapshot(course!) : {}),
+    classNumber: turma.classNumber || cert.classNumber,
+    startDate: turma.startDate,
+    endDate,
+    location: turma.location,
+    modality: turma.modality,
+    workloadHours: Number(turma.workloadHours) || cert.workloadHours,
+    ...(sameInstructors ? {} : instructorSnapshot(turma.instructorIds))
+  };
+  if (course && (courseChanged || endDate !== cert.endDate)) next.expiryDate = computeExpiryDate(endDate, course.validityMonths);
+  return next;
+}
+
+/** true quando o certificado mudou (para gravar só o que precisa). */
+export const certificateChanged = (a: TrainingCertificate, b: TrainingCertificate) => JSON.stringify(a) !== JSON.stringify(b);
 
 /** Emite os certificados dos aprovados da turma que ainda não têm certificado. */
 export function issueCertificatesForClass(classId: string): TrainingCertificate[] {

@@ -200,8 +200,9 @@ describe('Treinamentos — NR-12 elevadores (Anexo II)', () => {
     const c = DEFAULT_COURSES.find(x => x.key === 'nr12-elevadores')!;
     const all = c.topics.map(t => t.title).join(' ');
     ['"a"', '"b", "c" e "d"', '"e" e "f"', '"g" e "h"', '"i"', 'furadeira', 'lixadeira', 'talha', '12.11.3'].forEach(t => expect(all).toContain(t));
-    expect(c.topics.filter(t => t.title.startsWith('Prática')).reduce((a, t) => a + t.hours, 0)).toBe(8);
-    expect(c.notes).toMatch(/12.1.4/);
+    expect(c.topics.filter(t => t.title.startsWith('Prática')).reduce((a, t) => a + t.hours, 0)).toBe(4);
+    expect(c.workloadHours).toBe(8);
+    expect(c.notes).toBe('Capacitação com carga horária mínima definida pelo empregador (item 12.16.3); ministrada por profissional legalmente habilitado.');
   });
 });
 
