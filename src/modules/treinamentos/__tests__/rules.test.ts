@@ -80,15 +80,15 @@ describe('Treinamentos — QR Code', () => {
 
 describe('Treinamentos — cursos padrão', () => {
   it('cursos padrão das NR com a soma dos tópicos igual à carga horária', () => {
-    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr35', 'nr35-reciclagem', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
+    expect(DEFAULT_COURSES.map(c => c.key)).toEqual(['nr10-basico', 'nr10-sep', 'nr10-basico-reciclagem', 'nr10-sep-reciclagem', 'nr35', 'nr35-reciclagem', 'nr33-vigia-ta', 'nr33-vigia-ta-reciclagem',
       'nr33-supervisor', 'nr33-supervisor-reciclagem', 'nr33-resgate', 'nr33-resgate-reciclagem',
       ...DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-')).map(c => c.key),
       'nr18-elevadores-montagem', 'nr18-elevadores-montagem-reciclagem', 'nr06-epi', 'nr12-elevadores', 'nr12-elevadores-reciclagem', 'nr01-psicossocial']);
     DEFAULT_COURSES.forEach(c => {
       expect(totalTopicHours(c.topics), c.name).toBe(c.workloadHours);
-      // NR-20: Iniciação e Específico não têm atualização periódica (Anexo I, Tabela 2)
-      if (/^nr20-(iniciacao|especifico)|^nr06-|^nr12-/.test(c.key)) expect(c.validityMonths).toBe(0);
-      else expect(c.validityMonths).toBeGreaterThan(0);
+      // periodicidade da norma; sem periodicidade na norma (NR-20 Iniciação/Específico, NR-06, NR-12): 2 anos
+      if (/^nr20-(iniciacao|especifico)|^nr06-|^nr12-/.test(c.key)) expect(c.validityMonths, c.name).toBe(24);
+      else expect(c.validityMonths, c.name).toBeGreaterThan(0);
     });
     expect(DEFAULT_COURSES.find(c => c.key === 'nr10-basico')!.workloadHours).toBe(40);
     expect(DEFAULT_COURSES.find(c => c.key === 'nr10-sep')!.workloadHours).toBe(40);
@@ -148,11 +148,11 @@ describe('Treinamentos — NR-20 (Anexo I, Tabelas 1 e 2)', () => {
   const get = (key: string) => DEFAULT_COURSES.find(c => c.key === key)!;
   it('carga horária e atualização conforme a classe da instalação', () => {
     const h = (k: string) => [get(k).workloadHours, get(k).validityMonths];
-    expect(h('nr20-iniciacao')).toEqual([3, 0]);
+    expect(h('nr20-iniciacao')).toEqual([3, 24]);
     expect([h('nr20-basico-classe-i'), h('nr20-basico-classe-ii'), h('nr20-basico-classe-iii')]).toEqual([[4, 36], [6, 36], [8, 36]]);
     expect([h('nr20-intermediario-classe-i'), h('nr20-intermediario-classe-ii'), h('nr20-intermediario-classe-iii')]).toEqual([[12, 36], [14, 24], [16, 24]]);
     expect([h('nr20-avancado-1'), h('nr20-avancado-2')]).toEqual([[20, 24], [32, 12]]);
-    expect([h('nr20-especifico-classe-ii'), h('nr20-especifico-classe-iii')]).toEqual([[14, 0], [16, 0]]);
+    expect([h('nr20-especifico-classe-ii'), h('nr20-especifico-classe-iii')]).toEqual([[14, 24], [16, 24]]);
     expect(DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-complementacao')).every(c => c.workloadHours === 8)).toBe(true);
     expect(DEFAULT_COURSES.filter(c => c.key.startsWith('nr20-atualizacao')).map(c => [c.workloadHours, c.validityMonths])).toEqual([[4, 36], [4, 36], [4, 24], [4, 24], [4, 12]]);
   });
@@ -168,7 +168,7 @@ describe('Treinamentos — NR-18 elevadores (Anexo I, Quadro 1)', () => {
   it('inicial e periódico anual, com parte prática e responsabilidade do item 18.11.5', () => {
     const ini = DEFAULT_COURSES.find(c => c.key === 'nr18-elevadores-montagem')!;
     const rec = DEFAULT_COURSES.find(c => c.key === 'nr18-elevadores-montagem-reciclagem')!;
-    expect([ini.workloadHours, ini.validityMonths, rec.workloadHours, rec.validityMonths]).toEqual([16, 12, 8, 12]);
+    expect([ini.workloadHours, ini.validityMonths, rec.workloadHours, rec.validityMonths]).toEqual([8, 12, 8, 12]);
     [ini, rec].forEach(c => expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true));
     expect(ini.notes).toBe('Carga horária e conteúdo do treinamento inicial definidos pelo empregador; treinamento periódico anual (Anexo I, Quadro 1). Capacitação compatível com o equipamento utilizado (item 18.14.2).');
   });
@@ -180,6 +180,19 @@ describe('Treinamentos — NR-06 (EPI)', () => {
     const all = c.topics.map(t => t.title).join(' ');
     ['restrições e limitações', 'uso e ajuste', 'higienização', 'Certificado de Aprovação', 'respiratória', 'quedas'].forEach(t => expect(all).toContain(t));
     expect(c.topics.some(t => t.title.startsWith('Prática'))).toBe(true);
+  });
+});
+
+describe('Treinamentos — sem carga horária na norma: 8 h e 2 anos', () => {
+  const get = (key: string) => DEFAULT_COURSES.find(c => c.key === key)!;
+  it('NR-12 (inicial e reciclagem) e reciclagens NR-10 com 8 h e 24 meses; NR-06 com 4 h (a pedido)', () => {
+    ['nr12-elevadores', 'nr12-elevadores-reciclagem', 'nr10-basico-reciclagem', 'nr10-sep-reciclagem']
+      .forEach(k => expect([get(k).workloadHours, get(k).validityMonths], k).toEqual([8, 24]));
+    expect([get('nr06-epi').workloadHours, get('nr06-epi').validityMonths]).toEqual([4, 24]);
+  });
+  it('reciclagens NR-10 exigem o curso de 40 h correspondente', () => {
+    expect(get('nr10-basico-reciclagem').prerequisite).toMatch(/básico NR-10 \(40 h\)/);
+    expect(get('nr10-sep-reciclagem').prerequisite).toMatch(/SEP \(40 h\)/);
   });
 });
 

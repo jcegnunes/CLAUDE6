@@ -79,7 +79,7 @@ describe('Leitura da norma sem IA', () => {
     const a = parseNormText(ANEXO);
     expect(a.norm.revision).toBe('Portaria nº 60/2025');
     expect(a.courses.map(c => [c.code, c.workloadHours, c.validityMonths])).toEqual([
-      ['NR-20 INICIAÇÃO SOBRE INFLAMÁVEIS E COMBUSTÍVEIS', 3, 0],
+      ['NR-20 INICIAÇÃO SOBRE INFLAMÁVEIS E COMBUSTÍVEIS', 3, 24],
       ['NR-20 BÁSICO', 4, 36]
     ]);
     expect(a.courses[1].topics.map(t => t.title)).toEqual([

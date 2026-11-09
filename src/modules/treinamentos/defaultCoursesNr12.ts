@@ -1,8 +1,8 @@
 /**
- * Cursos NR-12 (texto atualizado 2022): segurança em máquinas e equipamentos
+ * Cursos NR-12 (texto atualizado – Portaria MTE nº 344/2024): segurança em máquinas e equipamentos
  * na instalação e manutenção de elevadores, com uso de ferramentas manuais
  * elétricas (furadeira, lixadeira) e talhas. Carga horária definida pelo
- * empregador (item 12.16.3 "c"); conteúdo mínimo do Anexo II e
+ * empregador (item 12.16.3 "c"; sem carga na norma, adotadas 8 h e validade de 2 anos); conteúdo mínimo do Anexo II e
  * procedimentos de manutenção do item 12.11. Horas por tópico: sugestão.
  */
 import type { TrainingCourse } from './types';
@@ -21,9 +21,9 @@ export const NR12_COURSES:Array<{ key: string } & CourseSeed> = [
     key: 'nr12-elevadores',
     code: 'NR-12 ELEVADORES',
     name: 'NR-12 – Segurança em Máquinas e Equipamentos na Instalação e Manutenção de Elevadores (Ferramentas Elétricas Portáteis e Talhas)',
-    normReference: 'NR-12 (texto atualizado 2022), itens 12.11 e 12.16 e Anexo II – conteúdo programático da capacitação',
+    normReference: 'NR-12 (texto atualizado – Portaria MTE nº 344/2024), itens 12.11 e 12.16 e Anexo II – conteúdo programático da capacitação',
     workloadHours: 8,
-    validityMonths: 0,
+    validityMonths: 24,
     modality: 'presencial',
     minAttendance: 100,
     minGrade: 7,
@@ -49,20 +49,22 @@ export const NR12_COURSES:Array<{ key: string } & CourseSeed> = [
     key: 'nr12-elevadores-reciclagem',
     code: 'NR-12 ELEVADORES RECICLAGEM',
     name: 'Reciclagem NR-12 – Segurança em Máquinas e Equipamentos na Instalação e Manutenção de Elevadores',
-    normReference: 'NR-12 (texto atualizado 2022), itens 12.16.8 e 12.16.8.1 – capacitação para reciclagem',
-    workloadHours: 4,
-    validityMonths: 0,
+    normReference: 'NR-12 (texto atualizado – Portaria MTE nº 344/2024), itens 12.16.8 e 12.16.8.1 – capacitação para reciclagem',
+    workloadHours: 8,
+    validityMonths: 24,
     modality: 'presencial',
     minAttendance: 100,
     minGrade: 7,
     active: true,
     prerequisite: 'Capacitação NR-12 para instalação e manutenção de elevadores.',
-    notes: `Reciclagem sempre que ocorrerem modificações significativas nas instalações e na operação de máquinas ou troca de métodos, processos e organização do trabalho que impliquem novos riscos (item 12.16.8); conteúdo conforme a situação que a motivou e carga horária definida pelo empregador (item 12.16.8.1). ${REGRAS}`,
+    notes: `Reciclagem sempre que ocorrerem modificações significativas nas instalações e na operação de máquinas ou troca de métodos, processos e organização do trabalho que impliquem novos riscos (item 12.16.8); conteúdo conforme a situação que a motivou e carga horária definida pelo empregador (item 12.16.8.1); adotadas 8 h. ${REGRAS}`,
     topics: topics([
-      ['Modificações nas instalações, equipamentos, métodos ou processos que motivaram a reciclagem e os novos riscos', 1],
-      ['Revisão: proteções, bloqueio e etiquetagem e permissão de trabalho', 1],
-      ['Prática: ferramentas elétricas portáteis e talhas', 1],
-      ['Prática: bloqueio e etiquetagem', 1]
+      ['Modificações nas instalações, equipamentos, métodos ou processos que motivaram a reciclagem e os novos riscos', 1.5],
+      ['Revisão: riscos de cada máquina e equipamento e proteções específicas; princípios de segurança (Anexo II, "a" a "f")', 1],
+      ['Revisão: método de trabalho seguro, permissão de trabalho e bloqueio de funcionamento (Anexo II, "g" a "i")', 1.5],
+      ['Prática: inspeção e uso seguro de ferramentas elétricas portáteis', 1],
+      ['Prática: inspeção e operação de talhas; amarração e içamento', 1],
+      ['Prática: bloqueio e etiquetagem e permissão de trabalho em simulação', 2]
     ])
   }
 ];

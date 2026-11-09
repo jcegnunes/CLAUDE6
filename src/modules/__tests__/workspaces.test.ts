@@ -21,7 +21,7 @@ describe('Módulos liberados por usuário', () => {
   });
 
   it('módulo desligado para a empresa não aparece nem pode ser liberado', () => {
-    const info = { enabledModules: { treinamentos: false } };
+    const info = { enabledModules: { treinamentos: false, spda: false } }; // spda: módulo demo SPDA
     expect(ids(getAssignableModules(info))).toEqual(['ensaios']);
     expect(ids(getAvailableWorkspaces(info, { role: 'tecnico', allowedModules: null }))).toEqual(['ensaios']);
   });

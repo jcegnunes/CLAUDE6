@@ -2,6 +2,20 @@
 
 ## Versão 7.5.0 (07/11/2026) — resumo
 
+- **Revisão pelos textos vigentes (NR-06/2025, NR-10, NR-12/2024, NR-18/2026, NR-33/2022,
+  NR-35/2026):** treinamento sem carga horária na norma passa a ter 8 h e 2 anos.
+  Reciclagem NR-12 de 4 h para 8 h; NR-18 elevadores de 16 h para 8 h (periódico anual);
+  NR-06 EPI fica com 4 h e 2 anos (a pedido); novos cursos "NR-10 BÁSICO RECICLAGEM"
+  e "NR-10 SEP RECICLAGEM" (8 h, bienal, item 10.8.8.2). NR-10, NR-33 e NR-35 já estavam
+  conforme a norma. Cursos já cadastrados são atualizados se não tiverem sido editados;
+  certificados emitidos não mudam, exceto os de NR-18 elevadores com 16 h, que passam
+  a 8 h (a pedido).
+- **Validade dos treinamentos:** vale a periodicidade do texto da norma vigente (anual,
+  bienal, trienal…); quando a norma não define periodicidade, 2 anos (NR-06, NR-12,
+  NR-20 Iniciação e Específico, que antes ficavam sem vencimento). A importação de norma
+  segue a mesma regra. Na primeira abertura (uma vez por empresa), os cursos são acertados e
+  o vencimento de cada certificado já emitido é recalculado pelo seu curso; número e QR
+  Code não mudam.
 - **Treinamentos › Cursos:** o editor mostra o texto de cada tópico do conteúdo programático
   (antes o campo de horas ocupava a linha e escondia o texto); os cartões têm
   "Ver conteúdo programático" com a lista dos tópicos e o link "Editar conteúdo".

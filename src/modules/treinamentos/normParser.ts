@@ -14,6 +14,7 @@
  * as palavras-chave aceitam espaços soltos entre as letras.
  */
 import type { NormAnalysis, NormCourseProposal, NormTopic } from './normAnalysis';
+import { STANDARD_VALIDITY_MONTHS } from './defaultCourses';
 
 const strip = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
 /** Minúsculas, sem acento e com espaços simples (para procurar palavras). */
@@ -179,7 +180,7 @@ function itemCourses(items: Item[], nr: string, title: string): { courses: NormC
       kind: f.kind,
       normReference: `${nr}, item ${f.it.number}${related.length ? `; conteúdo: itens ${[...new Set(related.map(r => r.number))].join(', ')}` : ''}`,
       workloadHours: f.hours,
-      validityMonths: months ?? 0,
+      validityMonths: months || STANDARD_VALIDITY_MONTHS, // sem periodicidade na norma: 2 anos
       modality: 'presencial',
       minAttendance: 100,
       minGrade: null,
@@ -242,7 +243,7 @@ function annexCourses(lines: string[], fullText: string, nr: string): { courses:
       kind: 'inicial',
       normReference: `${nr}, Anexo (conteúdo programático), alínea ${d.section})`,
       workloadHours: hours,
-      validityMonths: months,
+      validityMonths: months || STANDARD_VALIDITY_MONTHS, // sem periodicidade na norma: 2 anos
       modality: 'presencial' as const,
       minAttendance: 100,
       minGrade: null,
