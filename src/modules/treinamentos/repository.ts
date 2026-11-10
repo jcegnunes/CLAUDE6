@@ -11,11 +11,9 @@ import {
   addRange, currentPeriod, deviceTag, fallbackNumber, formatNumber, maxSequence,
   remaining, takeFromBlocks, type NumberBlockState
 } from '../../services/numberBlocks';
-import { DEFAULT_COURSES, STANDARD_VALIDITY_MONTHS } from './defaultCourses';
-import { periodMonths } from './normParser';
+import { DEFAULT_COURSES } from './defaultCourses';
 import { RESPONSABILIDADE } from './defaultCoursesNr18';
 import { NR12_ELEVADORES_NOTES } from './defaultCoursesNr12';
-import { NR06_PREVIOUS_REFERENCE } from './defaultCoursesNr06';
 import { TRAINING_KEYS, TRAINING_MANAGED_KEYS } from './storageKeys';
 import type { ImportGroup } from './spreadsheetImport';
 import { normalizeText } from './spreadsheetImport';
@@ -161,11 +159,7 @@ export function deleteCourseAndCancelCertificates(courseId: string, reason: stri
  * curso editado pela empresa não é mexido. Certificados emitidos não mudam.
  */
 export const DEFAULT_COURSE_UPDATES: Array<{ key: string; mark: string; previousNormReference: string }> = [
-  { key: 'nr35', mark: 'nr35@2026', previousNormReference: 'NR-35, item 35.3 – capacitação e treinamento' },
-  // revisão pelas normas vigentes (11/2026): sem carga horária na norma, 8 h e 2 anos
-  { key: 'nr06-epi', mark: 'nr06-epi@8h', previousNormReference: NR06_PREVIOUS_REFERENCE },
-  { key: 'nr12-elevadores', mark: 'nr12-elevadores@2024', previousNormReference: 'NR-12 (texto atualizado 2022), itens 12.11 e 12.16 e Anexo II – conteúdo programático da capacitação' },
-  { key: 'nr12-elevadores-reciclagem', mark: 'nr12-elevadores-reciclagem@8h', previousNormReference: 'NR-12 (texto atualizado 2022), itens 12.16.8 e 12.16.8.1 – capacitação para reciclagem' }
+  { key: 'nr35', mark: 'nr35@2026', previousNormReference: 'NR-35, item 35.3 – capacitação e treinamento' }
 ];
 
 /**
@@ -184,8 +178,7 @@ export const DEFAULT_COURSE_REMOVALS: Array<{ key: string; mark: string }> = [
  */
 export const DEFAULT_COURSE_NOTE_FIXES: Array<{ key: string; mark: string; from: string; to: string }> = [
   { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@sem-eventual', from: '; eventual a critério do empregador.', to: '.' },
-  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@sem-responsabilidade', from: ` ${RESPONSABILIDADE}`, to: '' },
-  { key: 'nr06-epi', mark: 'nr06-epi@observacoes-4h', from: 'Adotadas 8 h e validade de 2 anos', to: 'Adotadas 4 h e validade de 2 anos' }
+  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@sem-responsabilidade', from: ` ${RESPONSABILIDADE}`, to: '' }
 ];
 
 /**
@@ -195,16 +188,13 @@ export const DEFAULT_COURSE_NOTE_FIXES: Array<{ key: string; mark: string; from:
  */
 export const DEFAULT_COURSE_WORKLOAD_FIXES: Array<{ key: string; mark: string; previousHours: number }> = [
   { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@16h', previousHours: 24 },
-  { key: 'nr18-elevadores-montagem', mark: 'nr18-elevadores-montagem@8h', previousHours: 16 },
-  { key: 'nr12-elevadores', mark: 'nr12-elevadores@8h', previousHours: 16 },
-  { key: 'nr06-epi', mark: 'nr06-epi@4h', previousHours: 8 }
+  { key: 'nr12-elevadores', mark: 'nr12-elevadores@8h', previousHours: 16 }
 ];
 
 /** Certificados já emitidos que passam para a nova carga horária (e horas dos tópicos) do curso padrão. */
 export const DEFAULT_CERTIFICATE_WORKLOAD_FIXES: Array<{ key: string; mark: string; previousHours: number }> = [
   { key: 'nr18-elevadores-montagem', mark: 'certificados:nr18-elevadores-montagem@16h', previousHours: 24 },
-  { key: 'nr12-elevadores', mark: 'certificados:nr12-elevadores@8h', previousHours: 16 },
-  { key: 'nr18-elevadores-montagem', mark: 'certificados:nr18-elevadores-montagem@8h', previousHours: 16 }
+  { key: 'nr12-elevadores', mark: 'certificados:nr12-elevadores@8h', previousHours: 16 }
 ];
 
 /** Observações trocadas por inteiro (a pedido) no curso e nos certificados já emitidos dele. */
@@ -245,32 +235,6 @@ function applyNoteFixes(done: Set<string>, company: string): void {
       .filter(c => c.courseId === id && c.workloadHours === f.previousHours)
       .forEach(c => putRecord<TrainingCertificate>('training_certificates', { ...c, workloadHours: seed.workloadHours, topics: seed.topics.map(t => ({ ...t })) }));
   });
-  // validade (uma vez): curso padrão com a periodicidade da norma vigente; curso sem
-  // periodicidade (0) com 2 anos; certificados já emitidos com o vencimento do seu curso
-  // Curso importado da norma: periodicidade do texto da norma guardado nas observações
-  // (o inicial usa a do seu periódico, ex.: "NR-36" ← "NR-36 PERIÓDICO").
-  const validityMark = 'validade@norma-ou-2-anos-v3';
-  if (!done.has(validityMark)) {
-    done.add(validityMark);
-    const all = getCourses();
-    const fromNorm = (c: TrainingCourse) => periodMonths(c.notes || '') ?? periodMonths(all.find(x => x.code === `${c.code} PERIÓDICO`)?.notes || '');
-    const courses = all.map(c => {
-      const seed = DEFAULT_COURSES.find(s => c.id === `crs-${company}-${s.key}`);
-      const months = seed ? seed.validityMonths : fromNorm(c) ?? (c.validityMonths > 0 ? c.validityMonths : STANDARD_VALIDITY_MONTHS);
-      if (months === c.validityMonths) return c;
-      const next = { ...c, validityMonths: months };
-      putRecord<TrainingCourse>('training_courses', next);
-      return next;
-    });
-    listOf<TrainingCertificate>('training_certificates').forEach(c => {
-      // curso apagado: usa o curso padrão de mesmo id, se houver
-      const months = courses.find(x => x.id === c.courseId)?.validityMonths
-        ?? DEFAULT_COURSES.find(s => c.courseId === `crs-${company}-${s.key}`)?.validityMonths;
-      if (months === undefined) return;
-      const expiryDate = computeExpiryDate(c.endDate || c.startDate, months);
-      if (expiryDate && expiryDate !== c.expiryDate) putRecord<TrainingCertificate>('training_certificates', { ...c, expiryDate });
-    });
-  }
   DEFAULT_COURSE_NOTE_FIXES.filter(f => !done.has(f.mark)).forEach(f => {
     done.add(f.mark);
     const id = `crs-${company}-${f.key}`;

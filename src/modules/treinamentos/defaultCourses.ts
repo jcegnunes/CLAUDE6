@@ -13,13 +13,7 @@ import { NR01_COURSES } from './defaultCoursesNr01';
 
 type CourseSeed = Omit<TrainingCourse, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'serverUpdatedAt'>;
 
-/**
- * Validade quando a norma vigente não define periodicidade: 2 anos. Havendo
- * periodicidade na norma (anual, bienal, trienal…), vale a da norma.
- */
-export const STANDARD_VALIDITY_MONTHS = 24;
-
-const SEEDS: Array<{ key: string } & CourseSeed> = [
+export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = [
   {
     key: 'nr10-basico',
     code: 'NR-10 BÁSICO',
@@ -82,53 +76,6 @@ const SEEDS: Array<{ key: string } & CourseSeed> = [
       { title: 'Treinamento em técnicas de remoção, atendimento e transporte de acidentados', hours: 2 },
       { title: 'Acidentes típicos: análise, discussão e medidas de proteção', hours: 2 },
       { title: 'Responsabilidades', hours: 1 }
-    ]
-  },
-  {
-    // NR-10, item 10.8.8.2: reciclagem bienal; a norma não define a carga horária (adotadas 8 h)
-    key: 'nr10-basico-reciclagem',
-    code: 'NR-10 BÁSICO RECICLAGEM',
-    name: 'Reciclagem NR-10 – Segurança em Instalações e Serviços em Eletricidade (Curso Básico)',
-    normReference: 'NR-10, itens 10.8.8.2 e 10.8.8.3 – treinamento de reciclagem bienal (conteúdo do Anexo III, curso básico)',
-    workloadHours: 8,
-    validityMonths: 24,
-    modality: 'presencial',
-    minAttendance: 100,
-    minGrade: 7,
-    active: true,
-    prerequisite: 'Curso básico NR-10 (40 h).',
-    notes: 'Reciclagem bienal e sempre que ocorrer troca de função ou mudança de empresa, retorno de afastamento ou inatividade por período superior a três meses, ou modificações significativas nas instalações elétricas ou troca de métodos, processos e organização do trabalho (item 10.8.8.2). A NR-10 não define a carga horária da reciclagem bienal: adotadas 8 h. Nas situações das alíneas "a" a "c", carga horária e conteúdo atendem à situação que a motivou (item 10.8.8.3).',
-    topics: [
-      { title: 'Revisão: riscos em instalações e serviços com eletricidade (choque elétrico, arcos elétricos, queimaduras, quedas e campos eletromagnéticos) e técnicas de análise de risco', hours: 1.5 },
-      { title: 'Revisão: medidas de controle do risco elétrico, equipamentos de proteção coletiva e individual', hours: 1.5 },
-      { title: 'Rotinas de trabalho e procedimentos, documentação das instalações e riscos adicionais; atualizações da NR-10 e das normas técnicas', hours: 1 },
-      { title: 'Acidentes de origem elétrica: causas diretas e indiretas, discussão de casos', hours: 1 },
-      { title: 'Proteção e combate a incêndios: medidas preventivas, métodos de extinção e prática', hours: 1 },
-      { title: 'Primeiros socorros: priorização do atendimento, respiração artificial, massagem cardíaca, remoção e transporte de acidentados, práticas', hours: 1.5 },
-      { title: 'Responsabilidades', hours: 0.5 }
-    ]
-  },
-  {
-    key: 'nr10-sep-reciclagem',
-    code: 'NR-10 SEP RECICLAGEM',
-    name: 'Reciclagem NR-10 – Segurança no Sistema Elétrico de Potência (SEP) e em suas Proximidades',
-    normReference: 'NR-10, itens 10.8.8.2 e 10.8.8.3 – treinamento de reciclagem bienal (conteúdo do Anexo III, curso complementar SEP)',
-    workloadHours: 8,
-    validityMonths: 24,
-    modality: 'presencial',
-    minAttendance: 100,
-    minGrade: 7,
-    active: true,
-    prerequisite: 'Curso complementar NR-10 SEP (40 h).',
-    notes: 'Reciclagem bienal e nas situações previstas no item 10.8.8.2 da NR-10. A norma não define a carga horária da reciclagem bienal: adotadas 8 h. Nas situações das alíneas "a" a "c", carga horária e conteúdo atendem à situação que a motivou (item 10.8.8.3).',
-    topics: [
-      { title: 'Revisão: organização do SEP e do trabalho, aspectos comportamentais e condições impeditivas para serviços', hours: 1.5 },
-      { title: 'Revisão: riscos típicos no SEP e sua prevenção; técnicas de análise de risco no SEP', hours: 1.5 },
-      { title: 'Procedimentos e técnicas de trabalho sob tensão; equipamentos e ferramentas de trabalho (escolha, uso, conservação, verificação e ensaios)', hours: 1.5 },
-      { title: 'Sistemas de proteção coletiva, EPI, posturas e vestuários; sinalização, isolamento e liberação de instalações', hours: 1 },
-      { title: 'Acidentes típicos: análise, discussão e medidas de proteção', hours: 1 },
-      { title: 'Prática: técnicas de remoção, atendimento e transporte de acidentados', hours: 1 },
-      { title: 'Responsabilidades', hours: 0.5 }
     ]
   },
   {
@@ -337,5 +284,3 @@ const SEEDS: Array<{ key: string } & CourseSeed> = [
   // NR-01: fatores de risco psicossociais e prevenção ao assédio
   ...NR01_COURSES
 ];
-
-export const DEFAULT_COURSES: Array<{ key: string } & CourseSeed> = SEEDS.map(c => ({ ...c, validityMonths: c.validityMonths > 0 ? c.validityMonths : STANDARD_VALIDITY_MONTHS }));
