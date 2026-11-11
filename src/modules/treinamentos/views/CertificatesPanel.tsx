@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Award, Plus, Download, Link2, Ban, RotateCcw, Trash2, Loader2, Search, FileSpreadsheet, Pencil } from 'lucide-react';
+import { Award, Plus, Download, Link2, Ban, RotateCcw, Trash2, Loader2, Search, FileSpreadsheet, Pencil, CheckSquare, Square, X } from 'lucide-react';
 import { EditCertificate } from './EditCertificate';
 import { ImportCertificatesDialog } from './ImportCertificatesDialog';
 import { buildValidationUrl } from '../../../config/validationPortalConfig';
@@ -22,6 +22,8 @@ export const CertificatesPanel: React.FC<{ initialFilter?: Filter }> = ({ initia
   const [importing, setImporting] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<TrainingCertificate | null>(null);
+  // seleção de vários certificados para emitir de uma vez (ids)
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const canEdit = canEditTraining();
   const today = todayIso();
   const all = getCertificates();
@@ -34,6 +36,19 @@ export const CertificatesPanel: React.FC<{ initialFilter?: Filter }> = ({ initia
       .some(v => (v || '').toLowerCase().includes(q)) || (digits.length >= 3 && c.participantCpf.replace(/\D/g, '').includes(digits));
   });
   const companyInfo = DielectricStorageService.getCompanyInfo();
+  // selecionados que ainda existem, na ordem da lista completa
+  const selectedCerts = all.filter(c => selected.has(c.id));
+  const allVisibleSelected = list.length > 0 && list.every(c => selected.has(c.id));
+  const toggleOne = (id: string) => setSelected(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const toggleVisible = () => setSelected(prev => {
+    const next = new Set(prev);
+    if (allVisibleSelected) list.forEach(c => next.delete(c.id)); else list.forEach(c => next.add(c.id));
+    return next;
+  });
 
   const download = async (certs: TrainingCertificate[], key: string, name?: string) => {
     setBusy(key);
@@ -91,14 +106,35 @@ export const CertificatesPanel: React.FC<{ initialFilter?: Filter }> = ({ initia
         }}><Plus className="w-3.5 h-3.5" /> Emissão individual</button>}
       </div>
 
+      {list.length > 0 && (
+        <div className={`flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl border ${selectedCerts.length ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200'}`}>
+          <button type="button" className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700" onClick={toggleVisible}>
+            {allVisibleSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4 text-slate-400" />}
+            {allVisibleSelected ? 'Desmarcar os da lista' : `Marcar todos da lista (${list.length})`}
+          </button>
+          <span className="text-xs text-slate-600 flex-1">
+            {selectedCerts.length ? `${selectedCerts.length} certificado(s) selecionado(s)` : 'Marque os certificados que deseja emitir.'}
+          </span>
+          {selectedCerts.length > 0 && <>
+            <button type="button" className={btnSecondary} onClick={() => setSelected(new Set())}><X className="w-3.5 h-3.5" /> Limpar seleção</button>
+            <button type="button" className={btnPrimary} disabled={!!busy} onClick={() => download(selectedCerts, 'selecao', selectedCerts.length > 1 ? 'Certificados_selecionados.pdf' : undefined)}>
+              {busy === 'selecao' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />} Emitir {selectedCerts.length} selecionado(s)
+            </button>
+          </>}
+        </div>
+      )}
+
       {list.length === 0 ? (
         <EmptyState icon={Award} title="Nenhum certificado encontrado" text="Os certificados são emitidos pela turma (aprovados) ou individualmente." />
       ) : (
         <div className={`${cardCls} divide-y divide-slate-100`}>
           {list.map(c => {
             const s = certificateSituation(c, today);
+            const isSel = selected.has(c.id);
             return (
-              <div key={c.id} className="p-3 flex flex-wrap items-center gap-3">
+              <div key={c.id} className={`p-3 flex flex-wrap items-center gap-3 ${isSel ? 'bg-blue-50/60' : ''}`}>
+                <input type="checkbox" className="w-4 h-4 accent-blue-600 cursor-pointer" checked={isSel} onChange={() => toggleOne(c.id)}
+                  aria-label={`Selecionar certificado de ${c.participantName}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-bold text-sm text-slate-900">{c.participantName}</span>
