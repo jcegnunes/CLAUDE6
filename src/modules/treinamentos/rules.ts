@@ -171,3 +171,39 @@ export function formatHours(h: number): string {
   const n = Number(h) || 0;
   return `${Number.isInteger(n) ? n : n.toFixed(1).replace('.', ',')} h`;
 }
+
+/** Certificado/curso de NR-35 (trabalho em altura), pela NR no nome, no código ou na referência normativa. */
+export function isNr35(course: { code?: string; courseName?: string; name?: string; normReference?: string }): boolean {
+  return courseNrTag(course) === 'NR35' || /\bNR[\s-]*35\b/i.test(course.normReference || '');
+}
+
+/**
+ * Redação dos certificados de NR-35 (a pedido): "aula prática" vira "prática e demonstrativa"
+ * (inclusive o rótulo "Prática:" dos tópicos) e saem as menções a aula/treinamento presencial
+ * ("na modalidade presencial", "obrigatoriamente presencial (item 35.4.5)", ", presencial"…).
+ */
+export function nr35Wording(text: string): string {
+  if (!text) return text;
+  let t = text.replace(/\b([Aa])ulas?\s+pr[aá]ticas?\b/g, (_m, a: string) => (a === 'A' ? 'Prática e demonstrativa' : 'prática e demonstrativa'));
+  t = t.replace(/(^|\n)(\s*)Prática(?!\s+e\s+demonstrativa)(\s*:)/g, '$1$2Prática e demonstrativa$3');
+  t = t.replace(/\s*,?\s*\b(?:na\s+modalidade\s+|obrigatoriamente\s+|e\s+|em\s+)?(?:aulas?\s+)?presenc(?:ial|iais)\b(?:\s*\(item[^)]*\))?/gi, '');
+  return t
+    .replace(/,\s*,/g, ',')
+    .replace(/\(\s*\)/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\s+([,.;)])/g, '$1')
+    .replace(/,\s*\./g, '.')
+    .trim();
+}
+
+/** Cópia do certificado de NR-35 com a redação acima nos textos impressos (frente e verso). */
+export function withNr35Wording<T extends { courseName: string; normReference: string; topics: Array<{ title: string; hours: number }>; courseNotes?: string; prerequisite?: string }>(cert: T): T {
+  if (!isNr35(cert)) return cert;
+  return {
+    ...cert,
+    normReference: nr35Wording(cert.normReference),
+    topics: cert.topics.map(t => ({ ...t, title: nr35Wording(t.title) })),
+    courseNotes: cert.courseNotes ? nr35Wording(cert.courseNotes) : cert.courseNotes,
+    prerequisite: cert.prerequisite ? nr35Wording(cert.prerequisite) : cert.prerequisite
+  };
+}

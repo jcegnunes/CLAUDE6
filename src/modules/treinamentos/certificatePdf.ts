@@ -11,7 +11,7 @@ import { saveDocLocally, saveFileLocally } from '../../utils/nativeFileSaver';
 import { buildValidationUrl } from '../../config/validationPortalConfig';
 import { DielectricStorageService } from '../../services/syncEngine';
 import type { CompanyLabInfo } from '../../types';
-import { courseNrTag, displayCompany, formatCpf, formatDateBr, formatHours, instructorTitle, totalTopicHours, onlyDigits } from './rules';
+import { courseNrTag, displayCompany, formatCpf, formatDateBr, formatHours, instructorTitle, totalTopicHours, onlyDigits, isNr35, nr35Wording, withNr35Wording } from './rules';
 import type { TrainingCertificate, TrainingClass, TrainingInstructor } from './types';
 import { companyHeaderLines, fillTemplate, getTrainingLayout, hexToRgb, type TrainingCertificateLayout } from './layout';
 
@@ -329,9 +329,12 @@ function drawSignature(doc: jsPDF, navy: Rgb, x: number, y: number, width: numbe
 
 /** Frente e verso de um certificado (exportado também para os testes). */
 export async function drawCertificate(
-  doc: jsPDF, cert: TrainingCertificate, company: CompanyLabInfo, assets: Assets,
+  doc: jsPDF, original: TrainingCertificate, company: CompanyLabInfo, assets: Assets,
   stamps: Record<string, { cn: string; dn: string; reason: string; person?: string; docLine?: string }> = {}, signedAt: Date = new Date()
 ) {
+  // NR-35: "prática e demonstrativa" e sem menção a presencial (frente e verso, também nos já emitidos)
+  const cert = withNr35Wording(original);
+  const wording = (text: string) => (isNr35(original) ? nr35Wording(text) : text);
   const L = assets.layout;
   const NAVY = assets.navy;
   const ORANGE = assets.orange;
@@ -388,13 +391,13 @@ export async function drawCertificate(
 
   doc.setFontSize(12);
   doc.setTextColor(40, 40, 40);
-  const bodyLines: string[] = doc.splitTextToSize(fillTemplate(L.bodyTemplate, cert), w - 70);
+  const bodyLines: string[] = doc.splitTextToSize(wording(fillTemplate(L.bodyTemplate, cert)), w - 70);
   doc.text(bodyLines, w / 2, 102 + dy, { align: 'center', lineHeightFactor: 1.45 });
   let y = 102 + dy + bodyLines.length * 6.2;
 
   if (L.closingText.trim()) {
     doc.setFontSize(10);
-    const closing: string[] = doc.splitTextToSize(fillTemplate(L.closingText, cert), w - 70);
+    const closing: string[] = doc.splitTextToSize(wording(fillTemplate(L.closingText, cert)), w - 70);
     doc.text(closing, w / 2, y + 1, { align: 'center', lineHeightFactor: 1.35 });
     y += closing.length * 4.8;
   }
