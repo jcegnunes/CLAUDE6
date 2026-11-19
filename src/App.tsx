@@ -159,7 +159,7 @@ export default function App() {
     });
     const companyId = currentUser?.companyId;
     const local = companyId ? DielectricStorageService.getCompanyById(companyId) : undefined;
-    if (local && local.cnpj) {
+    if (local && (local.cnpj || local.legalName)) { // empresa cadastrada (CNPJ é opcional: basta a razão social ou o nome)
       if (DielectricStorageService.getActiveCompany().id !== local.id) {
         DielectricStorageService.setActiveCompany(local);
       }
@@ -174,8 +174,8 @@ export default function App() {
     setNeedsCompanySetup(null);
     SupabaseService.fetchCompanyById(companyId).then(found => {
       if (cancelled) return;
-      setNeedsCompanySetup(!(found && found.cnpj));
-      if (found && found.cnpj) startCompanySession(found.id);
+      setNeedsCompanySetup(!(found && (found.cnpj || found.legalName)));
+      if (found && (found.cnpj || found.legalName)) startCompanySession(found.id);
       if (found) setDataVersion(v => v + 1);
     });
     return () => { cancelled = true; };

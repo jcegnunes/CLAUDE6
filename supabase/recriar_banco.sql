@@ -2171,6 +2171,10 @@ GRANT EXECUTE ON FUNCTION public.jvm_master_set_user(TEXT, BOOLEAN, TEXT, TEXT[]
 -- - A senha é gravada no pedido já criptografada (bcrypt); ninguém a vê.
 -- - A tabela de pedidos não é lida nem gravada diretamente: só pelas funções.
 -- - O cadastro público do Supabase Auth continua DESLIGADO.
+-- - O pedido informa os MÓDULOS de interesse (Ensaios de EPI, Treinamentos, SPDA);
+--   aprovado, o usuário fica com esses módulos e a empresa que ele cadastrar no
+--   primeiro acesso começa só com eles ligados. Empresa e CNPJ são opcionais
+--   (a conta é liberada para o e-mail de quem pediu).
 --
 -- IDEMPOTENTE: execute no SQL Editor do Supabase DEPOIS do schema.sql.
 -- =========================================================================
@@ -2202,6 +2206,9 @@ BEGIN
 END $$;
 
 -- um pedido pendente por e-mail
+ALTER TABLE public.account_requests ADD COLUMN IF NOT EXISTS modules TEXT[];
+ALTER TABLE public.account_requests ALTER COLUMN company_name DROP NOT NULL;
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_account_requests_pending_email
   ON public.account_requests (lower(email)) WHERE status = 'pendente';
 CREATE INDEX IF NOT EXISTS idx_account_requests_status ON public.account_requests (status, created_at);
@@ -2213,15 +2220,18 @@ REVOKE ALL ON public.account_requests FROM PUBLIC, anon, authenticated;
 -- -------------------------------------------------------------------------
 -- Pedir conta (sem login)
 -- -------------------------------------------------------------------------
+-- versão anterior (um módulo só, empresa obrigatória)
+DROP FUNCTION IF EXISTS public.jvm_request_account(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.jvm_request_account(
   p_name TEXT,
   p_email TEXT,
   p_password TEXT,
-  p_company_name TEXT,
+  p_modules TEXT[],
+  p_company_name TEXT DEFAULT NULL,
   p_cnpj TEXT DEFAULT NULL,
   p_phone TEXT DEFAULT NULL,
-  p_username TEXT DEFAULT NULL,
-  p_module TEXT DEFAULT NULL
+  p_username TEXT DEFAULT NULL
 )
 RETURNS JSON
 LANGUAGE plpgsql
@@ -2233,6 +2243,7 @@ DECLARE
   v_username TEXT := NULLIF(lower(trim(COALESCE(p_username, ''))), '');
   v_cnpj TEXT := NULLIF(regexp_replace(COALESCE(p_cnpj, ''), '\D', '', 'g'), '');
   v_id TEXT := 'req-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 16);
+  v_modules TEXT[];
 BEGIN
   IF length(trim(COALESCE(p_name, ''))) < 3 OR length(p_name) > 120 THEN
     RAISE EXCEPTION 'Informe o seu nome completo.' USING ERRCODE = '22023';
@@ -2240,8 +2251,14 @@ BEGIN
   IF v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' OR length(v_email) > 160 THEN
     RAISE EXCEPTION 'Informe um e-mail válido (ele será usado no login).' USING ERRCODE = '22023';
   END IF;
-  IF length(trim(COALESCE(p_company_name, ''))) < 2 OR length(p_company_name) > 160 THEN
-    RAISE EXCEPTION 'Informe o nome da empresa.' USING ERRCODE = '22023';
+  IF length(COALESCE(p_company_name, '')) > 160 THEN
+    RAISE EXCEPTION 'Nome da empresa muito longo.' USING ERRCODE = '22023';
+  END IF;
+  SELECT array_agg(DISTINCT m ORDER BY m) INTO v_modules
+    FROM unnest(COALESCE(p_modules, ARRAY[]::TEXT[])) AS m
+   WHERE m IN ('ensaios', 'treinamentos', 'spda');
+  IF v_modules IS NULL OR cardinality(v_modules) = 0 THEN
+    RAISE EXCEPTION 'Escolha pelo menos um módulo de interesse.' USING ERRCODE = '22023';
   END IF;
   IF v_cnpj IS NOT NULL AND length(v_cnpj) NOT IN (11, 14) THEN
     RAISE EXCEPTION 'CNPJ (ou CPF) inválido.' USING ERRCODE = '22023';
@@ -2268,16 +2285,16 @@ BEGIN
     RAISE EXCEPTION 'Muitos pedidos de conta agora. Tente novamente mais tarde.' USING ERRCODE = '54000';
   END IF;
 
-  INSERT INTO public.account_requests (id, name, email, username, phone, company_name, cnpj, module, password_hash)
-  VALUES (v_id, trim(p_name), v_email, v_username, NULLIF(trim(COALESCE(p_phone, '')), ''), trim(p_company_name), v_cnpj,
-          NULLIF(trim(COALESCE(p_module, '')), ''), crypt(p_password, gen_salt('bf', 10)));
+  INSERT INTO public.account_requests (id, name, email, username, phone, company_name, cnpj, modules, password_hash)
+  VALUES (v_id, trim(p_name), v_email, v_username, NULLIF(trim(COALESCE(p_phone, '')), ''),
+          NULLIF(trim(COALESCE(p_company_name, '')), ''), v_cnpj, v_modules, crypt(p_password, gen_salt('bf', 10)));
 
   RETURN json_build_object('ok', true, 'id', v_id);
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.jvm_request_account(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.jvm_request_account(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
+REVOKE ALL ON FUNCTION public.jvm_request_account(TEXT, TEXT, TEXT, TEXT[], TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.jvm_request_account(TEXT, TEXT, TEXT, TEXT[], TEXT, TEXT, TEXT, TEXT) TO anon, authenticated;
 
 -- -------------------------------------------------------------------------
 -- Pedidos (só administrador master)
@@ -2295,7 +2312,9 @@ BEGIN
   RETURN COALESCE((
     SELECT json_agg(json_build_object(
       'id', r.id, 'name', r.name, 'email', r.email, 'username', r.username, 'phone', r.phone,
-      'companyName', r.company_name, 'cnpj', r.cnpj, 'module', r.module, 'status', r.status,
+      'companyName', r.company_name, 'cnpj', r.cnpj, 'module', r.module,
+      'modules', COALESCE(to_jsonb(r.modules), CASE WHEN r.module IS NULL THEN '[]'::jsonb ELSE jsonb_build_array(r.module) END),
+      'status', r.status,
       'decisionNote', r.decision_note, 'decidedAt', r.decided_at, 'createdAt', r.created_at
     ) ORDER BY r.created_at DESC)
       FROM public.account_requests r
@@ -2349,8 +2368,10 @@ BEGIN
   v_user_id := 'usr-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 16);
   -- libera a criação da conta de login nesta transação (ver jvm_sync_auth_user)
   PERFORM set_config('jvm.trusted_auth_sync', 'on', true);
-  INSERT INTO public.users (id, company_id, name, email, username, role, phone, active, is_master_admin, password_hash)
-  VALUES (v_user_id, NULL, r.name, lower(r.email), r.username, 'admin', r.phone, true, false, r.password_hash);
+  -- módulos pedidos: a empresa cadastrada no primeiro acesso começa só com eles ligados
+  INSERT INTO public.users (id, company_id, name, email, username, role, phone, active, is_master_admin, password_hash, allowed_modules)
+  VALUES (v_user_id, NULL, r.name, lower(r.email), r.username, 'admin', r.phone, true, false, r.password_hash,
+          COALESCE(r.modules, CASE WHEN r.module IS NULL THEN NULL ELSE ARRAY[r.module] END));
   PERFORM set_config('jvm.trusted_auth_sync', 'off', true);
 
   UPDATE public.account_requests

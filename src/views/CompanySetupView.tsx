@@ -96,14 +96,19 @@ export const CompanySetupView: React.FC<CompanySetupViewProps> = ({ user, onComp
     setMessage(null);
 
     const cnpj = form.cnpj.trim();
+    const docDigits = cnpj.replace(/\D/g, '');
     if (!form.legalName.trim()) {
-      setMessage({ type: 'error', text: 'Informe a razão social da empresa.' });
+      setMessage({ type: 'error', text: 'Informe a razão social da empresa (ou o seu nome, se não tiver empresa).' });
       return;
     }
-    if (!isValidCnpj(cnpj)) {
-      setMessage({ type: 'error', text: 'CNPJ inválido. Confira os 14 dígitos.' });
+    // CNPJ ou CPF são opcionais (a conta é do e-mail de quem pediu); se informar, tem de estar completo
+    if (docDigits && docDigits.length !== 11 && !isValidCnpj(cnpj)) {
+      setMessage({ type: 'error', text: 'CNPJ inválido (14 dígitos) ou CPF incompleto (11 dígitos). Deixe em branco se não tiver.' });
       return;
     }
+    const docFormatted = !docDigits ? ''
+      : docDigits.length === 11 ? docDigits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
+      : formatCnpj(cnpj);
 
     setIsSaving(true);
     try {
@@ -114,7 +119,7 @@ export const CompanySetupView: React.FC<CompanySetupViewProps> = ({ user, onComp
         name: form.name.trim() || form.legalName.trim(),
         legalName: form.legalName.trim(),
         tradeName: form.name.trim() || undefined,
-        cnpj: formatCnpj(cnpj),
+        cnpj: docFormatted,
         inscricaoEstadual: form.inscricaoEstadual.trim() || undefined,
         creaCompanyRegister: form.creaCompanyRegister.trim() || undefined,
         address: form.address.trim() || undefined,
@@ -151,7 +156,12 @@ export const CompanySetupView: React.FC<CompanySetupViewProps> = ({ user, onComp
         cityState: [saved.city, saved.state].filter(Boolean).join(' - ') + (saved.cep ? `, CEP: ${saved.cep}` : ''),
         phone: saved.phone || '',
         email: saved.email || '',
-        technicalResponsible: saved.technicalResponsible || { name: '', title: '', creaNumber: '', rnp: '' }
+        technicalResponsible: saved.technicalResponsible || { name: '', title: '', creaNumber: '', rnp: '' },
+        // conta aprovada pelo "Criar conta": a empresa começa só com os módulos de interesse do pedido
+        // (o master muda depois em Gestão de Acessos → Empresas e validade)
+        ...(Array.isArray(user.allowedModules) && user.allowedModules.length
+          ? { enabledModules: Object.fromEntries(['ensaios', 'treinamentos', 'spda'].map(m => [m, user.allowedModules!.includes(m)])) }
+          : {})
       });
 
       // 2. Vincula o usuário à empresa (também enviado ao banco)
@@ -186,7 +196,7 @@ export const CompanySetupView: React.FC<CompanySetupViewProps> = ({ user, onComp
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <section className="space-y-4">
               <div>
-                <label htmlFor="cs-cnpj" className={label}>CNPJ</label>
+                <label htmlFor="cs-cnpj" className={label}>CNPJ ou CPF <span className="font-normal text-[#5E6A78]">(opcional)</span></label>
                 <div className="flex gap-2">
                   <input id="cs-cnpj" inputMode="numeric" value={form.cnpj} onChange={set('cnpj')} placeholder="00.000.000/0000-00" className={input} />
                   <button
@@ -202,7 +212,7 @@ export const CompanySetupView: React.FC<CompanySetupViewProps> = ({ user, onComp
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label htmlFor="cs-razao" className={label}>Razão social</label>
+                  <label htmlFor="cs-razao" className={label}>Razão social <span className="font-normal text-[#5E6A78]">(ou o seu nome, se não tiver empresa)</span></label>
                   <input id="cs-razao" value={form.legalName} onChange={set('legalName')} className={input} />
                 </div>
                 <div className="sm:col-span-2">

@@ -203,3 +203,15 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 - Funções do master: `jvm_master_companies`, `jvm_master_set_company`, `jvm_master_users`, `jvm_master_set_user`.
 - As funções de acesso (`jvm_my_company`, `jvm_can_use_module`, `jvm_me`) foram atualizadas igualmente no
   `schema.sql` desta versão. `npm run test:db`: todos passam (com os novos de validade, módulos e usuários).
+
+## 10.0.14 (APK versionCode 15) — "Criar conta": módulos de interesse, empresa e CNPJ opcionais
+- O pedido de conta informa os **módulos de interesse** (SPDA, Ensaios de EPI, Treinamentos — pelo menos um;
+  no APP JVM SPDA o SPDA já vem marcado). **Empresa** e **CNPJ/CPF** passaram a ser **opcionais**: a conta é
+  liberada para o e-mail de quem pediu (pessoa física, profissional autônomo…).
+- Pedidos de conta (Gestão de Acessos): mostra os módulos de interesse de cada pedido.
+- Aprovado, o usuário fica com os módulos pedidos; no primeiro acesso, a empresa que ele cadastrar começa **só com
+  esses módulos ligados** (o master muda depois em Gestão de Acessos → Empresas e validade).
+- "Cadastre sua empresa" (1º acesso): CNPJ ou CPF opcional; razão social pode ser o nome da pessoa. A empresa sem
+  CNPJ é reconhecida como cadastrada pela razão social (antes a tela voltava sempre).
+- Banco: **executar de novo `supabase/modules/cadastro.sql`** no SQL Editor (troca a função `jvm_request_account`:
+  módulos em lista, empresa opcional; acrescenta a coluna `modules`). Testes do banco: todos passam.

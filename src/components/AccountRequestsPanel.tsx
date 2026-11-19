@@ -9,7 +9,7 @@ import { AuthService } from '../services/authService';
 
 interface AccountRequest {
   id: string; name: string; email: string; username?: string | null; phone?: string | null;
-  companyName?: string | null; cnpj?: string | null; module?: string | null; status: string;
+  companyName?: string | null; cnpj?: string | null; module?: string | null; modules?: string[] | null; status: string;
   decisionNote?: string | null; decidedAt?: string | null; createdAt: string;
 }
 
@@ -19,7 +19,7 @@ const fmtDoc = (d?: string | null) => {
   if (s.length === 11) return s.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
   return s;
 };
-const MODULE_LABEL: Record<string, string> = { spda: 'APP JVM SPDA', ensaios: 'Ensaios de EPI', treinamentos: 'Treinamentos' };
+const MODULE_LABEL: Record<string, string> = { spda: 'SPDA', ensaios: 'Ensaios de EPI', treinamentos: 'Treinamentos' };
 
 export const AccountRequestsPanel: React.FC = () => {
   const me = AuthService.getCurrentUser();
@@ -98,9 +98,15 @@ export const AccountRequestsPanel: React.FC = () => {
         {list.map(r => (
           <div key={r.id} className="border border-slate-200 rounded-xl p-3 bg-white flex flex-col sm:flex-row sm:items-center gap-3">
             <div className="flex-1 min-w-0 text-xs text-slate-700 space-y-0.5">
-              <p className="text-sm font-bold text-slate-900">{r.companyName || 'Empresa não informada'}{r.cnpj ? <span className="font-mono font-normal text-slate-500"> · {fmtDoc(r.cnpj)}</span> : null}</p>
+              <p className="text-sm font-bold text-slate-900">{r.companyName || r.name}{!r.companyName && <span className="font-normal text-slate-500"> (sem empresa informada)</span>}{r.cnpj ? <span className="font-mono font-normal text-slate-500"> · {fmtDoc(r.cnpj)}</span> : null}</p>
               <p><b>{r.name}</b> · {r.email}{r.username ? ` · usuário ${r.username}` : ''}{r.phone ? ` · ${r.phone}` : ''}</p>
-              <p className="text-slate-500">Pedido em {new Date(r.createdAt).toLocaleString('pt-BR')}{r.module ? ` · pelo ${MODULE_LABEL[r.module] || r.module}` : ''}
+              <p className="flex flex-wrap items-center gap-1 pt-0.5">
+                <span className="text-slate-500">Módulos de interesse:</span>
+                {(r.modules && r.modules.length ? r.modules : r.module ? [r.module] : []).map(m => (
+                  <span key={m} className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#0A2540] border border-[#0A2540]/20">{MODULE_LABEL[m] || m}</span>
+                ))}
+              </p>
+              <p className="text-slate-500">Pedido em {new Date(r.createdAt).toLocaleString('pt-BR')}
                 {r.decidedAt ? ` · decidido em ${new Date(r.decidedAt).toLocaleString('pt-BR')}` : ''}{r.decisionNote ? ` · ${r.decisionNote}` : ''}</p>
             </div>
             {r.status === 'pendente' && (
