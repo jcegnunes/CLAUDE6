@@ -571,6 +571,13 @@ export interface CompanyLabInfo {
   validationBaseUrl?: string; // URL pública (hospedagem do app) para validação de laudos via QR Code
   /** Módulos da plataforma ligados/desligados para a empresa (ausente = ligado) */
   enabledModules?: Record<string, boolean>;
+  /** Parâmetros do módulo SPDA (Configuração do Sistema → Parâmetros do SPDA) */
+  spdaSettings?: {
+    /** prefixo da numeração das inspeções/laudos (padrão "SPDA-") → SPDA-2026-0001 */
+    numberPrefix?: string;
+    /** validade padrão do laudo das inspeções novas (padrão 12 meses) */
+    defaultValidityMonths?: 12 | 24 | 36;
+  };
   supabaseUrl?: string; // Ex: 'https://cdtbzbshylrcprvmjpgc.supabase.co'
   supabaseAnonKey?: string; // Chave pública / anon key do Supabase
   supabaseAutoSync?: boolean; // Sincronização automática em segundo plano com Supabase

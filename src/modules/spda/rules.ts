@@ -595,8 +595,8 @@ export function nextInspectionDate(insp: Pick<SpdaInspection, 'inspectionDate' |
 }
 
 // ---------------------------------------------------------------- numeração
-export function nextNumber(existing: string[], year = new Date().getFullYear()): string {
-  const prefix = `${NUMBER_PREFIX}${year}-`;
+export function nextNumber(existing: string[], year = new Date().getFullYear(), numberPrefix: string = NUMBER_PREFIX): string {
+  const prefix = `${numberPrefix}${year}-`;
   const max = existing
     .filter(n => n.startsWith(prefix))
     .map(n => parseInt(n.slice(prefix.length), 10))

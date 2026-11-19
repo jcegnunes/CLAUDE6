@@ -27,6 +27,10 @@ function formatDoc(v: string): string {
 
 /** Mensagem do servidor sem o código técnico. */
 function friendly(msg: string): string {
+  // a função existe no servidor, mas com outros campos: esta tela (ou o app) é de uma versão diferente
+  if (/Could not find the function public\.jvm_request_account\(/i.test(msg)) {
+    return 'Esta versão do aplicativo/página está desatualizada para o cadastro. Atualize a página (ou instale o APK mais novo) e tente de novo.';
+  }
   if (/jvm_request_account|does not exist|schema cache/i.test(msg)) return 'O cadastro de contas ainda não está ativo no servidor. Fale com o administrador.';
   if (/Failed to fetch|NetworkError|network/i.test(msg)) return 'Sem conexão com o servidor. Verifique a internet e tente de novo.';
   return msg;

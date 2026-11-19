@@ -15,7 +15,7 @@ import { CHECKLIST_VERSION } from './checklist';
 import { SPDA_KEYS } from './storageKeys';
 import { SPDA_MODULE_ID, SPDA_OS_DESCRIPTION } from './osText';
 import type { ContinuityTest, GroundingTest, SpdaBuilding, SpdaInspection } from './types';
-import type { ServiceOrder } from '../../types';
+import type { CompanyLabInfo, ServiceOrder } from '../../types';
 
 // ----------------------------------------------------------------- leitura base
 function read<T>(key: string, fallback: T): T {
@@ -282,7 +282,8 @@ export function createInspection(): SpdaInspection {
     checklistVersion: CHECKLIST_VERSION,
     id: newId('insp'),
     companyId: currentCompanyId(),
-    number: nextNumber(allInspections().map(i => i.number)),
+    number: nextNumber(allInspections().map(i => i.number), undefined, spdaSettings().numberPrefix || undefined),
+    ...(spdaSettings().defaultValidityMonths && spdaSettings().defaultValidityMonths !== 12 ? { validityMonths: spdaSettings().defaultValidityMonths } : {}),
     status: 'rascunho',
     clientName: '',
     buildingName: '',
@@ -377,6 +378,16 @@ export function generateServiceOrder(insp: SpdaInspection): { id: string; osNumb
   const osNumber = host.nextServiceOrderNumber();
   const saved = host.saveServiceOrder(buildServiceOrder(insp, osNumber, user, client as any));
   return { id: saved.id, osNumber: saved.osNumber };
+}
+
+/** Parâmetros do SPDA da empresa (Configuração do Sistema → Parâmetros do SPDA). */
+export function spdaSettings(): NonNullable<CompanyLabInfo['spdaSettings']> {
+  try { return host.companyInfo()?.spdaSettings || {}; } catch { return {}; }
+}
+
+export function saveSpdaSettings(settings: NonNullable<CompanyLabInfo['spdaSettings']>): void {
+  if (!host.updateCompanyInfo) throw new Error('Não é possível gravar os parâmetros aqui.');
+  host.updateCompanyInfo({ spdaSettings: settings });
 }
 
 export function readCompanyInfo() {

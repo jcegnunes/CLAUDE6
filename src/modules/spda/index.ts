@@ -1,5 +1,5 @@
 /** Manifesto do módulo SPDA (lido pelo registro de módulos). */
-import { Anchor, ArrowDownToLine, BookOpenText, Building2, FileText, Gauge, LayoutDashboard, ShieldCheck, Zap } from 'lucide-react';
+import { Anchor, ArrowDownToLine, BookOpenText, Building2, FileText, Gauge, LayoutDashboard, ShieldCheck, SlidersHorizontal, Zap } from 'lucide-react';
 import { lazyView } from '../../utils/lazyView';
 import type { UserRole } from '../../types';
 import type { PlatformModule } from '../types';
@@ -27,5 +27,9 @@ export const spdaModule: PlatformModule = {
     { id: 'spda_relatorio', label: 'Relatório', icon: BookOpenText, roles: STAFF, View: screen('SpdaReportScreen') },
     // tela comum da plataforma (a mesma dos ensaios de EPI)
     { id: 'instruments', label: 'Instrumentos', icon: Gauge, roles: ['admin', 'responsavel_tecnico', 'tecnico'] }
+  ],
+  // Configuração do Sistema → Parâmetros do SPDA (numeração e validade padrão do laudo)
+  settingsItems: [
+    { id: 'spda_parametros', label: 'Parâmetros do SPDA', icon: SlidersHorizontal, roles: STAFF, View: screen('SpdaSettingsScreen') }
   ]
 };

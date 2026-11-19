@@ -23,5 +23,6 @@ export const host: SpdaHost = {
   serviceOrders: () => DielectricStorageService.getServiceOrders(companyId() || undefined).filter(isSpdaServiceOrder),
   nextServiceOrderNumber: () => DielectricStorageService.generateNextOSNumber(),
   saveServiceOrder: os => DielectricStorageService.saveServiceOrder(os),
-  companyInfo: () => DielectricStorageService.getCompanyInfo()
+  companyInfo: () => DielectricStorageService.getCompanyInfo(),
+  updateCompanyInfo: patch => DielectricStorageService.saveCompanyInfo({ ...DielectricStorageService.getCompanyInfo(), ...patch })
 };

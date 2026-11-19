@@ -12,6 +12,7 @@ import { DashboardView } from './DashboardView';
 import { TechReportView } from './TechReportView';
 import { SpdaBuildingsView } from './BuildingsView';
 import { SpdaAterramentoView, SpdaCaptacaoView, SpdaDescidaView, SpdaDpsView } from './SubsystemView';
+import { SpdaSettingsView } from './SpdaSettingsView';
 
 const withDialogs = (View: React.FC): React.FC => {
   const Screen: React.FC = () => {
@@ -35,3 +36,4 @@ export const SpdaCaptacaoScreen = withDialogs(SpdaCaptacaoView);
 export const SpdaDescidaScreen = withDialogs(SpdaDescidaView);
 export const SpdaAterramentoScreen = withDialogs(SpdaAterramentoView);
 export const SpdaDpsScreen = withDialogs(SpdaDpsView);
+export const SpdaSettingsScreen = withDialogs(SpdaSettingsView);

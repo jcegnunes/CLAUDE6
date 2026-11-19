@@ -225,3 +225,18 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   O e-mail de usuário excluído continua reservado (para reaproveitar o e-mail, prefira Bloquear).
 - Banco: **executar de novo `supabase/modules/acessos.sql`** (funções `jvm_master_delete_user` e
   `jvm_master_delete_company`). Testes do banco: todos passam (10 novos).
+
+## 10.0.16 (APK versionCode 17) — módulos só pelo master e Configurações por módulo
+- **Módulos do sistema** (Configurações & Backup): para quem não é master, mostra só os módulos **liberados** para a
+  empresa e para o usuário, sem caixa de marcar ("Para liberar outros, fale com o administrador da plataforma").
+  Só o master liga/desliga (aqui na própria empresa ou em Gestão de Acessos para as demais).
+- Banco (`acessos.sql`): só o master muda os módulos de uma empresa — o administrador da empresa não consegue ligar
+  módulos nem por versões antigas do app (a gravação mantém os módulos que estavam). A empresa criada no 1º acesso de
+  uma conta aprovada começa só com os módulos liberados.
+- **Configurações & Backup por módulo**: "Parâmetros de Emissão de Certificados & Laudos" (NR-10), "Gerador de APK" e
+  "Impressora Niimbot" só aparecem no módulo Ensaios de EPI. Dados da empresa, RT, usuários, portal e backup continuam
+  em todos.
+- **Parâmetros do SPDA** (Configuração do Sistema, com o SPDA aberto): prefixo da numeração das inspeções/laudos
+  (padrão SPDA- → SPDA-2026-0001) e validade padrão do laudo (12/24/36 meses) para as inspeções novas. Ficam nos dados
+  da empresa e sincronizam.
+- Banco: **executar de novo `supabase/modules/acessos.sql`**. Testes: app 378, banco todos passam.

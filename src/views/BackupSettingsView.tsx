@@ -56,9 +56,16 @@ import { ValidationPortalService, DEFAULT_VALIDATION_BASE_URL, PortalConnectionR
 import { CompleteBackupModal } from '../components/CompleteBackupModal';
 import { CompanyUsersPanel } from '../components/CompanyUsersPanel';
 import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
+import { ENSAIOS_WORKSPACE, canUseModule } from '../modules/workspaces';
 import { FullBackupService, BackupStats, BackupProgressInfo } from '../services/fullBackupService';
 
-export const BackupSettingsView: React.FC = () => {
+/**
+ * Configurações & Backup. `workspaceId` = módulo aberto: os parâmetros dos Ensaios de EPI (emissão de
+ * certificados/laudos NR-10, gerador do APK de ensaios e impressora de etiquetas) só aparecem nos Ensaios de EPI.
+ * Cada módulo tem os seus parâmetros no menu Configuração do Sistema (ex.: Parâmetros do SPDA).
+ */
+export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspaceId }) => {
+  const isEnsaios = !workspaceId || workspaceId === 'ensaios';
   const [company, setCompany] = useState<CompanyLabInfo>(DielectricStorageService.getCompanyInfo());
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -1062,7 +1069,37 @@ export const BackupSettingsView: React.FC = () => {
             {/* SEÇÃO: MÓDULOS DO SISTEMA (src/modules) */}
             <div className="pt-3 border-t border-slate-200">
               <h4 className="font-bold text-xs text-slate-800 mb-1">Módulos do sistema</h4>
-              <p className="text-[11px] text-slate-500 mb-2">Ligue ou desligue módulos para esta empresa. Os dados de um módulo desligado são mantidos.</p>
+              {(() => {
+                // Só o administrador master liga/desliga módulos (Gestão de Acessos). Os demais veem apenas
+                // os módulos liberados para a empresa e para o próprio usuário, sem poder alterar.
+                const me = DielectricStorageService.getCurrentUser();
+                if (me?.isMasterAdmin) return null;
+                const all = [
+                  { id: ENSAIOS_WORKSPACE.id, label: ENSAIOS_WORKSPACE.label, description: ENSAIOS_WORKSPACE.description, icon: ENSAIOS_WORKSPACE.icon },
+                  ...PLATFORM_MODULES.filter(m => !m.masterOnly)
+                ];
+                const released = all.filter(m => isModuleEnabled(company, m.id) && canUseModule(me, m.id));
+                return (
+                  <>
+                    <p className="text-[11px] text-slate-500 mb-2">Módulos liberados para você nesta empresa. Para liberar outros, fale com o administrador da plataforma.</p>
+                    <div className="space-y-2">
+                      {released.length === 0 && <p className="text-xs text-slate-400">Nenhum módulo liberado.</p>}
+                      {released.map(m => (
+                        <div key={m.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white">
+                          <m.icon className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                          <span className="flex-1">
+                            <span className="block text-xs font-bold text-slate-800">{m.label}</span>
+                            <span className="block text-[11px] text-slate-500">{m.description}</span>
+                          </span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 shrink-0">Liberado</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+              {DielectricStorageService.getCurrentUser()?.isMasterAdmin && <>
+              <p className="text-[11px] text-slate-500 mb-2">Ligue ou desligue módulos para esta empresa (as outras empresas: Gestão de Acessos). Os dados de um módulo desligado são mantidos.</p>
               <div className="space-y-2">
                 {PLATFORM_MODULES.filter(m => !m.masterOnly).map(m => {
                   const on = isModuleEnabled(company, m.id);
@@ -1087,6 +1124,7 @@ export const BackupSettingsView: React.FC = () => {
                   );
                 })}
               </div>
+              </>}
             </div>
 
             {/* SEÇÃO: USUÁRIOS E TÉCNICOS DA EMPRESA */}
@@ -1173,6 +1211,8 @@ export const BackupSettingsView: React.FC = () => {
               </div>
             </div>
 
+            {/* só nos Ensaios de EPI */}
+            {isEnsaios && (<>
             {/* SEÇÃO: CONFIGURAÇÕES DE EMISSÃO DE CERTIFICADO & LAUDO */}
             <div className="pt-4 border-t-2 border-blue-100 bg-gradient-to-br from-blue-50/50 to-slate-50 p-4 rounded-2xl border border-blue-200 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-blue-200/80 pb-2.5">
@@ -1405,6 +1445,8 @@ export const BackupSettingsView: React.FC = () => {
               </div>
             </div>
 
+                        </>)}
+
             {/* SEÇÃO: PORTAL PÚBLICO DE VALIDAÇÃO & SINCRONIZAÇÃO */}
             <div className="pt-4 border-t-2 border-emerald-100 bg-gradient-to-br from-emerald-50/40 via-blue-50/30 to-slate-50 p-4 rounded-2xl border border-emerald-200 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/80 pb-2.5">
@@ -1569,7 +1611,9 @@ export const BackupSettingsView: React.FC = () => {
 
         {/* Backup & Tools Card */}
         <div className="space-y-4">
-          {/* APK & USB Android Tools Card */}
+          {/* gerador do APK de ensaios e impressora Niimbot: só nos Ensaios de EPI */}
+            {isEnsaios && (<>
+            {/* APK & USB Android Tools Card */}
           <div className="bg-gradient-to-br from-slate-900 via-emerald-950/50 to-slate-900 rounded-2xl p-6 border border-emerald-700/60 shadow-md text-white space-y-3.5">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
               <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400">
@@ -1671,7 +1715,9 @@ export const BackupSettingsView: React.FC = () => {
             </div>
           </div>
 
-          {/* Backup & Registros Fotográficos Card */}
+                      </>)}
+
+            {/* Backup & Registros Fotográficos Card */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">

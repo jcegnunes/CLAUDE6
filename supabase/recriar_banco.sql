@@ -2227,6 +2227,64 @@ $$;
 REVOKE ALL ON FUNCTION public.jvm_master_delete_company(TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.jvm_master_delete_company(TEXT) TO authenticated;
 
+-- -------------------------------------------------------------------------
+-- Módulos da empresa: só o master muda (Gestão de Acessos). O administrador da
+-- empresa não liga módulos sozinho, nem por versões antigas do app: a gravação
+-- mantém os módulos que estavam. Na criação da empresa (1º acesso de uma conta
+-- aprovada), ela começa só com os módulos liberados para o usuário.
+-- -------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.jvm_my_allowed_modules()
+RETURNS TEXT[]
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT u.allowed_modules FROM public.users u
+   WHERE u.auth_user_id = auth.uid() AND u.deleted_at IS NULL
+   LIMIT 1
+$$;
+
+REVOKE ALL ON FUNCTION public.jvm_my_allowed_modules() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.jvm_my_allowed_modules() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.jvm_guard_company_modules()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+DECLARE
+  v_allowed TEXT[];
+  v_info JSONB := COALESCE(NEW.lab_info, '{}'::jsonb);
+BEGIN
+  -- SQL Editor e funções do master (SECURITY DEFINER) passam direto
+  IF current_user NOT IN ('anon', 'authenticated') OR public.jvm_is_master() THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.lab_info IS NOT NULL AND OLD.lab_info ? 'enabledModules' THEN
+      NEW.lab_info := jsonb_set(v_info, '{enabledModules}', OLD.lab_info -> 'enabledModules');
+    ELSIF NEW.lab_info IS NOT NULL THEN
+      NEW.lab_info := v_info - 'enabledModules';
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  -- INSERT: conta com módulos definidos (aprovada pelo "Criar conta") cria a empresa só com eles
+  v_allowed := public.jvm_my_allowed_modules();
+  IF v_allowed IS NOT NULL THEN
+    NEW.lab_info := v_info || jsonb_build_object('enabledModules', jsonb_build_object(
+      'ensaios', 'ensaios' = ANY (v_allowed),
+      'treinamentos', 'treinamentos' = ANY (v_allowed),
+      'spda', 'spda' = ANY (v_allowed)));
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS jvm_guard_company_modules ON public.companies;
+CREATE TRIGGER jvm_guard_company_modules BEFORE INSERT OR UPDATE ON public.companies
+  FOR EACH ROW EXECUTE FUNCTION public.jvm_guard_company_modules();
+
 -- =========================================================================
 -- CADASTRO PÚBLICO COM APROVAÇÃO ("Criar conta")
 --

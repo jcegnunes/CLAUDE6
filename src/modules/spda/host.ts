@@ -26,4 +26,6 @@ export interface SpdaHost {
   nextServiceOrderNumber(): string;
   saveServiceOrder(os: ServiceOrder): ServiceOrder;
   companyInfo(): Partial<CompanyLabInfo> | null;
+  /** Grava campos dos dados da empresa (ex.: parâmetros do SPDA); ausente = só leitura */
+  updateCompanyInfo?(patch: Partial<CompanyLabInfo>): void;
 }

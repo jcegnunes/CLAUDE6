@@ -676,6 +676,20 @@ async function main() {
   r = await as(db, user(m), `SELECT public.jvm_master_set_user('usr-b', true, 'master', NULL) AS v`);
   ok(!!r.error, 'perfil inválido é recusado');
 
+  // módulos da empresa: só o master muda
+  await as(db, user(m), `SELECT public.jvm_master_set_company('comp-2', '{"spda": true, "treinamentos": false}'::jsonb, NULL) AS v`);
+  const modsBefore = (await db.query(`SELECT lab_info -> 'enabledModules' AS e FROM public.companies WHERE id='comp-2'`)).rows[0].e;
+  r = await as(db, user(a2), `UPDATE public.companies SET lab_info = COALESCE(lab_info, '{}'::jsonb) || '{"enabledModules": {"spda": true, "treinamentos": true, "ensaios": true}, "x": 1}'::jsonb WHERE id = 'comp-2'`);
+  const modsAfter = (await db.query(`SELECT lab_info -> 'enabledModules' AS e, lab_info ->> 'x' AS x FROM public.companies WHERE id='comp-2'`)).rows[0];
+  ok(!r.error && JSON.stringify(modsAfter.e) === JSON.stringify(modsBefore) && modsAfter.x === '1',
+    'admin da empresa NÃO liga módulos sozinho (o resto dos dados da empresa é gravado)');
+  await db.exec(`INSERT INTO public.users (id, name, email, role, password_hash, allowed_modules) VALUES ('usr-novo', 'Novo', 'novo@x.com', 'admin', 'Senha@Nov1', '{spda}')`);
+  const novoUid = await uidOf(db, 'usr-novo');
+  r = await as(db, user(novoUid), `INSERT INTO public.companies (id, name, cnpj, lab_info) VALUES ('comp-novo', 'Nova', '', '{"enabledModules": {"spda": true, "treinamentos": true, "ensaios": true}}'::jsonb)`);
+  const novoMods = (await db.query(`SELECT lab_info -> 'enabledModules' AS e FROM public.companies WHERE id='comp-novo'`)).rows[0]?.e;
+  ok(!r.error && novoMods && novoMods.spda === true && novoMods.treinamentos === false && novoMods.ensaios === false,
+    `empresa criada no 1º acesso começa só com os módulos liberados ${r.error || JSON.stringify(novoMods)}`);
+
   // excluir usuário e empresa (exclusão lógica)
   await db.exec(`INSERT INTO public.companies (id, name, cnpj) VALUES ('comp-del', 'Empresa Excluir', '')`);
   await db.exec(`INSERT INTO public.users (id, company_id, name, email, role, password_hash) VALUES

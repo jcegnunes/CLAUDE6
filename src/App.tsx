@@ -604,7 +604,7 @@ export default function App() {
 
           {activeView === 'audit' && <AuditLogsView key={`android_audit_${dataVersion}`} />}
 
-          {activeView === 'backup' && <BackupSettingsView key={`android_backup_${dataVersion}`} />}
+          {activeView === 'backup' && <BackupSettingsView key={`android_backup_${dataVersion}`} workspaceId={currentWorkspace.id} />}
           {renderModuleView('android')}
           </Suspense>
           </ViewErrorBoundary>
@@ -858,7 +858,7 @@ export default function App() {
 
           {activeView === 'audit' && <AuditLogsView key={`desk_audit_${dataVersion}`} />}
 
-          {activeView === 'backup' && <BackupSettingsView key={`desk_backup_${dataVersion}`} />}
+          {activeView === 'backup' && <BackupSettingsView key={`desk_backup_${dataVersion}`} workspaceId={currentWorkspace.id} />}
           {renderModuleView('desk')}
           </Suspense>
           </ViewErrorBoundary>
