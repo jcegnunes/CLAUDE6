@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { UserRole } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
-import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
+import { PLATFORM_MODULES, canSeeModule, isModuleEnabled } from '../modules/registry';
 import type { Workspace } from '../modules/workspaces';
 import { APP_NAME, APP_TARGET } from '../appTarget';
 
@@ -75,8 +75,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Módulos (src/modules): cada um vira um bloco do menu quando ligado para a empresa
   const companyInfo = DielectricStorageService.getCompanyInfo();
   // Com o módulo escolhido, itens "top" (ex.: Dashboard) ficam soltos no topo do menu
+  // módulo só do master (Gestão de Acessos) não aparece para os demais
+  const sessionUser = DielectricStorageService.getCurrentUser();
   const moduleGroups: NavGroup[] = PLATFORM_MODULES
-    .filter(m => isModuleEnabled(companyInfo, m.id))
+    .filter(m => isModuleEnabled(companyInfo, m.id) && canSeeModule(m, sessionUser))
     .flatMap(m => {
       const asNav = (it: { id: string; label: string; icon: React.ElementType; roles: UserRole[] }) => ({ id: it.id, label: it.label, icon: it.icon, roles: it.roles });
       if (!m.menuItems?.length) return [{ id: `mod-${m.id}`, label: m.label, icon: m.icon, items: [{ id: m.id, label: m.label, icon: m.icon, roles: m.roles }] }];
@@ -89,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // Telas de configuração dos módulos: só com o módulo ligado e (com módulo escolhido) aberto
   const moduleSettingsItems: NavItem[] = PLATFORM_MODULES
-    .filter(m => isModuleEnabled(companyInfo, m.id) && (!workspace || workspace.id === m.id))
+    .filter(m => isModuleEnabled(companyInfo, m.id) && canSeeModule(m, sessionUser) && (!workspace || workspace.id === m.id))
     .flatMap(m => (m.settingsItems || []).map(it => ({ id: it.id, label: it.label, icon: it.icon, roles: it.roles })));
 
   const groupDefs: NavGroup[] = [

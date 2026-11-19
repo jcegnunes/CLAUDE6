@@ -5,7 +5,7 @@
 import { FlaskConical } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { CompanyLabInfo, User, UserRole } from '../types';
-import { PLATFORM_MODULES, isModuleEnabled } from './registry';
+import { PLATFORM_MODULES, canSeeModule, isModuleEnabled } from './registry';
 
 export interface Workspace {
   id: string;
@@ -43,7 +43,7 @@ export function canUseModule(user: Pick<User, 'role' | 'isMasterAdmin' | 'allowe
 export function getAssignableModules(info: Pick<CompanyLabInfo, 'enabledModules'> | null | undefined): Array<{ id: string; label: string }> {
   return [
     { id: ENSAIOS_WORKSPACE.id, label: ENSAIOS_WORKSPACE.label },
-    ...PLATFORM_MODULES.filter(m => isModuleEnabled(info, m.id)).map(m => ({ id: m.id, label: m.label }))
+    ...PLATFORM_MODULES.filter(m => !m.masterOnly && isModuleEnabled(info, m.id)).map(m => ({ id: m.id, label: m.label }))
   ];
 }
 
@@ -53,7 +53,7 @@ export function getAvailableWorkspaces(
 ): Workspace[] {
   const role = user.role;
   const modules: Workspace[] = PLATFORM_MODULES
-    .filter(m => isModuleEnabled(info, m.id) && m.roles.includes(role))
+    .filter(m => isModuleEnabled(info, m.id) && m.roles.includes(role) && canSeeModule(m, user))
     .map(m => ({
       id: m.id,
       label: m.label,
@@ -65,7 +65,8 @@ export function getAvailableWorkspaces(
       hiddenItems: m.workspace?.hiddenItems || [],
       roles: m.roles
     }));
-  return [ENSAIOS_WORKSPACE, ...modules].filter(w => w.roles.includes(role) && canUseModule(user, w.id));
+  const ensaios = isModuleEnabled(info, ENSAIOS_WORKSPACE.id) ? [ENSAIOS_WORKSPACE] : [];
+  return [...ensaios, ...modules].filter(w => w.roles.includes(role) && canUseModule(user, w.id));
 }
 
 // ------------------------------------------------- escolha guardada no aparelho

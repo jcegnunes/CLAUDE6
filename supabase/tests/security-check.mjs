@@ -608,6 +608,65 @@ async function main() {
   r = await as(db, user(m), `SELECT public.jvm_decide_account_request($1, false, 'dados incompletos') AS v`, [rui?.id]);
   ok(!r.error && !(await db.query(`SELECT 1 FROM public.users WHERE email = 'rui@x.com'`)).rows.length, 'master recusa: nenhum usuário criado');
 
+  // ---------------------------------------- gestão de acessos (modules/acessos.sql)
+  const j = v => (typeof v === 'string' ? JSON.parse(v) : v);
+  await db.exec(`UPDATE public.users SET active = true WHERE id = 'usr-b'`); // bloqueado num teste anterior
+  for (const sql of [`SELECT public.jvm_master_companies() AS v`, `SELECT public.jvm_master_users(NULL) AS v`,
+    `SELECT public.jvm_master_set_company('comp-2', '{}'::jsonb, NULL) AS v`, `SELECT public.jvm_master_set_user('usr-b', true, 'tecnico', NULL) AS v`]) {
+    r = await as(db, user(a), sql);
+    ok(!!r.error, `admin de empresa (não master) NÃO usa a gestão de acessos: ${sql.slice(14, 45)}`);
+  }
+  r = await as(db, user(m), `SELECT public.jvm_master_companies() AS v`);
+  const comps = j(r.rows?.[0]?.v) || [];
+  ok(!r.error && comps.some(c => c.id === 'comp-1') && comps.some(c => c.id === 'comp-2'), 'master lista todas as empresas');
+  r = await as(db, user(m), `SELECT public.jvm_master_users('comp-2') AS v`);
+  const us2 = j(r.rows?.[0]?.v) || [];
+  ok(!r.error && us2.some(u => u.id === 'usr-b') && !us2.some(u => u.companyId === 'comp-1') && !JSON.stringify(us2).includes('$2'), 'master lista os usuários da empresa (sem senha)');
+
+  // validade vencida: não entra e não vê dados
+  r = await as(db, user(m), `SELECT public.jvm_master_set_company('comp-2', '{}'::jsonb, CURRENT_DATE - 1) AS v`);
+  ok(!r.error, `master define a validade da empresa ${r.error || ''}`);
+  r = await as(db, user(b), `SELECT public.jvm_me() AS v`);
+  const meExp = j(r.rows?.[0]?.v);
+  ok(meExp && meExp.ok === false && /venceu/.test(meExp.error || ''), 'empresa vencida: login recusado com aviso de vencimento');
+  r = await as(db, user(b), `SELECT count(*)::int n FROM public.clients`);
+  ok(!r.error && r.rows[0].n === 0, 'empresa vencida: NÃO enxerga dados');
+  r = await as(db, user(b), `INSERT INTO public.clients (id, company_id, razao_social) VALUES ('cli-venc', 'comp-2', 'X')`);
+  ok(!!r.error, 'empresa vencida: NÃO grava dados');
+  r = await as(db, user(m), `SELECT public.jvm_me() AS v`);
+  ok(j(r.rows?.[0]?.v)?.ok === true, 'master continua entrando');
+  await as(db, user(m), `SELECT public.jvm_master_set_company('comp-2', '{}'::jsonb, CURRENT_DATE + 30) AS v`);
+  r = await as(db, user(b), `SELECT public.jvm_me() AS v`);
+  ok(j(r.rows?.[0]?.v)?.ok === true, 'validade renovada: volta a entrar');
+  r = await as(db, user(b), `SELECT count(*)::int n FROM public.clients`);
+  ok(!r.error && r.rows[0].n > 0, 'validade renovada: volta a ver os dados');
+  await as(db, user(m), `SELECT public.jvm_master_set_company('comp-2', '{}'::jsonb, NULL) AS v`);
+
+  // módulo desligado para a empresa vale no banco
+  r = await as(db, user(m), `SELECT public.jvm_master_set_company('comp-2', '{"spda": false}'::jsonb, NULL) AS v`);
+  ok(!r.error, 'master desliga o SPDA da empresa');
+  r = await as(db, user(b), `SELECT id FROM public.spda_inspections`);
+  ok(!r.error && r.rows.length === 0, 'módulo desligado: a empresa NÃO enxerga as inspeções SPDA');
+  r = await as(db, user(b), `SELECT count(*)::int n FROM public.clients`);
+  ok(!r.error && r.rows[0].n > 0, 'módulo desligado: os outros dados continuam');
+  await as(db, user(m), `SELECT public.jvm_master_set_company('comp-2', '{"spda": true}'::jsonb, NULL) AS v`);
+  r = await as(db, user(b), `SELECT id FROM public.spda_inspections`);
+  ok(!r.error && r.rows.length > 0, 'módulo religado: volta a enxergar');
+
+  // usuários: bloquear, módulos e perfil
+  const roleB = (await db.query(`SELECT role FROM public.users WHERE id='usr-b'`)).rows[0].role;
+  r = await as(db, user(m), `SELECT public.jvm_master_set_user('usr-b', false, $1, NULL) AS v`, [roleB]);
+  ok(!r.error && (await db.query(`SELECT banned_until FROM auth.users WHERE id = $1`, [b])).rows[0].banned_until !== null, 'master bloqueia usuário de outra empresa (conta de login bloqueada)');
+  r = await as(db, user(m), `SELECT public.jvm_master_set_user('usr-b', true, $1, ARRAY['spda']) AS v`, [roleB]);
+  const bAfter = (await db.query(`SELECT active, allowed_modules FROM public.users WHERE id='usr-b'`)).rows[0];
+  ok(!r.error && bAfter.active === true && JSON.stringify(bAfter.allowed_modules) === '["spda"]'
+    && (await db.query(`SELECT banned_until FROM auth.users WHERE id = $1`, [b])).rows[0].banned_until === null, 'master desbloqueia e libera módulos');
+  await db.exec(`UPDATE public.users SET allowed_modules = NULL WHERE id = 'usr-b'`);
+  r = await as(db, user(m), `SELECT public.jvm_master_set_user('usr-m', false, 'admin', NULL) AS v`);
+  ok(!!r.error, 'master NÃO bloqueia o próprio acesso');
+  r = await as(db, user(m), `SELECT public.jvm_master_set_user('usr-b', true, 'master', NULL) AS v`);
+  ok(!!r.error, 'perfil inválido é recusado');
+
   // ---------------------------------------------------- migração de banco antigo
   if (OLD_SCHEMA) {
     const old = await newDb();

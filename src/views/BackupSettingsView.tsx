@@ -55,7 +55,6 @@ import { saveFileLocally } from '../utils/nativeFileSaver';
 import { ValidationPortalService, DEFAULT_VALIDATION_BASE_URL, PortalConnectionResult } from '../services/validationPortalService';
 import { CompleteBackupModal } from '../components/CompleteBackupModal';
 import { CompanyUsersPanel } from '../components/CompanyUsersPanel';
-import { AccountRequestsPanel } from '../components/AccountRequestsPanel';
 import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
 import { FullBackupService, BackupStats, BackupProgressInfo } from '../services/fullBackupService';
 
@@ -1065,7 +1064,7 @@ export const BackupSettingsView: React.FC = () => {
               <h4 className="font-bold text-xs text-slate-800 mb-1">Módulos do sistema</h4>
               <p className="text-[11px] text-slate-500 mb-2">Ligue ou desligue módulos para esta empresa. Os dados de um módulo desligado são mantidos.</p>
               <div className="space-y-2">
-                {PLATFORM_MODULES.map(m => {
+                {PLATFORM_MODULES.filter(m => !m.masterOnly).map(m => {
                   const on = isModuleEnabled(company, m.id);
                   return (
                     <label key={m.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 bg-white cursor-pointer">
@@ -1092,9 +1091,6 @@ export const BackupSettingsView: React.FC = () => {
 
             {/* SEÇÃO: USUÁRIOS E TÉCNICOS DA EMPRESA */}
             <CompanyUsersPanel onChange={() => setUsersList(DielectricStorageService.getUsers())} />
-
-            {/* SEÇÃO: PEDIDOS DE CONTA ("Criar conta") — só o administrador master */}
-            <AccountRequestsPanel />
 
             {/* SEÇÃO: ASSINATURAS PADRÃO DOS ANALISTAS EXECUTORES */}
             <div className="pt-3 border-t border-slate-200">

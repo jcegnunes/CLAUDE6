@@ -14,6 +14,8 @@ export interface PlatformModule {
   icon: LucideIcon;
   /** Perfis que veem o módulo no menu */
   roles: UserRole[];
+  /** Só o administrador master vê e usa (ex.: Gestão de Acessos); não entra em "Módulos do sistema" nem no cadastro de usuários */
+  masterOnly?: boolean;
   View: ComponentType<Record<string, never>>;
   /**
    * Ao escolher este módulo depois do login: blocos comuns do menu que também

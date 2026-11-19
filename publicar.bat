@@ -82,6 +82,17 @@ if not exist ".git" (
 )
 
 REM ---------------------------------------------------------------
+REM 3a. Pasta Documentos: o Windows cria as pastas como "somente leitura"
+REM     e o git nao consegue apagar as pastas temporarias dele (fica
+REM     perguntando "Deletion of directory ... failed. Should I try again?").
+REM     Tira o atributo, desliga a limpeza automatica e nunca pergunta.
+REM ---------------------------------------------------------------
+attrib -r ".git" /s /d >nul 2>nul
+attrib -r ".git\*" /s /d >nul 2>nul
+git config gc.auto 0
+set "GIT_ASK_YESNO=false"
+
+REM ---------------------------------------------------------------
 REM 3b. Ignora instaladores e compactados, ex: GitHubDesktopSetup.exe e
 REM     o proprio .zip do projeto. Lista local, nao vai para o GitHub.
 REM ---------------------------------------------------------------
@@ -176,7 +187,8 @@ git add -A
 
 REM Arquivos acima do limite do GitHub (100 MB) sao retirados do envio
 set "N_BIG=0"
-for /f "usebackq delims=" %%f in (`git -c core.quotepath=off diff --cached --name-only --diff-filter=AM`) do (
+REM (o "=" dentro do for /f precisa de ^ : sem ele o cmd separa e o git recebe "off" como comando)
+for /f "usebackq delims=" %%f in (`git -c core.quotepath^=off diff --cached --name-only --diff-filter^=AM`) do (
   set "FP=%%f"
   set "FP=!FP:/=\!"
   for %%z in ("!FP!") do (

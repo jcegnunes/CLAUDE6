@@ -17,7 +17,7 @@ import { lazyView } from './utils/lazyView';
 import { isPortalOnlyHost, isPortalOnlyPath, validationCodeFromLocation } from './config/validationPortalConfig';
 import { ModalErrorBoundary } from './components/ModalErrorBoundary';
 import { startPhotoStorage } from './services/photoExternalizer';
-import { PLATFORM_MODULES, isModuleEnabled } from './modules/registry';
+import { PLATFORM_MODULES, canSeeModule, isModuleEnabled } from './modules/registry';
 import { canUseModule, getAvailableWorkspaces, loadSavedWorkspace, saveWorkspace, type Workspace } from './modules/workspaces';
 import { ModuleLauncherView } from './views/ModuleLauncherView';
 import { APP_ONLY_MODULE, APP_TARGET } from './appTarget';
@@ -364,11 +364,12 @@ export default function App() {
     .filter(m => activeView === m.id
       && isModuleEnabled(DielectricStorageService.getCompanyInfo(), m.id)
       && m.roles.includes(currentUser.role)
+      && canSeeModule(m, currentUser)
       && canUseModule(currentUser, m.id))
     // sem dataVersion na chave: a sincronização dos ensaios não fecha o que está sendo editado
     .map(m => <m.View key={`${prefix}_${m.id}`} />)
     .concat(PLATFORM_MODULES
-      .filter(m => isModuleEnabled(DielectricStorageService.getCompanyInfo(), m.id) && canUseModule(currentUser, m.id))
+      .filter(m => isModuleEnabled(DielectricStorageService.getCompanyInfo(), m.id) && canSeeModule(m, currentUser) && canUseModule(currentUser, m.id))
       .flatMap(m => [...(m.settingsItems || []), ...(m.menuItems || [])]
         .filter(it => it.id === activeView && it.id !== m.id && it.roles.includes(currentUser.role)))
       .map(it => (it.View ? <it.View key={`${prefix}_${it.id}`} /> : null)));

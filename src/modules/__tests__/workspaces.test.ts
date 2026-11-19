@@ -30,3 +30,19 @@ describe('Módulos liberados por usuário', () => {
     expect(ids(getAvailableWorkspaces({}, { role: 'cliente', allowedModules: null }))).toEqual(['ensaios']);
   });
 });
+
+describe('Gestão de Acessos (só master)', () => {
+  it('aparece só para o administrador master', () => {
+    expect(ids(getAvailableWorkspaces({}, { role: 'admin', isMasterAdmin: true, allowedModules: null }))).toContain('acessos');
+    expect(ids(getAvailableWorkspaces({}, { role: 'admin', isMasterAdmin: false, allowedModules: null }))).not.toContain('acessos');
+    expect(ids(getAvailableWorkspaces({}, { role: 'tecnico', allowedModules: null }))).not.toContain('acessos');
+  });
+
+  it('não entra na lista de módulos liberáveis no cadastro de usuários', () => {
+    expect(ids(getAssignableModules({}))).not.toContain('acessos');
+  });
+
+  it('Ensaios de EPI desligado para a empresa some da escolha de módulos', () => {
+    expect(ids(getAvailableWorkspaces({ enabledModules: { ensaios: false } }, { role: 'tecnico', allowedModules: null }))).toEqual(['treinamentos', 'spda']);
+  });
+});

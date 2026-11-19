@@ -360,6 +360,8 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS registration_number TEXT;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS crea_or_cft TEXT;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS phone TEXT;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password_hash TEXT;
+-- validade do acesso da empresa (Gestão de Acessos; vazio = sem vencimento)
+ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS access_expires_at DATE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT true;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_master_admin BOOLEAN DEFAULT false;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS signature_url TEXT;
@@ -854,8 +856,11 @@ RETURNS TEXT
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
+  -- empresa com acesso vencido: o usuário não enxerga nem grava dados dela (master nunca vence)
   SELECT u.company_id FROM public.users u
+    LEFT JOIN public.companies c ON c.id = u.company_id
    WHERE u.auth_user_id = auth.uid() AND u.deleted_at IS NULL AND u.active IS NOT FALSE
+     AND (u.is_master_admin IS TRUE OR c.access_expires_at IS NULL OR c.access_expires_at >= CURRENT_DATE)
    LIMIT 1
 $$;
 
@@ -915,9 +920,12 @@ RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
+  -- liberado para o usuário (admin: todos; vazio: todos) E ligado para a empresa (lab_info.enabledModules)
   SELECT public.jvm_is_master() OR COALESCE((
-    SELECT u.role = 'admin' OR u.allowed_modules IS NULL OR p_module = ANY (u.allowed_modules)
+    SELECT (u.role = 'admin' OR u.allowed_modules IS NULL OR p_module = ANY (u.allowed_modules))
+           AND COALESCE(c.lab_info -> 'enabledModules' -> p_module, 'true'::jsonb) <> 'false'::jsonb
       FROM public.users u
+      LEFT JOIN public.companies c ON c.id = u.company_id
      WHERE u.auth_user_id = auth.uid() AND u.deleted_at IS NULL AND u.active IS NOT FALSE
      LIMIT 1), false)
 $$;
@@ -1348,6 +1356,7 @@ SET search_path = public
 AS $$
 DECLARE
   u public.users%ROWTYPE;
+  v_exp DATE;
 BEGIN
   IF auth.uid() IS NULL THEN
     RETURN json_build_object('ok', false, 'error', 'Sessão inválida. Entre novamente.');
@@ -1360,6 +1369,13 @@ BEGIN
   END IF;
   IF u.active IS FALSE THEN
     RETURN json_build_object('ok', false, 'error', 'Usuário inativo. Contate o administrador.');
+  END IF;
+  IF u.is_master_admin IS NOT TRUE AND u.company_id IS NOT NULL THEN
+    SELECT access_expires_at INTO v_exp FROM public.companies WHERE id = u.company_id;
+    IF v_exp IS NOT NULL AND v_exp < CURRENT_DATE THEN
+      RETURN json_build_object('ok', false, 'error',
+        'O acesso da empresa venceu em ' || to_char(v_exp, 'DD/MM/YYYY') || '. Contate o administrador da plataforma para renovar.');
+    END IF;
   END IF;
   RETURN json_build_object('ok', true, 'user', to_jsonb(u) - 'password_hash');
 END;

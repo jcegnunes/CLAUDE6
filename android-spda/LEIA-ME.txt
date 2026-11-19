@@ -4,7 +4,7 @@ App independente só com o módulo SPDA (inspeção e ensaios conforme ABNT NBR 
 ligado à plataforma JVM Dielectric (mesmo login e mesmo Supabase). O APP de Ensaios de EPI
 é outro aplicativo; cada um usa o seu módulo e os dois sincronizam com a plataforma.
 
-Nome no celular: JVM SPDA     Pacote: br.com.jvmengenharia.jvmspda.debug     Versão: 10.0.12 (versionCode 13) — visual do app de Ensaios de EPI
+Nome no celular: JVM SPDA     Pacote: br.com.jvmengenharia.jvmspda.debug     Versão: 10.0.13 (versionCode 14) — visual do app de Ensaios de EPI
 Instala AO LADO do "JVM SPDA" demo antigo (pacote br.com.jvmengenharia.spda.debug), sem substituí-lo.
 Arquivos salvos: Downloads/JVM_SPDA
 

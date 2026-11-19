@@ -185,3 +185,21 @@ Em todos os documentos (laudo, relatório técnico, por subsistema, fotográfico
   `jvm_decide_account_request` (só master). Senha guardada já criptografada (bcrypt); um pedido pendente por e-mail;
   no máximo 30 pedidos por hora. O cadastro público do Supabase Auth continua desligado.
 - `npm run test:db`: 16 testes novos do cadastro (todos passam). `recriar_banco.sql` regerado.
+
+## 10.0.13 (APK versionCode 14) — módulo Gestão de Acessos (só o administrador master)
+Novo módulo da plataforma, como o SPDA e o Treinamentos, que só aparece para o **master** (não aparece para
+nenhum cliente, não entra em "Módulos do sistema" nem no cadastro de usuários):
+- **Pedidos de conta**: os pedidos do "Criar conta" (aprovar / recusar). Saiu de Configurações & Backup.
+- **Empresas e validade**: todas as empresas, com os módulos liberados (Ensaios de EPI, Treinamentos, SPDA) e a
+  **validade do acesso** (data, +1 mês, +1 ano, sem vencimento). Avisos de "vence em 30 dias" e "vencida".
+- **Usuários e bloqueio**: usuários de todas as empresas (filtro por empresa, busca, só bloqueados): bloquear ou
+  desbloquear o acesso (encerra as sessões), perfil e módulos liberados.
+
+Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois do schema.sql):
+- `companies.access_expires_at`. Empresa vencida: o login é recusado com "O acesso da empresa venceu em dd/mm/aaaa"
+  (plataforma e apps) e o banco não mostra nem grava dados dela. Master nunca é bloqueado. Os dados são mantidos.
+- Módulo desligado para a empresa passa a valer também no banco (não só no menu). "Ensaios de EPI" também pode ser
+  desligado por empresa.
+- Funções do master: `jvm_master_companies`, `jvm_master_set_company`, `jvm_master_users`, `jvm_master_set_user`.
+- As funções de acesso (`jvm_my_company`, `jvm_can_use_module`, `jvm_me`) foram atualizadas igualmente no
+  `schema.sql` desta versão. `npm run test:db`: todos passam (com os novos de validade, módulos e usuários).
