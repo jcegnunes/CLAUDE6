@@ -13,6 +13,65 @@ interface CompanySetupViewProps {
 
 const UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 
+type NewCompanyData = Omit<Company, 'id' | 'active' | 'createdAt' | 'updatedAt'> & { personType?: 'pf' | 'pj' };
+
+/**
+ * Cria a empresa do usuário (vai para o banco), grava os dados usados nos laudos e vincula o usuário.
+ * Usada no login de quem ainda não tem empresa (criada sozinha, sem tela) e pela tela de cadastro.
+ */
+export function createCompanyForUser(user: User, data: NewCompanyData): User {
+  const now = new Date().toISOString();
+  const company: Company = {
+    ...data,
+    id: 'comp-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    active: true,
+    createdAt: now,
+    updatedAt: now
+  };
+  // 1. Empresa (vai para o banco) e dados do laboratório usados em laudos/certificados
+  const saved = DielectricStorageService.saveCompany(company);
+  DielectricStorageService.setActiveCompany(saved);
+  DielectricStorageService.saveCompanyInfo({
+    ...DielectricStorageService.getCompanyInfo(),
+    name: saved.name,
+    legalName: saved.legalName,
+    cnpj: saved.cnpj,
+    personType: data.personType || (saved.cnpj.replace(/\D/g, '').length === 14 ? 'pj' : 'pf'),
+    creaCompanyRegister: saved.creaCompanyRegister || '',
+    address: saved.address || '',
+    number: saved.number || '',
+    neighborhood: saved.neighborhood || '',
+    city: saved.city || '',
+    state: saved.state || '',
+    cep: saved.cep || '',
+    cityState: [saved.city, saved.state].filter(Boolean).join(' - ') + (saved.cep ? `, CEP: ${saved.cep}` : ''),
+    phone: saved.phone || '',
+    email: saved.email || '',
+    technicalResponsible: saved.technicalResponsible || { name: '', title: '', creaNumber: '', rnp: '' },
+    // conta com módulos definidos: a empresa começa só com eles (o master muda em Gestão de Acessos)
+    ...(Array.isArray(user.allowedModules) && user.allowedModules.length
+      ? { enabledModules: Object.fromEntries(['ensaios', 'treinamentos', 'spda'].map(m => [m, user.allowedModules!.includes(m)])) }
+      : {})
+  });
+  // 2. Vincula o usuário à empresa (também enviado ao banco)
+  const updatedUser: User = { ...user, companyId: saved.id, companyName: saved.name };
+  DielectricStorageService.saveUser(updatedUser);
+  AuthService.setCurrentUser(updatedUser, true, false);
+  return updatedUser;
+}
+
+/** Usuário sem empresa: cadastro mínimo como pessoa física, no nome dele (completa depois em Configurações). */
+export function createDefaultCompanyForUser(user: User): User {
+  return createCompanyForUser(user, {
+    name: user.name,
+    legalName: user.name,
+    cnpj: '',
+    personType: 'pf',
+    email: user.email || undefined,
+    phone: user.phone || undefined
+  });
+}
+
 /**
  * Primeiro acesso: o usuário cadastra a própria empresa/laboratório.
  * Os dados vão para o banco (Supabase) e passam a aparecer no sistema,
@@ -112,14 +171,12 @@ export const CompanySetupView: React.FC<CompanySetupViewProps> = ({ user, onComp
 
     setIsSaving(true);
     try {
-      const now = new Date().toISOString();
-      const companyId = 'comp-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      const company: Company = {
-        id: companyId,
+      const updatedUser = createCompanyForUser(user, {
         name: form.name.trim() || form.legalName.trim(),
         legalName: form.legalName.trim(),
         tradeName: form.name.trim() || undefined,
         cnpj: docFormatted,
+        personType: docDigits.length === 11 ? 'pf' : 'pj',
         inscricaoEstadual: form.inscricaoEstadual.trim() || undefined,
         creaCompanyRegister: form.creaCompanyRegister.trim() || undefined,
         address: form.address.trim() || undefined,
@@ -130,45 +187,10 @@ export const CompanySetupView: React.FC<CompanySetupViewProps> = ({ user, onComp
         cep: form.cep.trim() || undefined,
         phone: form.phone.trim() || undefined,
         email: form.email.trim() || undefined,
-        active: true,
         technicalResponsible: form.rtName.trim()
           ? { name: form.rtName.trim(), title: 'Responsável Técnico', creaNumber: form.rtRegistry.trim(), rnp: '' }
-          : undefined,
-        createdAt: now,
-        updatedAt: now
-      };
-
-      // 1. Empresa (vai para o banco) e dados do laboratório usados em laudos/certificados
-      const saved = DielectricStorageService.saveCompany(company);
-      DielectricStorageService.setActiveCompany(saved);
-      DielectricStorageService.saveCompanyInfo({
-        ...DielectricStorageService.getCompanyInfo(),
-        name: saved.name,
-        legalName: saved.legalName,
-        cnpj: saved.cnpj,
-        creaCompanyRegister: saved.creaCompanyRegister || '',
-        address: saved.address || '',
-        number: saved.number || '',
-        neighborhood: saved.neighborhood || '',
-        city: saved.city || '',
-        state: saved.state || '',
-        cep: saved.cep || '',
-        cityState: [saved.city, saved.state].filter(Boolean).join(' - ') + (saved.cep ? `, CEP: ${saved.cep}` : ''),
-        phone: saved.phone || '',
-        email: saved.email || '',
-        technicalResponsible: saved.technicalResponsible || { name: '', title: '', creaNumber: '', rnp: '' },
-        // conta aprovada pelo "Criar conta": a empresa começa só com os módulos de interesse do pedido
-        // (o master muda depois em Gestão de Acessos → Empresas e validade)
-        ...(Array.isArray(user.allowedModules) && user.allowedModules.length
-          ? { enabledModules: Object.fromEntries(['ensaios', 'treinamentos', 'spda'].map(m => [m, user.allowedModules!.includes(m)])) }
-          : {})
+          : undefined
       });
-
-      // 2. Vincula o usuário à empresa (também enviado ao banco)
-      const updatedUser: User = { ...user, companyId: saved.id, companyName: saved.name };
-      DielectricStorageService.saveUser(updatedUser);
-      AuthService.setCurrentUser(updatedUser, true, false);
-
       onComplete(updatedUser);
     } catch (err: any) {
       setMessage({ type: 'error', text: err?.message || 'Não foi possível salvar a empresa.' });

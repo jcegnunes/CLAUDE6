@@ -240,3 +240,14 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   (padrão SPDA- → SPDA-2026-0001) e validade padrão do laudo (12/24/36 meses) para as inspeções novas. Ficam nos dados
   da empresa e sincronizam.
 - Banco: **executar de novo `supabase/modules/acessos.sql`**. Testes: app 378, banco todos passam.
+
+## 10.0.17 (APK versionCode 18) — login direto na plataforma e cadastro como pessoa física
+- **Sem a tela "Cadastre sua empresa"** depois do login:
+  - conta aprovada pelo "Criar conta": a aprovação **já cria a empresa** no banco com os dados do pedido (empresa/CNPJ
+    ou, sem empresa, **pessoa física** no nome da pessoa com o CPF) e só os módulos pedidos ligados;
+  - usuário antigo ainda sem empresa: o app cria sozinho um cadastro mínimo (pessoa física, no nome dele).
+  Endereço, responsável técnico e logotipo são completados depois em Configurações & Backup.
+- **Configurações & Backup → Dados da empresa**: "Tipo de cadastro: Pessoa jurídica (CNPJ) / Pessoa física (CPF)".
+  Pessoa física: "Nome completo", campo CPF (sem a busca da Receita) e "Registro profissional (CREA/CFT)".
+- Banco: **executar de novo `supabase/modules/cadastro.sql`** (a aprovação passa a criar a empresa). Testes do banco:
+  todos passam (empresa criada na aprovação, pessoa jurídica, pessoa física sem documento e com CPF).

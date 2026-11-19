@@ -9,10 +9,12 @@
 -- - A senha é gravada no pedido já criptografada (bcrypt); ninguém a vê.
 -- - A tabela de pedidos não é lida nem gravada diretamente: só pelas funções.
 -- - O cadastro público do Supabase Auth continua DESLIGADO.
--- - O pedido informa os MÓDULOS de interesse (Ensaios de EPI, Treinamentos, SPDA);
---   aprovado, o usuário fica com esses módulos e a empresa que ele cadastrar no
---   primeiro acesso começa só com eles ligados. Empresa e CNPJ são opcionais
---   (a conta é liberada para o e-mail de quem pediu).
+-- - O pedido informa os MÓDULOS de interesse (Ensaios de EPI, Treinamentos, SPDA).
+--   Empresa e CNPJ/CPF são opcionais (a conta é liberada para o e-mail de quem pediu).
+-- - Aprovar já CRIA a empresa (pessoa jurídica, ou pessoa física com o nome da
+--   pessoa e o CPF) com os dados do pedido e só os módulos pedidos ligados, e o
+--   usuário entra direto na plataforma (sem a tela "Cadastre sua empresa"). Os
+--   demais dados (endereço, RT, logotipo) ficam em Configurações.
 --
 -- IDEMPOTENTE: execute no SQL Editor do Supabase DEPOIS do schema.sql.
 -- =========================================================================
@@ -176,6 +178,11 @@ DECLARE
   r public.account_requests%ROWTYPE;
   v_me TEXT;
   v_user_id TEXT;
+  v_company_id TEXT;
+  v_company_name TEXT;
+  v_doc TEXT;
+  v_pf BOOLEAN;
+  v_mods TEXT[];
 BEGIN
   IF NOT public.jvm_is_master() THEN
     RAISE EXCEPTION 'Somente o administrador master aprova pedidos de conta.' USING ERRCODE = '42501';
@@ -204,12 +211,30 @@ BEGIN
   END IF;
 
   v_user_id := 'usr-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 16);
+  v_company_id := 'comp-' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 16);
+  v_mods := COALESCE(r.modules, CASE WHEN r.module IS NULL THEN NULL ELSE ARRAY[r.module] END);
+  -- pessoa física: CPF informado, ou nem empresa nem documento (a conta é da pessoa)
+  v_pf := (r.cnpj IS NOT NULL AND length(r.cnpj) = 11) OR (r.cnpj IS NULL AND r.company_name IS NULL);
+  v_company_name := COALESCE(NULLIF(trim(COALESCE(r.company_name, '')), ''), r.name);
+  v_doc := CASE
+    WHEN r.cnpj IS NOT NULL AND length(r.cnpj) = 14 THEN regexp_replace(r.cnpj, '^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$', '\1.\2.\3/\4-\5')
+    WHEN r.cnpj IS NOT NULL AND length(r.cnpj) = 11 THEN regexp_replace(r.cnpj, '^(\d{3})(\d{3})(\d{3})(\d{2})$', '\1.\2.\3-\4')
+    ELSE '' END;
+
+  -- empresa já criada com os dados do pedido e só os módulos pedidos ligados
+  INSERT INTO public.companies (id, name, legal_name, cnpj, email, phone, active, lab_info)
+  VALUES (v_company_id, v_company_name, v_company_name, v_doc, lower(r.email), r.phone, true,
+          jsonb_strip_nulls(jsonb_build_object(
+            'name', v_company_name, 'legalName', v_company_name, 'cnpj', v_doc,
+            'email', lower(r.email), 'phone', r.phone,
+            'personType', CASE WHEN v_pf THEN 'pf' ELSE 'pj' END,
+            'enabledModules', CASE WHEN v_mods IS NULL THEN NULL ELSE jsonb_build_object(
+              'ensaios', 'ensaios' = ANY (v_mods), 'treinamentos', 'treinamentos' = ANY (v_mods), 'spda', 'spda' = ANY (v_mods)) END)));
+
   -- libera a criação da conta de login nesta transação (ver jvm_sync_auth_user)
   PERFORM set_config('jvm.trusted_auth_sync', 'on', true);
-  -- módulos pedidos: a empresa cadastrada no primeiro acesso começa só com eles ligados
-  INSERT INTO public.users (id, company_id, name, email, username, role, phone, active, is_master_admin, password_hash, allowed_modules)
-  VALUES (v_user_id, NULL, r.name, lower(r.email), r.username, 'admin', r.phone, true, false, r.password_hash,
-          COALESCE(r.modules, CASE WHEN r.module IS NULL THEN NULL ELSE ARRAY[r.module] END));
+  INSERT INTO public.users (id, company_id, company_name, name, email, username, role, phone, active, is_master_admin, password_hash, allowed_modules)
+  VALUES (v_user_id, v_company_id, v_company_name, r.name, lower(r.email), r.username, 'admin', r.phone, true, false, r.password_hash, v_mods);
   PERFORM set_config('jvm.trusted_auth_sync', 'off', true);
 
   UPDATE public.account_requests
@@ -218,7 +243,7 @@ BEGIN
          password_hash = '-'  -- a senha agora vale só na conta de login
    WHERE id = p_id;
 
-  RETURN json_build_object('ok', true, 'status', 'aprovado', 'userId', v_user_id);
+  RETURN json_build_object('ok', true, 'status', 'aprovado', 'userId', v_user_id, 'companyId', v_company_id);
 END;
 $$;
 

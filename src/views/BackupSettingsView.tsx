@@ -67,6 +67,8 @@ import { FullBackupService, BackupStats, BackupProgressInfo } from '../services/
 export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspaceId }) => {
   const isEnsaios = !workspaceId || workspaceId === 'ensaios';
   const [company, setCompany] = useState<CompanyLabInfo>(DielectricStorageService.getCompanyInfo());
+  // pessoa física: escolhida, ou sem escolha e com CPF (11 dígitos) no lugar do CNPJ
+  const isPf = company.personType === 'pf' || (!company.personType && (company.cnpj || '').replace(/\D/g, '').length === 11);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [isSearchingCep, setIsSearchingCep] = useState(false);
@@ -614,9 +616,20 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
               </div>
             </div>
 
+            {/* Tipo de cadastro: pessoa jurídica (CNPJ) ou pessoa física (CPF) */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-slate-700">Tipo de cadastro:</span>
+              {([['pj', 'Pessoa jurídica (CNPJ)'], ['pf', 'Pessoa física (CPF)']] as const).map(([v, l]) => (
+                <button key={v} type="button" onClick={() => setCompany(prev => ({ ...prev, personType: v }))}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${isPf === (v === 'pf') ? 'bg-[#0A2540] text-white border-[#0A2540]' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Nome Fantasia do Laboratório</label>
+                <label className="block font-bold text-slate-700 mb-1">{isPf ? 'Nome exibido nos documentos' : 'Nome Fantasia do Laboratório'}</label>
                 <input
                   type="text"
                   value={company.name}
@@ -626,7 +639,7 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Razão Social Completa</label>
+                <label className="block font-bold text-slate-700 mb-1">{isPf ? 'Nome completo' : 'Razão Social Completa'}</label>
                 <input
                   type="text"
                   value={company.legalName}
@@ -635,6 +648,24 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
                 />
               </div>
 
+              {isPf ? (
+              <div className="sm:col-span-2">
+                <label className="block font-bold text-slate-700 mb-1">CPF <span className="font-normal text-slate-500">(opcional)</span></label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  value={company.cnpj || ''}
+                  onChange={(e) => {
+                    const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    const formatted = d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                    setCompany(prev => ({ ...prev, cnpj: formatted }));
+                  }}
+                  className="w-full p-2 border border-slate-300 rounded-xl bg-white font-mono font-bold text-xs"
+                />
+              </div>
+              ) : (
               <div className="sm:col-span-2 bg-blue-50/60 p-3.5 rounded-xl border border-blue-100 space-y-2">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <label className="block font-bold text-slate-800">
@@ -693,9 +724,10 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
                   </div>
                 )}
               </div>
+              )}
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Registro da Empresa no CREA</label>
+                <label className="block font-bold text-slate-700 mb-1">{isPf ? 'Registro profissional (CREA/CFT)' : 'Registro da Empresa no CREA'}</label>
                 <input
                   type="text"
                   value={company.creaCompanyRegister}

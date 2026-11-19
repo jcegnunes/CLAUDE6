@@ -599,9 +599,13 @@ async function main() {
   ok(!r.error, `master aprova o pedido ${r.error || ''}`);
   const novo = (await db.query(`SELECT u.role, u.company_id, u.is_master_admin, u.username, u.allowed_modules, a.encrypted_password = extensions.crypt('Senha@Nova1', a.encrypted_password) AS pw_ok
       FROM public.users u JOIN auth.users a ON a.id = u.auth_user_id WHERE lower(u.email) = 'paula@empresanova.com'`)).rows[0];
-  ok(novo && novo.role === 'admin' && novo.company_id === null && !novo.is_master_admin && novo.username === 'paula' && novo.pw_ok,
-    'aprovado: vira administrador SEM empresa (cadastra no 1º acesso), com login e a senha escolhida');
+  ok(novo && novo.role === 'admin' && novo.company_id && !novo.is_master_admin && novo.username === 'paula' && novo.pw_ok,
+    'aprovado: vira administrador da empresa já criada, com login e a senha escolhida');
   ok(novo && JSON.stringify(novo.allowed_modules) === '["spda","treinamentos"]', 'aprovado: fica com os módulos de interesse do pedido');
+  const compNova = novo && (await db.query(`SELECT name, legal_name, cnpj, lab_info FROM public.companies WHERE id = $1`, [novo.company_id])).rows[0];
+  ok(compNova && compNova.name === 'Empresa Nova Ltda' && compNova.cnpj === '12.345.678/0001-90' && compNova.lab_info.personType === 'pj'
+    && compNova.lab_info.enabledModules.spda === true && compNova.lab_info.enabledModules.treinamentos === true && compNova.lab_info.enabledModules.ensaios === false,
+    'aprovado: a empresa é criada com os dados do pedido (pessoa jurídica) e só os módulos pedidos');
   r = await as(db, anon, `SELECT public.jvm_request_account('Sem Módulo', 'semmod@x.com', 'Senha@Mod1', ARRAY[]::text[]) AS v`);
   ok(!!r.error && /módulo/.test(r.error), 'pedido sem módulo de interesse é recusado');
   r = await as(db, anon, `SELECT public.jvm_request_account('Sem Módulo', 'semmod@x.com', 'Senha@Mod1', ARRAY['inexistente']) AS v`);
@@ -609,7 +613,16 @@ async function main() {
   r = await as(db, anon, `SELECT public.jvm_request_account('Pessoa Física', 'pf@x.com', 'Senha@Pf12', ARRAY['spda']) AS v`);
   const pf = typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v;
   ok(!r.error && pf?.ok, `pedido sem empresa e sem CNPJ é aceito (conta liberada para o e-mail) ${r.error || ''}`);
-  await db.exec(`DELETE FROM public.account_requests WHERE email = 'pf@x.com'`);
+  r = await as(db, user(m), `SELECT public.jvm_decide_account_request($1, true, null) AS v`, [pf?.id]);
+  const pfUser = (await db.query(`SELECT company_id FROM public.users WHERE email = 'pf@x.com'`)).rows[0];
+  const pfComp = pfUser && (await db.query(`SELECT name, cnpj, lab_info FROM public.companies WHERE id = $1`, [pfUser.company_id])).rows[0];
+  ok(!r.error && pfComp && pfComp.name === 'Pessoa Física' && pfComp.cnpj === '' && pfComp.lab_info.personType === 'pf' && pfComp.lab_info.enabledModules.spda === true,
+    `aprovado sem empresa: cadastro como pessoa física, no nome da pessoa ${r.error || ''}`);
+  r = await as(db, anon, `SELECT public.jvm_request_account('Com CPF', 'cpf@x.com', 'Senha@Cpf1', ARRAY['spda'], NULL, '123.456.789-01') AS v`);
+  const cpfReq = typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v;
+  await as(db, user(m), `SELECT public.jvm_decide_account_request($1, true, null) AS v`, [cpfReq?.id]);
+  const cpfComp = (await db.query(`SELECT c.cnpj, c.lab_info FROM public.users u JOIN public.companies c ON c.id = u.company_id WHERE u.email = 'cpf@x.com'`)).rows[0];
+  ok(cpfComp && cpfComp.cnpj === '123.456.789-01' && cpfComp.lab_info.personType === 'pf', 'aprovado com CPF: pessoa física com o CPF formatado');
   r = await as(db, user(m), `SELECT public.jvm_decide_account_request($1, true, null) AS v`, [reqOut?.id]);
   ok(!!r.error, 'pedido já aprovado não é aprovado de novo');
   r = await as(db, anon, reqSql, ['Rui Recusado', 'rui@x.com', 'Senha@Rui1', 'Empresa R', null, null, null]);

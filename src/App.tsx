@@ -11,7 +11,7 @@ import { DielectricStorageService } from './services/syncEngine';
 import { AuthService } from './services/authService';
 import { SupabaseService } from './services/supabaseService';
 import { LoginView } from './views/LoginView';
-import { CompanySetupView } from './views/CompanySetupView';
+import { createDefaultCompanyForUser } from './views/CompanySetupView';
 import { EMPTY_USER } from './services/syncEngine';
 import { lazyView } from './utils/lazyView';
 import { isPortalOnlyHost, isPortalOnlyPath, validationCodeFromLocation } from './config/validationPortalConfig';
@@ -180,6 +180,27 @@ export default function App() {
     });
     return () => { cancelled = true; };
   }, [isAuthenticated, currentUser?.id, currentUser?.companyId]);
+
+  // Sem a tela "Cadastre sua empresa": quem ainda não tem empresa ganha um cadastro mínimo
+  // (pessoa física, no nome dele) e entra direto; empresa existente incompleta só é aberta.
+  useEffect(() => {
+    if (needsCompanySetup !== true) return;
+    if (currentUser.companyId) {
+      startCompanySession(currentUser.companyId);
+      setNeedsCompanySetup(false);
+      return;
+    }
+    try {
+      const user = createDefaultCompanyForUser(currentUser);
+      setCurrentUser(user);
+      if (user.companyId) startCompanySession(user.companyId);
+      setActiveView('dashboard');
+      setDataVersion(v => v + 1);
+    } finally {
+      setNeedsCompanySetup(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsCompanySetup]);
 
   // Offline / Online & Sync
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -433,20 +454,14 @@ export default function App() {
     );
   }
 
-  // Primeiro acesso: cadastro da empresa
+  // Usuário ainda sem empresa: o cadastro é criado sozinho (pessoa física, no nome dele) e ele entra
+  // direto na plataforma, sem a tela "Cadastre sua empresa". Os dados completos ficam em Configurações.
+  // (contas aprovadas pelo "Criar conta" já chegam com a empresa criada no banco)
   if (needsCompanySetup) {
     return (
-      <CompanySetupView
-        user={currentUser}
-        onLogout={handleLogout}
-        onComplete={(user) => {
-          setCurrentUser(user);
-          if (user.companyId) startCompanySession(user.companyId);
-          setNeedsCompanySetup(false);
-          setActiveView('dashboard');
-          setDataVersion(v => v + 1);
-        }}
-      />
+      <div className="min-h-screen bg-[#EEF1F4] flex items-center justify-center">
+        <p className="text-[14px] text-[#5E6A78]" role="status">Preparando o seu acesso…</p>
+      </div>
     );
   }
 

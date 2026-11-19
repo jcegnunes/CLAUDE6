@@ -571,6 +571,8 @@ export interface CompanyLabInfo {
   validationBaseUrl?: string; // URL pública (hospedagem do app) para validação de laudos via QR Code
   /** Módulos da plataforma ligados/desligados para a empresa (ausente = ligado) */
   enabledModules?: Record<string, boolean>;
+  /** Cadastro como pessoa jurídica (CNPJ, razão social) ou pessoa física (CPF, nome completo) */
+  personType?: 'pj' | 'pf';
   /** Parâmetros do módulo SPDA (Configuração do Sistema → Parâmetros do SPDA) */
   spdaSettings?: {
     /** prefixo da numeração das inspeções/laudos (padrão "SPDA-") → SPDA-2026-0001 */
