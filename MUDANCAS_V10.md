@@ -215,3 +215,13 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   CNPJ é reconhecida como cadastrada pela razão social (antes a tela voltava sempre).
 - Banco: **executar de novo `supabase/modules/cadastro.sql`** no SQL Editor (troca a função `jvm_request_account`:
   módulos em lista, empresa opcional; acrescenta a coluna `modules`). Testes do banco: todos passam.
+
+## 10.0.15 (APK versionCode 16) — excluir empresa e usuário (Gestão de Acessos)
+- **Empresas e validade** e **Usuários e bloqueio** ganharam o botão **Excluir**, com confirmação na própria tela
+  ("Confirmar exclusão" / "Cancelar").
+- Exclusão lógica: a empresa/usuário some das listas e o acesso é bloqueado na hora (sessões encerradas), mas os
+  dados ficam guardados no banco. Excluir a empresa exclui também todos os usuários dela.
+- Travas: não exclui você mesmo, outro administrador master, nem a empresa de um master (ou a sua).
+  O e-mail de usuário excluído continua reservado (para reaproveitar o e-mail, prefira Bloquear).
+- Banco: **executar de novo `supabase/modules/acessos.sql`** (funções `jvm_master_delete_user` e
+  `jvm_master_delete_company`). Testes do banco: todos passam (10 novos).

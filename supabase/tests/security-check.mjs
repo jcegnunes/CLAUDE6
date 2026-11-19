@@ -676,6 +676,37 @@ async function main() {
   r = await as(db, user(m), `SELECT public.jvm_master_set_user('usr-b', true, 'master', NULL) AS v`);
   ok(!!r.error, 'perfil inválido é recusado');
 
+  // excluir usuário e empresa (exclusão lógica)
+  await db.exec(`INSERT INTO public.companies (id, name, cnpj) VALUES ('comp-del', 'Empresa Excluir', '')`);
+  await db.exec(`INSERT INTO public.users (id, company_id, name, email, role, password_hash) VALUES
+    ('usr-del1', 'comp-del', 'Del Um', 'del1@x.com', 'admin', 'Senha@Del1'),
+    ('usr-del2', 'comp-del', 'Del Dois', 'del2@x.com', 'tecnico', 'Senha@Del2')`);
+  await db.exec(`INSERT INTO public.clients (id, company_id, razao_social, cnpj) VALUES ('cli-del', 'comp-del', 'Cliente da empresa excluída', '00.000.000/0001-00')`);
+  const del2 = await uidOf(db, 'usr-del2');
+  r = await as(db, user(a), `SELECT public.jvm_master_delete_user('usr-del2') AS v`);
+  ok(!!r.error, 'admin de empresa (não master) NÃO usa a exclusão do master');
+  r = await as(db, user(m), `SELECT public.jvm_master_delete_user('usr-del2') AS v`);
+  ok(!r.error && (await db.query(`SELECT deleted_at IS NOT NULL AS d, active FROM public.users WHERE id='usr-del2'`)).rows[0].d
+    && (await db.query(`SELECT banned_until FROM auth.users WHERE id = $1`, [del2])).rows[0].banned_until !== null, 'master exclui usuário: some e a conta de login é bloqueada');
+  r = await as(db, user(m), `SELECT public.jvm_master_users('comp-del') AS v`);
+  ok(!(j(r.rows?.[0]?.v) || []).some(u => u.id === 'usr-del2'), 'usuário excluído some da lista');
+  r = await as(db, user(m), `SELECT public.jvm_master_delete_user('usr-m') AS v`);
+  ok(!!r.error, 'master NÃO exclui o próprio usuário');
+  await db.exec(`INSERT INTO public.users (id, name, email, role, is_master_admin, password_hash) VALUES ('usr-m2', 'Master 2', 'm2@x.com', 'admin', true, 'Senha@M2x')`);
+  r = await as(db, user(m), `SELECT public.jvm_master_delete_user('usr-m2') AS v`);
+  ok(!!r.error, 'NÃO exclui outro administrador master');
+  r = await as(db, user(m), `SELECT public.jvm_master_delete_company('comp-del') AS v`);
+  ok(!r.error && (await db.query(`SELECT deleted_at IS NOT NULL AS d FROM public.companies WHERE id='comp-del'`)).rows[0].d
+    && (await db.query(`SELECT count(*)::int n FROM public.users WHERE company_id='comp-del' AND deleted_at IS NULL`)).rows[0].n === 0,
+    'master exclui a empresa: ela e os usuários dela somem');
+  ok((await db.query(`SELECT count(*)::int n FROM public.clients WHERE id='cli-del'`)).rows[0].n === 1, 'empresa excluída: os dados continuam guardados no banco');
+  r = await as(db, user(m), `SELECT public.jvm_master_companies() AS v`);
+  ok(!(j(r.rows?.[0]?.v) || []).some(c => c.id === 'comp-del'), 'empresa excluída some da lista');
+  await db.exec(`UPDATE public.users SET company_id = 'comp-1' WHERE id = 'usr-m'`);
+  r = await as(db, user(m), `SELECT public.jvm_master_delete_company('comp-1') AS v`);
+  ok(!!r.error, 'NÃO exclui a empresa de um administrador master');
+  await db.exec(`UPDATE public.users SET company_id = NULL WHERE id = 'usr-m'`);
+
   // ---------------------------------------------------- migração de banco antigo
   if (OLD_SCHEMA) {
     const old = await newDb();

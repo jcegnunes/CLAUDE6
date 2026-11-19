@@ -2160,6 +2160,73 @@ $$;
 REVOKE ALL ON FUNCTION public.jvm_master_set_user(TEXT, BOOLEAN, TEXT, TEXT[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.jvm_master_set_user(TEXT, BOOLEAN, TEXT, TEXT[]) TO authenticated;
 
+-- -------------------------------------------------------------------------
+-- Excluir (master). Exclusão lógica (deleted_at): some das listas e o acesso
+-- é bloqueado na hora (sessões encerradas), mas nada é apagado do banco.
+-- O e-mail de um usuário excluído continua reservado (como na exclusão pelo
+-- administrador da empresa).
+-- -------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.jvm_master_delete_user(p_user_id TEXT)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  u public.users%ROWTYPE;
+BEGIN
+  IF NOT public.jvm_is_master() THEN
+    RAISE EXCEPTION 'Somente o administrador master exclui usuários.' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO u FROM public.users WHERE id = p_user_id AND deleted_at IS NULL;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Usuário não encontrado.' USING ERRCODE = 'P0002';
+  END IF;
+  IF u.auth_user_id = auth.uid() THEN
+    RAISE EXCEPTION 'Você não pode excluir o seu próprio usuário.' USING ERRCODE = '22023';
+  END IF;
+  IF u.is_master_admin IS TRUE THEN
+    RAISE EXCEPTION 'Não é possível excluir um administrador master.' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.users SET deleted_at = NOW(), active = false WHERE id = p_user_id;
+  RETURN json_build_object('ok', true);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.jvm_master_delete_user(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.jvm_master_delete_user(TEXT) TO authenticated;
+
+-- Excluir a empresa exclui também todos os usuários dela (os dados ficam guardados no banco)
+CREATE OR REPLACE FUNCTION public.jvm_master_delete_company(p_company_id TEXT)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_users INTEGER;
+BEGIN
+  IF NOT public.jvm_is_master() THEN
+    RAISE EXCEPTION 'Somente o administrador master exclui empresas.' USING ERRCODE = '42501';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.companies WHERE id = p_company_id AND deleted_at IS NULL) THEN
+    RAISE EXCEPTION 'Empresa não encontrada.' USING ERRCODE = 'P0002';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.users WHERE company_id = p_company_id AND deleted_at IS NULL
+              AND (is_master_admin IS TRUE OR auth_user_id = auth.uid())) THEN
+    RAISE EXCEPTION 'Não é possível excluir a empresa de um administrador master (ou a sua própria).' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.users SET deleted_at = NOW(), active = false
+   WHERE company_id = p_company_id AND deleted_at IS NULL;
+  GET DIAGNOSTICS v_users = ROW_COUNT;
+  UPDATE public.companies SET deleted_at = NOW() WHERE id = p_company_id;
+  RETURN json_build_object('ok', true, 'users', v_users);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.jvm_master_delete_company(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.jvm_master_delete_company(TEXT) TO authenticated;
+
 -- =========================================================================
 -- CADASTRO PÚBLICO COM APROVAÇÃO ("Criar conta")
 --

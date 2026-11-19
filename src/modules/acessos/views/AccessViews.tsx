@@ -3,7 +3,7 @@
  * (supabase/modules/acessos.sql e cadastro.sql), que conferem que quem chama é master. Precisa de internet.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Building2, Check, KeyRound, Lock, RefreshCw, Save, Search, Unlock, Users } from 'lucide-react';
+import { Building2, Check, KeyRound, Lock, RefreshCw, Save, Search, Trash2, Unlock, Users } from 'lucide-react';
 import { AccountRequestsPanel } from '../../../components/AccountRequestsPanel';
 import { AuthService } from '../../../services/authService';
 
@@ -70,6 +70,32 @@ const Msg: React.FC<{ msg: { ok: boolean; text: string } | null }> = ({ msg }) =
   ? <p className={`text-sm rounded-xl px-3 py-2 border ${msg.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-300 text-amber-900'}`}>{msg.text}</p>
   : null;
 
+/** Excluir com confirmação na própria tela. */
+const DeleteBox: React.FC<{ what: string; detail: string; disabledReason?: string; onConfirm: () => Promise<void> }> = ({ what, detail, disabledReason, onConfirm }) => {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  if (disabledReason) return <p className="text-[11px] text-slate-400">{disabledReason}</p>;
+  if (!asking) {
+    return (
+      <button type="button" onClick={() => setAsking(true)} className={`${btn} border border-red-300 text-red-700 bg-white hover:bg-red-50`}>
+        <Trash2 className="w-4 h-4" /> Excluir
+      </button>
+    );
+  }
+  return (
+    <div className="w-full rounded-xl border border-red-300 bg-red-50 p-3 space-y-2" role="alert">
+      <p className="text-sm text-red-900"><b>Excluir {what}?</b> {detail}</p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy} className={`${btn} bg-red-600 hover:bg-red-700 text-white`}
+          onClick={async () => { setBusy(true); try { await onConfirm(); } finally { setBusy(false); setAsking(false); } }}>
+          {busy ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Confirmar exclusão
+        </button>
+        <button type="button" disabled={busy} className={`${btn} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50`} onClick={() => setAsking(false)}>Cancelar</button>
+      </div>
+    </div>
+  );
+};
+
 const NotMaster: React.FC = () => (
   <div className={`${card} p-6 text-center text-sm text-slate-600`}>A Gestão de Acessos é só para o administrador master.</div>
 );
@@ -99,7 +125,7 @@ function ExpiryBadge({ iso }: { iso?: string | null }) {
   return <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Ativo até {fmtDate(iso)}</span>;
 }
 
-const CompanyCard: React.FC<{ c: CompanyRow; onSaved: (text: string) => void; onError: (text: string) => void }> = ({ c, onSaved, onError }) => {
+const CompanyCard: React.FC<{ c: CompanyRow; isMine: boolean; onSaved: (text: string) => void; onError: (text: string) => void }> = ({ c, isMine, onSaved, onError }) => {
   const [mods, setMods] = useState<Record<string, boolean>>(() => Object.fromEntries(MODULES.map(m => [m.id, c.enabledModules?.[m.id] !== false])));
   const [exp, setExp] = useState(c.accessExpiresAt || '');
   const [busy, setBusy] = useState(false);
@@ -149,7 +175,18 @@ const CompanyCard: React.FC<{ c: CompanyRow; onSaved: (text: string) => void; on
         <p className="text-[11px] text-slate-500 mt-1">Depois da data, os usuários da empresa não entram (nem na plataforma nem nos apps) até a renovação. Os dados são mantidos.</p>
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <DeleteBox
+          what={`a empresa ${c.name}`}
+          detail={`Os ${c.users} usuário(s) dela também são excluídos e perdem o acesso na hora. Os dados (clientes, OS, ensaios, inspeções…) ficam guardados no banco, mas deixam de aparecer.`}
+          disabledReason={isMine ? 'Esta é a sua empresa (não pode ser excluída).' : undefined}
+          onConfirm={async () => {
+            try {
+              await rpc('jvm_master_delete_company', { p_company_id: c.id });
+              onSaved(`Empresa ${c.name} excluída (e os usuários dela).`);
+            } catch (e) { onError(e instanceof Error ? e.message : String(e)); }
+          }}
+        />
         <button type="button" disabled={!dirty || busy} onClick={() => void save()} className={`${btn} bg-[#F97316] hover:bg-[#EA580C] text-white`}>
           {busy ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Salvar
         </button>
@@ -197,7 +234,7 @@ export const CompaniesScreen: React.FC = () => {
       {!loading && shown.length === 0 && !msg && <p className="text-sm text-slate-400 text-center py-6">Nenhuma empresa encontrada.</p>}
       <div className="grid gap-3 lg:grid-cols-2">
         {shown.map(c => (
-          <CompanyCard key={`${c.id}_${version}`} c={c}
+          <CompanyCard key={`${c.id}_${version}`} c={c} isMine={c.id === (AuthService.getCurrentUser()?.companyId || '')}
             onSaved={text => { setMsg({ ok: true, text }); void load().then(() => setVersion(v => v + 1)); }}
             onError={text => setMsg({ ok: false, text })} />
         ))}
@@ -272,7 +309,18 @@ const UserCard: React.FC<{ u: UserRow; isMe: boolean; onSaved: (text: string) =>
             </div>
           )}
       </div>
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <DeleteBox
+          what={`o usuário ${u.name}`}
+          detail="O acesso é bloqueado na hora e ele some da lista. O e-mail continua reservado (para usar o mesmo e-mail de novo, prefira Bloquear)."
+          disabledReason={isMe ? 'É você (não pode se excluir).' : u.isMasterAdmin ? 'Administrador master (não pode ser excluído aqui).' : undefined}
+          onConfirm={async () => {
+            try {
+              await rpc('jvm_master_delete_user', { p_user_id: u.id });
+              onSaved(`Usuário ${u.name} excluído.`);
+            } catch (e) { onError(e instanceof Error ? e.message : String(e)); }
+          }}
+        />
         <button type="button" disabled={!dirty || busy} onClick={() => void save()} className={`${btn} bg-[#F97316] hover:bg-[#EA580C] text-white`}>
           {busy ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Salvar
         </button>
