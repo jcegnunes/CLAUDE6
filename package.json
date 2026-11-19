@@ -1,16 +1,17 @@
 {
   "name": "jvm-dielectric-lab",
   "private": true,
-  "version": "7.5.0",
+  "version": "10.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 0.0.0.0 --port 3000",
+    "dev": "vite --host 0.0.0.0 --port 3020",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0 --port 3000",
+    "preview": "vite preview --host 0.0.0.0 --port 3020",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:db": "node supabase/tests/security-check.mjs",
-    "build:sql": "node supabase/tests/build-recriar.mjs"
+    "build:sql": "node supabase/tests/build-recriar.mjs",
+    "build:app-spda": "vite build --mode spda"
   },
   "dependencies": {
     "@signpdf/placeholder-plain": "^3.3.0",
@@ -18,17 +19,19 @@
     "@signpdf/utils": "^3.3.0",
     "@supabase/supabase-js": "^2.117.0",
     "buffer": "^6.0.3",
+    "html-to-image": "^1.11.11",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
     "jszip": "^3.10.1",
     "lucide-react": "^0.546.0",
-    "node-forge": "^1.4.3",
+    "node-forge": "^1.4.0",
     "pdfjs-dist": "^4.10.38",
     "qrcode": "^1.5.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "recharts": "^3.10.1",
+    "tesseract.js": "^7.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
@@ -42,7 +45,7 @@
     "fake-indexeddb": "^6.2.5",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
-    "vite": "^6.4.4",
+    "vite": "^6.2.3",
     "vite-plugin-pwa": "^1.3.0",
     "vitest": "^5.0.3"
   },

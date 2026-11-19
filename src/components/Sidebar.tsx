@@ -25,6 +25,7 @@ import { UserRole } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
 import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
 import type { Workspace } from '../modules/workspaces';
+import { APP_NAME, APP_TARGET } from '../appTarget';
 
 type NavItem = { id: string; label: string; icon: React.ElementType; roles: UserRole[]; badge?: string; highlight?: boolean };
 type NavGroup = { id: string; label?: string; icon?: React.ElementType; items: NavItem[] };
@@ -267,8 +268,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           <div className="truncate">
-            <span className="font-semibold text-slate-200 block">JVM Dielectric Lab</span>
-            <span className="text-[10px] text-slate-400">v{__APP_VERSION__} • NR-10 Conforme</span>
+            <span className="font-semibold text-slate-200 block">{APP_NAME}</span>
+            <span className="text-[10px] text-slate-400">v{__APP_VERSION__} • {APP_TARGET === 'spda' ? 'ABNT NBR 5419:2026' : 'NR-10 Conforme'}</span>
           </div>
         </div>
       </div>

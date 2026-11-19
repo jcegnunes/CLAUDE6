@@ -1,0 +1,10 @@
+{
+  "name": "JVM Ensaios",
+  "description": "Plataforma profissional para ensaios dielétricos, inspeções, laudos técnicos, certificados de conformidade de EPI e EPC, rastreabilidade por QR Code e sincronização da JVM Engenharia \u0026 Treinamentos.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

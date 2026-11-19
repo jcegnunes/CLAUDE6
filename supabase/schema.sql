@@ -1605,7 +1605,10 @@ BEGIN
   -- comuns a todos os módulos; as demais exigem acesso ao módulo Ensaios de EPI.
   FOREACH t IN ARRAY ARRAY['clients','equipment','service_orders','test_records','lab_instruments','consolidated_reports']
   LOOP
-    m := CASE WHEN t = 'clients' THEN 'true' ELSE '(SELECT public.jvm_can_use_module(''ensaios''))' END;
+    -- OS e instrumentos: comuns aos módulos Ensaios de EPI e SPDA
+    m := CASE WHEN t = 'clients' THEN 'true'
+              WHEN t IN ('service_orders', 'lab_instruments') THEN '((SELECT public.jvm_can_use_module(''ensaios'')) OR (SELECT public.jvm_can_use_module(''spda'')))'
+              ELSE '(SELECT public.jvm_can_use_module(''ensaios''))' END;
     EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', t);
     EXECUTE format($p$CREATE POLICY jvm_select ON public.%I FOR SELECT TO authenticated
       USING ((company_id = (SELECT public.jvm_my_company()) OR (SELECT public.jvm_is_master())) AND %s)$p$, t, m);

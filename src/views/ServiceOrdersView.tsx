@@ -35,13 +35,17 @@ import { DielectricStorageService } from '../services/syncEngine';
 import { StatusBadge } from '../components/StatusBadge';
 import { QuickTechnicianModal } from '../components/QuickTechnicianModal';
 import { formatDateBR } from '../utils/dateUtils';
+import { SPDA_MODULE_ID, SPDA_OS_DESCRIPTION, isSpdaServiceOrder } from '../modules/spda/osText';
 
 interface ServiceOrdersViewProps {
   onStartTestForOS: (osId: string, equipmentId?: string) => void;
   onOpenReportForOS?: (osId: string, clientId?: string) => void;
+  /** Aberta no módulo SPDA: sem a lista de EPI do cliente e com a descrição padrão do SPDA */
+  spdaMode?: boolean;
 }
 
-export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTestForOS, onOpenReportForOS }) => {
+export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTestForOS, onOpenReportForOS, spdaMode = false }) => {
+  const defaultDescription = spdaMode ? SPDA_OS_DESCRIPTION : 'Ensaio de rotina e periódico em EPIs/EPCs dielétricos';
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
@@ -62,7 +66,7 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
   const [clientSearchFilter, setClientSearchFilter] = useState('');
   const [technicianId, setTechnicianId] = useState('');
   const [scheduledDate, setScheduledDate] = useState(new Date().toISOString().split('T')[0]);
-  const [description, setDescription] = useState('Ensaio de rotina e periódico em EPIs/EPCs dielétricos');
+  const [description, setDescription] = useState(defaultDescription);
   const [artNumber, setArtNumber] = useState('');
   const [artFileUrl, setArtFileUrl] = useState<string | undefined>(undefined);
   const [artFileName, setArtFileName] = useState<string | undefined>(undefined);
@@ -81,7 +85,8 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
 
   const loadData = () => {
     // Carrega todas as Ordens de Serviço (evitando que filtros de empresa ocultem OS já cadastradas ou sincronizadas)
-    const loadedServiceOrders = DielectricStorageService.getServiceOrders('ALL');
+    // Cada módulo vê só as suas OS: no SPDA, só as do SPDA; nos Ensaios de EPI, sem as do SPDA
+    const loadedServiceOrders = DielectricStorageService.getServiceOrders('ALL').filter(os => (spdaMode ? isSpdaServiceOrder(os) : !isSpdaServiceOrder(os)));
     const loadedClients = DielectricStorageService.getClients('ALL');
     const loadedEquipment = DielectricStorageService.getEquipment('ALL');
     let loadedUsers = DielectricStorageService.getUsers('ALL');
@@ -156,7 +161,7 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
     setArtFileName(undefined);
     setSelectedEqIds([]);
     setScheduledDate(new Date().toISOString().split('T')[0]);
-    setDescription('Ensaio de rotina e periódico em EPIs/EPCs dielétricos');
+    setDescription(defaultDescription);
     setEditingOS(null);
     setIsAddModalOpen(true);
   };
@@ -212,6 +217,8 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
         artFileUrl,
         artFileName,
         equipmentIds: selectedEqIds,
+        // OS antiga do SPDA (sem marca) editada pelo módulo SPDA passa a ficar marcada
+        ...(spdaMode ? { module: SPDA_MODULE_ID } : {}),
         updatedAt: new Date().toISOString()
       };
       const saved = DielectricStorageService.saveServiceOrder(updatedOS);
@@ -245,6 +252,7 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
       artFileUrl,
       artFileName,
       equipmentIds: selectedEqIds,
+      ...(spdaMode ? { module: SPDA_MODULE_ID } : {}),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -267,7 +275,7 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
       .catch(() => {});
 
     // Reset
-    setDescription('Ensaio de rotina e periódico em EPIs/EPCs dielétricos');
+    setDescription(defaultDescription);
     setArtNumber('');
     setArtFileUrl(undefined);
     setArtFileName(undefined);
@@ -451,10 +459,12 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                {spdaMode ? <span /> : (
                 <div className="flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-blue-600" />
                   <span>{os.equipmentIds.length} equipamento(s) vinculado(s)</span>
                 </div>
+                )}
 
                 {os.artNumber ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-300/80 text-amber-800 rounded-md font-mono text-[10px] font-bold">
@@ -667,8 +677,8 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
                 )}
               </div>
 
-              {/* Item 4: Equipamentos */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              {/* Item 4: Equipamentos (não aparece no módulo SPDA) */}
+              {!spdaMode && <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
                     Item 4 • Equipamentos Vinculados ({selectedOSForDetails.equipmentIds.length})
@@ -704,7 +714,7 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
                     );
                   })}
                 </div>
-              </div>
+              </div>}
             </div>
 
             <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">
@@ -1049,8 +1059,8 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
                 </p>
               </div>
 
-              {/* ITEM 4: SELEÇÃO DE EQUIPAMENTOS DO CLIENTE PARA ENSAIO */}
-              <div className="space-y-2">
+              {/* ITEM 4: SELEÇÃO DE EQUIPAMENTOS DO CLIENTE PARA ENSAIO (não aparece no módulo SPDA) */}
+              {!spdaMode && <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="font-bold text-slate-800 flex items-center gap-1.5">
                     <Shield className="w-4 h-4 text-blue-600" />
@@ -1134,7 +1144,7 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
                   <span>{selectedEqIds.length} equipamento(s) selecionado(s)</span>
                   <span>Total no cliente: {clientEquipment.length}</span>
                 </div>
-              </div>
+              </div>}
 
               {/* Form Buttons */}
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-200">

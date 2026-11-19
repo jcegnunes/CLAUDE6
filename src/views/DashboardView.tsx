@@ -36,6 +36,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { TestRecord, Equipment } from '../types';
 import { formatDateBR } from '../utils/dateUtils';
 import { isTestEligibleForCertificate } from '../services/normsEngine';
+import { withoutSpdaOrders } from '../modules/spda/osText';
 
 interface DashboardViewProps {
   onNavigate: (view: string) => void;
@@ -57,7 +58,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const clients = DielectricStorageService.getClients();
   const equipment = DielectricStorageService.getEquipment();
   const tests = DielectricStorageService.getTests();
-  const orders = DielectricStorageService.getServiceOrders();
+  const orders = withoutSpdaOrders(DielectricStorageService.getServiceOrders());
   const instruments = DielectricStorageService.getInstruments();
 
   const today = new Date().toISOString().split('T')[0];

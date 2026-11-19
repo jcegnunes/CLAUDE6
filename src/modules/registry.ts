@@ -6,8 +6,9 @@
 import type { CompanyLabInfo } from '../types';
 import type { PlatformModule } from './types';
 import { treinamentosModule } from './treinamentos';
+import { spdaModule } from './spda';
 
-export const PLATFORM_MODULES: PlatformModule[] = [treinamentosModule];
+export const PLATFORM_MODULES: PlatformModule[] = [treinamentosModule, spdaModule];
 
 /** Módulo ligado para a empresa (ligado por padrão; desligado em Configurações). */
 export function isModuleEnabled(info: Pick<CompanyLabInfo, 'enabledModules'> | null | undefined, moduleId: string): boolean {

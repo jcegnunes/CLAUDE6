@@ -20,6 +20,31 @@ import { startPhotoStorage } from './services/photoExternalizer';
 import { PLATFORM_MODULES, isModuleEnabled } from './modules/registry';
 import { canUseModule, getAvailableWorkspaces, loadSavedWorkspace, saveWorkspace, type Workspace } from './modules/workspaces';
 import { ModuleLauncherView } from './views/ModuleLauncherView';
+import { APP_ONLY_MODULE, APP_TARGET } from './appTarget';
+import { SpdaAppBottomNav, SpdaAppTopBar } from './components/SpdaAppBars';
+import { requestServiceOrderInspection, requestServiceOrderReport } from './modules/spda/views/navigation';
+
+/** APP JVM SPDA: barras no padrão do app de Ensaios de EPI e menu sempre em gaveta. */
+const IS_SPDA_APP = APP_TARGET === 'spda';
+
+/** Motivo exato de o usuário não entrar no APP JVM SPDA, e como liberar. */
+function spdaAccessProblem(user: User): string {
+  const info = DielectricStorageService.getCompanyInfo();
+  const company = DielectricStorageService.getActiveCompany()?.name || 'a empresa';
+  if (!isModuleEnabled(info, 'spda')) {
+    return `O módulo SPDA está desligado para ${company}. Um administrador da empresa liga em Configurações & Backup → Módulos do sistema (plataforma web).`;
+  }
+  const mod = PLATFORM_MODULES.find(m => m.id === 'spda');
+  if (mod && !mod.roles.includes(user.role)) {
+    return `O perfil do usuário ${user.name} (${user.role}) não tem acesso ao SPDA. Um administrador muda o perfil em Configurações & Backup → Usuários.`;
+  }
+  if (!canUseModule(user, 'spda')) {
+    const labels: Record<string, string> = { ensaios: 'Ensaios de EPI', treinamentos: 'Treinamentos', spda: 'SPDA' };
+    const liberados = (user.allowedModules || []).map(m => labels[m] || m).join(' + ') || 'nenhum módulo';
+    return `O cadastro de ${user.name} libera só: ${liberados}. Um administrador marca o módulo SPDA para este usuário em Configurações & Backup → Usuários (plataforma web).`;
+  }
+  return `O usuário ${user.name} não tem o módulo SPDA liberado. Peça ao administrador para liberar na plataforma.`;
+}
 
 // Telas carregadas sob demanda (arquivos separados)
 const DashboardView = lazyView(() => import('./views/DashboardView'), 'DashboardView');
@@ -82,8 +107,9 @@ export default function App() {
     const u = AuthService.getCurrentUser();
     return u && u.id ? loadSavedWorkspace(u.id) : null;
   });
+  // APP JVM SPDA: só o módulo do app (o usuário precisa ter acesso a ele)
   const availableWorkspaces = isAuthenticated && currentUser.id
-    ? getAvailableWorkspaces(DielectricStorageService.getCompanyInfo(), currentUser)
+    ? getAvailableWorkspaces(DielectricStorageService.getCompanyInfo(), currentUser).filter(w => !APP_ONLY_MODULE || w.id === APP_ONLY_MODULE)
     : [];
   const currentWorkspace = availableWorkspaces.find(w => w.id === workspaceId)
     || (availableWorkspaces.length === 1 ? availableWorkspaces[0] : undefined);
@@ -322,6 +348,10 @@ export default function App() {
     setActiveView('tests');
   };
 
+  // Módulo SPDA: 'Executar Ensaios' e 'Relatório' da OS abrem a inspeção/relatório SPDA (não os ensaios de EPI)
+  const openSpdaInspectionForOS = (osId: string) => { requestServiceOrderInspection(osId); setActiveView('spda'); };
+  const openSpdaReportForOS = (osId: string) => { requestServiceOrderReport(osId); setActiveView('spda_relatorio'); };
+
   // Open Report Emission with optional filters
   const handleOpenReportEmission = (osId?: string, clientId?: string) => {
     setReportPreSelectedOSId(osId);
@@ -416,6 +446,20 @@ export default function App() {
           setDataVersion(v => v + 1);
         }}
       />
+    );
+  }
+
+  // APP de um módulo só (APP JVM SPDA) e usuário sem acesso a ele
+  if (APP_ONLY_MODULE && availableWorkspaces.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6">
+        <div className="max-w-sm w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-3 text-center">
+          <h1 className="text-lg font-black text-slate-900">Sem acesso ao módulo SPDA</h1>
+          <p className="text-sm text-slate-600">{spdaAccessProblem(currentUser)}</p>
+          <p className="text-[11px] text-slate-500">Depois de liberado na plataforma web, toque em Sair e entre de novo.</p>
+          <button type="button" onClick={handleLogout} className="w-full rounded-xl bg-[#0A2540] text-white font-bold py-2.5">Sair</button>
+        </div>
+      </div>
     );
   }
 
@@ -535,8 +579,9 @@ export default function App() {
           {activeView === 'service_orders' && (
             <ServiceOrdersView
               key={`android_so_${dataVersion}`}
-              onStartTestForOS={(osId, eqId) => handleStartTest(eqId, osId)}
-              onOpenReportForOS={handleOpenReportEmission}
+              onStartTestForOS={(osId, eqId) => (currentWorkspace.id === 'spda' ? openSpdaInspectionForOS(osId) : handleStartTest(eqId, osId))}
+              onOpenReportForOS={currentWorkspace.id === 'spda' ? openSpdaReportForOS : handleOpenReportEmission}
+              spdaMode={currentWorkspace.id === 'spda'}
             />
           )}
 
@@ -673,7 +718,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Top Main Navigation Bar */}
+      {/* Top Main Navigation Bar (APP JVM SPDA: barra no padrão do app de Ensaios de EPI) */}
+      {IS_SPDA_APP ? (
+        <SpdaAppTopBar
+          onOpenMenu={() => setIsMobileMenuOpen(true)}
+          onSync={() => { void handleTriggerSync(); void import('./modules/spda/sync').then(m => m.syncSpda()); }}
+          isSyncing={isSyncing}
+          pendingSyncCount={pendingSyncCount}
+          isOnline={isOnline}
+        />
+      ) : (
       <Navbar
         currentUser={currentUser}
         onUserChange={setCurrentUser}
@@ -692,11 +746,12 @@ export default function App() {
         activeView={activeView}
         onLogout={handleLogout}
       />
+      )}
 
       {/* Main Container Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Desktop Sidebar */}
-        <Sidebar
+        {/* Desktop Sidebar (no APP JVM SPDA o menu é sempre a gaveta, também no tablet) */}
+        {!IS_SPDA_APP && <Sidebar
           activeView={activeView}
           onNavigate={setActiveView}
           userRole={currentUser.role}
@@ -705,10 +760,10 @@ export default function App() {
           onOpenInstallModal={() => setIsInstallModalOpen(true)}
           workspace={currentWorkspace}
           onSwitchWorkspace={switchWorkspace}
-        />
+        />}
 
         {/* Dynamic Content Canvas */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className={IS_SPDA_APP ? 'flex-1 overflow-y-auto p-3 sm:p-5 pb-24 bg-[#F1F5F9]' : 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8'}>
           <ViewErrorBoundary resetKey={activeView} onGoHome={() => setActiveView(homeView)}>
           <Suspense fallback={viewFallback}>
           {activeView === 'dashboard' && (
@@ -778,8 +833,9 @@ export default function App() {
           {activeView === 'service_orders' && (
             <ServiceOrdersView
               key={`desk_so_${dataVersion}`}
-              onStartTestForOS={(osId, eqId) => handleStartTest(eqId, osId)}
-              onOpenReportForOS={handleOpenReportEmission}
+              onStartTestForOS={(osId, eqId) => (currentWorkspace.id === 'spda' ? openSpdaInspectionForOS(osId) : handleStartTest(eqId, osId))}
+              onOpenReportForOS={currentWorkspace.id === 'spda' ? openSpdaReportForOS : handleOpenReportEmission}
+              spdaMode={currentWorkspace.id === 'spda'}
             />
           )}
 
@@ -809,6 +865,9 @@ export default function App() {
       </div>
 
       {/* Mobile Android Bottom Nav (visible only on small screens) */}
+      {IS_SPDA_APP ? (
+        <SpdaAppBottomNav activeView={activeView} onNavigate={setActiveView} onOpenMenu={() => setIsMobileMenuOpen(true)} />
+      ) : (
       <MobileBottomNav
         activeView={activeView}
         onNavigate={setActiveView}
@@ -818,10 +877,11 @@ export default function App() {
         homeView={homeView}
         showTestShortcuts={currentWorkspace.id === 'ensaios'}
       />
+      )}
 
       {/* Menu com todas as telas (celular): a barra lateral abre como gaveta */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menu do sistema">
+        <div className={`${IS_SPDA_APP ? '' : 'md:hidden '}fixed inset-0 z-50 flex`} role="dialog" aria-modal="true" aria-label="Menu do sistema">
           <Sidebar
             variant="drawer"
             activeView={activeView}

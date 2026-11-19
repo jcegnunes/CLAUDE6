@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 
 const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const recriarPath = path.join(dir, 'recriar_banco.sql');
-const recriar = fs.readFileSync(recriarPath, 'utf8');
+// o arquivo pode estar com quebras de linha do Windows (CRLF)
+const recriar = fs.readFileSync(recriarPath, 'utf8').replace(/\r\n/g, '\n');
 const schema = fs.readFileSync(path.join(dir, 'schema.sql'), 'utf8');
 // Módulos independentes (supabase/modules/*.sql) entram logo depois do schema
 const modulesDir = path.join(dir, 'modules');

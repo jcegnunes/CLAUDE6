@@ -274,6 +274,37 @@ async function main() {
   ok(!r.error && JSON.stringify(r.rows[0].allowed_modules) === '["ensaios"]', 'o app lê os módulos liberados do usuário');
   await db.exec(`UPDATE public.users SET allowed_modules = NULL WHERE id = 'usr-b'`);
 
+  // ------------------------------------------------- módulo SPDA
+  r = await as(db, user(b), `INSERT INTO public.spda_inspections (id, company_id, number, client_id, inspection_date, status, payload)
+                            VALUES ('spda-1', 'comp-2', 'SPDA-2026-0001', 'cli-2', '2026-11-17', 'rascunho', '{"id":"spda-1"}')`);
+  ok(!r.error, `spda: técnico grava inspeção da própria empresa ${r.error || ''}`);
+  r = await as(db, user(b), `INSERT INTO public.spda_inspections (id, company_id, number) VALUES ('spda-x', 'comp-1', 'X')`);
+  ok(!!r.error, 'spda: NÃO grava inspeção em outra empresa');
+  r = await as(db, user(a), `SELECT id FROM public.spda_inspections`);
+  ok(!r.error && r.rows.length === 0, 'spda: outra empresa não enxerga as inspeções');
+  r = await as(db, anon, `SELECT * FROM public.spda_inspections LIMIT 1`);
+  ok(!!r.error, 'anon NÃO lê spda_inspections');
+  r = await as(db, user(b), `UPDATE public.spda_inspections SET status = 'concluido', device_id = 'dev-2', base_updated_at = '2000-01-01' WHERE id = 'spda-1'`);
+  ok(!!r.error && /Conflito/.test(r.error), 'spda: edição sobre versão antiga de outro aparelho gera conflito');
+  r = await as(db, user(b), `DELETE FROM public.spda_inspections WHERE id = 'spda-1'`);
+  ok(!r.error && r.count === 0, 'spda: técnico NÃO apaga inspeção (só administrador)');
+  await db.exec(`UPDATE public.users SET allowed_modules = '{spda}' WHERE id = 'usr-b'`);
+  r = await as(db, user(b), `SELECT id FROM public.spda_inspections`);
+  ok(!r.error && r.rows.some(x => x.id === 'spda-1'), 'usuário só de SPDA enxerga as inspeções');
+  r = await as(db, user(b), `SELECT id FROM public.test_records`);
+  ok(!r.error && r.rows.length === 0, 'usuário só de SPDA NÃO enxerga os ensaios de EPI');
+  r = await as(db, user(b), `INSERT INTO public.service_orders (id, company_id, os_number, client_id, client_name) VALUES ('os-spda', 'comp-2', 'OS-2611-9001', 'cli-2', 'Cliente 2')`);
+  ok(!r.error, `usuário só de SPDA gera OS ${r.error || ''}`);
+  r = await as(db, user(b), `SELECT id FROM public.service_orders`);
+  ok(!r.error && r.rows.some(x => x.id === 'os-spda'), 'usuário só de SPDA enxerga as OS');
+  r = await as(db, user(b), `SELECT id FROM public.lab_instruments`);
+  ok(!r.error, 'usuário só de SPDA lê os instrumentos');
+  await db.exec(`DELETE FROM public.service_orders WHERE id = 'os-spda'`);
+  await db.exec(`UPDATE public.users SET allowed_modules = '{ensaios}' WHERE id = 'usr-b'`);
+  r = await as(db, user(b), `SELECT id FROM public.spda_inspections`);
+  ok(!r.error && r.rows.length === 0, 'usuário só de Ensaios NÃO enxerga as inspeções SPDA');
+  await db.exec(`UPDATE public.users SET allowed_modules = NULL WHERE id = 'usr-b'`);
+
   // ------------------------------------------ certificado digital (A1)
   await db.exec(`INSERT INTO public.training_instructors (id, company_id, name) VALUES ('ins-dig', 'comp-2', 'Instrutor Digital')`);
   const saveSql = `SELECT public.jvm_training_save_signing_cert('instructor', 'ins-dig', 'UEZYLUJBU0U2NA==', 'SenhaPFX123', 'INSTRUTOR DIGITAL', '22222222222', 'AC TESTE', '01', now(), now() + interval '1 year', '{"kind":"e-CPF","level":"A1","cpf":"222.222.222-22","chain":["AC TESTE","AC RAIZ"]}'::jsonb) AS v`;
@@ -538,6 +569,44 @@ async function main() {
   r = await as(db, user(stranger), `INSERT INTO public.companies (id, name) VALUES ('comp-s', 's')`);
   ok(!!r.error, 'conta sem vínculo não cria empresa');
   ok(!(await uidOf(db, 'usr-sem')), 'conta com mesmo e-mail NÃO é vinculada automaticamente');
+
+  // ---------------------------------------- cadastro público com aprovação (modules/cadastro.sql)
+  const reqSql = `SELECT public.jvm_request_account($1, $2, $3, $4, $5, $6, $7, 'spda') AS v`;
+  r = await as(db, anon, reqSql, ['Paula Nova', 'Paula@EmpresaNova.com', 'Senha@Nova1', 'Empresa Nova Ltda', '12.345.678/0001-90', '(61) 9999-0000', 'paula']);
+  const reqOut = typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v;
+  ok(!r.error && reqOut?.ok, `anon pede conta pela tela "Criar conta" ${r.error || ''}`);
+  ok(!(await db.query(`SELECT 1 FROM public.users WHERE lower(email) = 'paula@empresanova.com'`)).rows.length, 'pedido NÃO cria usuário nem dá acesso');
+  const reqRow = (await db.query(`SELECT password_hash, status FROM public.account_requests WHERE id = $1`, [reqOut?.id])).rows[0];
+  ok(reqRow && reqRow.status === 'pendente' && /^\$2[aby]\$/.test(reqRow.password_hash) && !reqRow.password_hash.includes('Senha@Nova1'), 'senha do pedido gravada criptografada (bcrypt)');
+  r = await as(db, anon, reqSql, ['Paula Nova', 'paula@empresanova.com', 'Senha@Nova1', 'Empresa Nova Ltda', null, null, null]);
+  ok(!!r.error, 'não aceita dois pedidos pendentes com o mesmo e-mail');
+  r = await as(db, anon, reqSql, ['Ana', 'Ana@Empresa1.com', 'Senha@Ana9', 'Outra', null, null, null]);
+  ok(!!r.error, 'não aceita pedido com e-mail de usuário existente');
+  r = await as(db, anon, reqSql, ['Zé Fraco', 'ze@x.com', 'abc', 'Empresa Z', null, null, null]);
+  ok(!!r.error, 'pedido com senha fraca é recusado');
+  r = await as(db, anon, `SELECT * FROM public.account_requests`);
+  ok(!!r.error, 'anon NÃO lê a tabela de pedidos');
+  r = await as(db, user(a), `SELECT * FROM public.account_requests`);
+  ok(!!r.error, 'usuário comum NÃO lê a tabela de pedidos');
+  r = await as(db, user(a), `SELECT public.jvm_list_account_requests('pendente') AS v`);
+  ok(!!r.error, 'admin de empresa (não master) NÃO vê os pedidos');
+  r = await as(db, user(a), `SELECT public.jvm_decide_account_request($1, true, null) AS v`, [reqOut?.id]);
+  ok(!!r.error, 'admin de empresa (não master) NÃO aprova pedidos');
+  r = await as(db, user(m), `SELECT public.jvm_list_account_requests('pendente') AS v`);
+  const reqList = typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v;
+  ok(!r.error && Array.isArray(reqList) && reqList.some(x => x.id === reqOut?.id) && !JSON.stringify(reqList).includes('$2'), 'master vê os pedidos (sem a senha)');
+  r = await as(db, user(m), `SELECT public.jvm_decide_account_request($1, true, 'ok') AS v`, [reqOut?.id]);
+  ok(!r.error, `master aprova o pedido ${r.error || ''}`);
+  const novo = (await db.query(`SELECT u.role, u.company_id, u.is_master_admin, u.username, a.encrypted_password = extensions.crypt('Senha@Nova1', a.encrypted_password) AS pw_ok
+      FROM public.users u JOIN auth.users a ON a.id = u.auth_user_id WHERE lower(u.email) = 'paula@empresanova.com'`)).rows[0];
+  ok(novo && novo.role === 'admin' && novo.company_id === null && !novo.is_master_admin && novo.username === 'paula' && novo.pw_ok,
+    'aprovado: vira administrador SEM empresa (cadastra no 1º acesso), com login e a senha escolhida');
+  r = await as(db, user(m), `SELECT public.jvm_decide_account_request($1, true, null) AS v`, [reqOut?.id]);
+  ok(!!r.error, 'pedido já aprovado não é aprovado de novo');
+  r = await as(db, anon, reqSql, ['Rui Recusado', 'rui@x.com', 'Senha@Rui1', 'Empresa R', null, null, null]);
+  const rui = typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v;
+  r = await as(db, user(m), `SELECT public.jvm_decide_account_request($1, false, 'dados incompletos') AS v`, [rui?.id]);
+  ok(!r.error && !(await db.query(`SELECT 1 FROM public.users WHERE email = 'rui@x.com'`)).rows.length, 'master recusa: nenhum usuário criado');
 
   // ---------------------------------------------------- migração de banco antigo
   if (OLD_SCHEMA) {

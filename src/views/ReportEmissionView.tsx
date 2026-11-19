@@ -51,6 +51,7 @@ import { exportTestsSummaryReportPDF } from '../services/batchSummaryReportPdfSe
 import { exportReportToWord } from '../services/wordReportService';
 import { getApplicableNormsList, getEquipmentTypeDescription, exportTestsSpreadsheet } from '../services/spreadsheetService';
 import { getEffectiveCollaborator } from '../services/pdfGenerator';
+import { withoutSpdaOrders } from '../modules/spda/osText';
 
 interface ReportEmissionViewProps {
   currentUser: User;
@@ -120,7 +121,7 @@ export const ReportEmissionView: React.FC<ReportEmissionViewProps> = ({
   // Load Initial Data
   const loadData = () => {
     const cls = DielectricStorageService.getClients();
-    const sos = DielectricStorageService.getServiceOrders();
+    const sos = withoutSpdaOrders(DielectricStorageService.getServiceOrders());
     const tests = DielectricStorageService.getTests();
     const usrs = DielectricStorageService.getUsers();
     const insts = DielectricStorageService.getInstruments();

@@ -1,0 +1,21 @@
+APP JVM Ensaios de EPI (Android nativo) — cópia para a SPDA 10
+=================================================================
+Cópia do projeto jvm-ensaios-v6.1 (o original NÃO foi alterado), com uma mudança:
+
+As Ordens de Serviço do módulo SPDA da plataforma NÃO aparecem no app de Ensaios de EPI.
+- Ao sincronizar, o app não baixa as OS do SPDA (payload.module = "spda"; as antigas, sem marca,
+  quando a descrição é de SPDA). Elas continuam intactas no Supabase.
+- OS do SPDA já baixadas antes desta versão: ficam ocultas nas listas; NÃO são apagadas do celular.
+- Nada é apagado: nem no banco (Supabase) nem no celular. Numeração de OS e backup usam todas as OS.
+Arquivos alterados: app/src/main/java/com/example/data/service/SupabaseService.kt (fetchServiceOrders,
+isSpdaServiceOrderJson, isSpdaDescription) e data/repository/DielectricRepository.kt (allServiceOrders).
+
+INSTALAÇÃO (mantém os dados do celular)
+- Mesmo pacote (com.aistudio.jvmdielectriclab.rxigsd) e mesma chave (debug.keystore) do app atual:
+  instale JVM-Ensaios-EPI.apk POR CIMA do app instalado. NÃO desinstale antes (desinstalar apaga os dados locais).
+- Versão gerada em 17/11/2026: 6.1.261117.2204 (versionCode 462124), maior que a do APK anterior (418327).
+
+COMPILAR DE NOVO
+- Dois cliques em compilar-apk.bat (JDK 21 + Gradle 9.3.1 já instalados). Saída: JVM-Ensaios-EPI.apk.
+- O cache do Gradle do projeto fica em C:\Users\Public\jvm-ensaios-gradle (o Gradle 9 no Windows falha com
+  "Cannot delete ... buildOutputCleanup.lock" quando o caminho tem a unidade S: ou o nome curto JOOCAR~1).

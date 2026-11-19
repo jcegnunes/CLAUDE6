@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Safety Dielectric Shield Background -->
+    <path
+        android:fillColor="#F97316"
+        android:pathData="M54,22 L78,32 L78,54 C78,69 68,81 54,86 C40,81 30,69 30,54 L30,32 Z" />
+    <path
+        android:fillColor="#0A2540"
+        android:pathData="M54,26 L74,34.5 L74,53.5 C74,66.5 65.5,77 54,81.5 C42.5,77 34,66.5 34,53.5 L34,34.5 Z" />
+    <!-- High Voltage Lightning Bolt in Pure White -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M56,33 L42,52 L51,52 L47,72 L66,48 L56,48 Z" />
+</vector>

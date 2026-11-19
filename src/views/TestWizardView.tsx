@@ -130,6 +130,7 @@ import { PhotoEditorModal } from '../components/PhotoEditorModal';
 import { LiveCameraModal } from '../components/LiveCameraModal';
 import { MobileCameraBridgeModal } from '../components/MobileCameraBridgeModal';
 import { compressImage, fileToDataUrl } from '../utils/imageCompressor';
+import { withoutSpdaOrders } from '../modules/spda/osText';
 
 interface TestWizardViewProps {
   currentUser: User;
@@ -486,7 +487,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
   // Load Initial Data
   useEffect(() => {
     const clients = DielectricStorageService.getClients();
-    const orders = DielectricStorageService.getServiceOrders();
+    const orders = withoutSpdaOrders(DielectricStorageService.getServiceOrders());
     const eqs = DielectricStorageService.getEquipment();
     const norms = DielectricStorageService.getNorms();
     const insts = DielectricStorageService.getInstruments();
@@ -1069,7 +1070,7 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
   const saveAndLinkEquipment = (shouldNotify = true): Equipment => {
     try {
       const currentClients = clientsList.length > 0 ? clientsList : DielectricStorageService.getClients();
-      const currentOrders = serviceOrders.length > 0 ? serviceOrders : DielectricStorageService.getServiceOrders();
+      const currentOrders = serviceOrders.length > 0 ? serviceOrders : withoutSpdaOrders(DielectricStorageService.getServiceOrders());
       const targetOS = selectedOS || currentOrders.find(o => o.id === selectedOSId);
       // Prioridade: cliente da OS > cliente escolhido > cliente do equipamento
       const preferredClientId = targetOS?.clientId || selectedClientId || selectedEquipment?.clientId;

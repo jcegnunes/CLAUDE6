@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { AuthService } from '../services/authService';
 import { DielectricStorageService } from '../services/syncEngine';
+import { APP_TARGET } from '../appTarget';
+import { CreateAccountForm } from '../components/CreateAccountForm';
 import { User } from '../types';
 
 interface LoginViewProps {
@@ -19,6 +21,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(() => AuthService.consumeLogoutReason());
   const [showForgot, setShowForgot] = useState(false);
+  // "Criar conta": pedido de acesso de uma nova empresa (aprovado pelo administrador master)
+  const [showSignup, setShowSignup] = useState(false);
 
   // E-mail do administrador: o da empresa cadastrada neste aparelho, se houver
   const adminEmail = (() => {
@@ -65,10 +69,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       <main className="w-full max-w-[360px]">
         <div className="bg-white border border-[#DCE1E7] rounded-[10px] px-7 pt-8 pb-7">
           <header className="mb-7">
-            <h1 className="text-[20px] leading-tight font-semibold text-[#1D2733]">Entrar</h1>
+            <h1 className="text-[20px] leading-tight font-semibold text-[#1D2733]">{showSignup ? 'Nova empresa' : 'Entrar'}</h1>
           </header>
 
-          {!showForgot ? (
+          {!showForgot && !showSignup ? (
             <form onSubmit={handleSubmit} noValidate className="space-y-4">
               <div>
                 <label htmlFor="login-usuario" className="block text-[13px] font-medium text-[#1D2733] mb-1.5">
@@ -137,7 +141,19 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   Esqueci minha senha
                 </button>
               </div>
+              <div className="pt-3 mt-1 border-t border-[#DCE1E7] text-center">
+                <p className="text-[13px] text-[#5E6A78]">Sua empresa ainda não tem acesso?</p>
+                <button
+                  type="button"
+                  onClick={() => { setShowSignup(true); setErrorMessage(null); }}
+                  className="mt-2 w-full h-11 rounded-md border border-[#1D2733]/30 text-[#1D2733] text-[15px] font-semibold hover:bg-[#EEF1F4] cursor-pointer"
+                >
+                  Criar conta
+                </button>
+              </div>
             </form>
+          ) : showSignup ? (
+            <CreateAccountForm inputClass={inputClass} onBack={() => setShowSignup(false)} />
           ) : (
             <div className="space-y-4">
               <h2 className="text-[15px] font-semibold text-[#1D2733]">Redefinir senha</h2>
@@ -184,7 +200,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             </div>
           )}
         </div>
-        <p className="text-center text-[11px] text-[#98A2AE] mt-4">Versão {__APP_VERSION__}</p>
+        <p className="text-center text-[11px] text-[#98A2AE] mt-4">{APP_TARGET === 'spda' ? 'APP JVM SPDA — ' : ''}Versão {__APP_VERSION__}</p>
       </main>
     </div>
   );

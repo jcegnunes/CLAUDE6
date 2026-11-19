@@ -5,7 +5,7 @@ cd /d "%~dp0"
 
 echo ==============================================================
 echo   JVM DIELECTRIC LAB - EXECUTAR NO COMPUTADOR
-echo   Endereco: http://localhost:3000
+echo   Endereco: http://localhost:3020
 echo   Para encerrar: feche esta janela ou pressione Ctrl+C
 echo ==============================================================
 echo.
@@ -53,13 +53,13 @@ set "IP_LOCAL="
 for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike '127.*' -and $_.IPAddress -notlike '169.254.*' -and $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -First 1).IPAddress"`) do set "IP_LOCAL=%%i"
 echo.
 echo ==============================================================
-echo   No computador:  http://localhost:3000
-if not "!IP_LOCAL!"=="" echo   No celular ^(mesmo Wi-Fi^):  http://!IP_LOCAL!:3000
+echo   No computador:  http://localhost:3020
+if not "!IP_LOCAL!"=="" echo   No celular ^(mesmo Wi-Fi^):  http://!IP_LOCAL!:3020
 echo ==============================================================
 echo.
 
 REM 5. Abre o navegador alguns segundos depois e inicia o servidor
-start "" /min powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 4; Start-Process 'http://localhost:3000'"
+start "" /min powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 4; Start-Process 'http://localhost:3020'"
 call npm run dev
 goto :fim_ok
 

@@ -6,3 +6,14 @@ coverage/
 *.log
 .env*
 !.env.example
+# APP JVM SPDA (Android)
+android-spda/app/build/
+android-spda/build/
+android-spda/.gradle/
+android-spda/app/src/main/assets/www/
+
+# App de Ensaios de EPI (Android)
+app-ensaios-epi/app/build/
+app-ensaios-epi/build/
+app-ensaios-epi/.gradle/
+app-ensaios-epi/.kotlin/

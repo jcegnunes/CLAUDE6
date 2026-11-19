@@ -1,4 +1,7 @@
-# JVM Dielectric Lab — Ensaios & Certificação EPI/EPC (v7.5)
+# JVM Dielectric Lab — Ensaios & Certificação EPI/EPC (v10 — com módulo SPDA)
+
+> **SPDA 10**: cópia da v7.5 com o **módulo SPDA** (inspeção e ensaios de SPDA, NBR 5419:2026)
+> integrado como o módulo Treinamentos. Ver `MUDANCAS_V10.md`. Endereço local: http://localhost:3020
 
 Plataforma de ensaios dielétricos, laudos e certificados de EPI/EPC com
 **Supabase como banco de dados único**.
@@ -53,6 +56,7 @@ aparelho). Pode ser alterado sem mexer nos ensaios e ligado/desligado por empres
 | Módulo | Pasta | Banco |
 |---|---|---|
 | Treinamentos (certificados NR-10, NR-35...) | `src/modules/treinamentos` | `supabase/modules/treinamentos.sql` |
+| SPDA (inspeção e ensaios NBR 5419:2026, laudo e relatório técnico) | `src/modules/spda` | — (por enquanto só no aparelho) |
 
 ## Como funciona a sincronização
 

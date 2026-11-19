@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'br.com.jvmengenharia.spda'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "br.com.jvmengenharia.jvmspda"
+        minSdk 24
+        targetSdk 35
+        versionCode 13
+        versionName "10.0.12"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+// Desativa variantes de teste desnecessárias para acelerar e garantir compilação direta do APK no Gradle 8.13
+androidComponents {
+    beforeVariants(selector().all()) { variantBuilder ->
+        variantBuilder.enableAndroidTest = false
+        variantBuilder.enableUnitTest = false
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'com.google.android.material:material:1.12.0'
+}

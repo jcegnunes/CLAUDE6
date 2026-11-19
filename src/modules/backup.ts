@@ -3,9 +3,11 @@
  * Para um módulo novo: acrescente aqui as funções de exportar e restaurar.
  */
 import { exportTrainingBackup, restoreTrainingBackup } from './treinamentos/backup';
+import { exportSpdaBackup, restoreSpdaBackup } from './spda/backup';
 
 const MODULE_BACKUPS: Array<{ id: string; exportData: () => unknown; restore: (data: unknown) => number }> = [
-  { id: 'treinamentos', exportData: exportTrainingBackup, restore: restoreTrainingBackup }
+  { id: 'treinamentos', exportData: exportTrainingBackup, restore: restoreTrainingBackup },
+  { id: 'spda', exportData: exportSpdaBackup, restore: restoreSpdaBackup }
 ];
 
 /** Seção "modules" do arquivo de backup. */

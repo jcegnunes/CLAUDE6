@@ -35,6 +35,7 @@ import { DielectricStorageService } from '../services/syncEngine';
 import { User, Equipment, TestRecord } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { formatDateBR } from '../utils/dateUtils';
+import { withoutSpdaOrders } from '../modules/spda/osText';
 
 interface AndroidFieldModeViewProps {
   currentUser: User;
@@ -70,7 +71,7 @@ export const AndroidFieldModeView: React.FC<AndroidFieldModeViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const equipment = DielectricStorageService.getEquipment();
   const tests = DielectricStorageService.getTests();
-  const serviceOrders = DielectricStorageService.getServiceOrders();
+  const serviceOrders = withoutSpdaOrders(DielectricStorageService.getServiceOrders());
   const clients = DielectricStorageService.getClients();
   
   const today = new Date().toISOString().split('T')[0];

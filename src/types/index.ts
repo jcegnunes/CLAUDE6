@@ -233,6 +233,8 @@ export interface ServiceOrder {
   artNumber?: string; // Anotação de Responsabilidade Técnica (Ex: ART-CREA-2026-98124)
   artFileUrl?: string; // Documento da ART anexado (PDF ou Imagem)
   artFileName?: string; // Nome original do arquivo da ART
+  /** Módulo dono da OS ('spda'...). Vazio = Ensaios de EPI (OS antigas e do app de EPI). */
+  module?: string;
   status: ServiceOrderStatus;
   deletedAt?: string; // Soft delete timestamp
   createdAt: string;

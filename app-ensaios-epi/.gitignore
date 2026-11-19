@@ -1,0 +1,22 @@
+*.iml
+.gradle
+.kotlin
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+.env
+debug.keystore
+/.idea/
+# gerado pelo Android Studio (exige JDK 25); o build usa o JDK instalado
+gradle/gradle-daemon-jvm.properties
+*.apk

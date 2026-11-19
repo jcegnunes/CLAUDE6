@@ -65,3 +65,6 @@
     color-adjust: exact !important;
   }
 }
+/* Margens das áreas do sistema (entalhe/barra de gestos) nas barras do app */
+.safe-area-pb { padding-bottom: env(safe-area-inset-bottom); }
+.safe-area-pt { padding-top: env(safe-area-inset-top); }

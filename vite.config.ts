@@ -8,20 +8,36 @@ import {VitePWA} from 'vite-plugin-pwa';
 // Versão única do sistema (tela de login etc.): vem do package.json
 const APP_VERSION: string = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')).version;
 
-export default defineConfig(() => {
+/**
+ * APP JVM SPDA (vite build --mode spda): a mesma plataforma só com o login e o módulo SPDA,
+ * embutida no app Android (android-spda/). Arquivos com caminho relativo, sem PWA.
+ */
+export default defineConfig(({ mode }) => {
+  const spdaApp = mode === 'spda';
   return {
+    base: spdaApp ? './' : '/',
     define: {
       __APP_VERSION__: JSON.stringify(APP_VERSION),
+      // qual app está sendo gerado (src/appTarget.ts)
+      __APP_TARGET__: JSON.stringify(spdaApp ? 'spda' : 'plataforma'),
     },
     plugins: [
       react(),
       tailwindcss(),
+      // APP JVM SPDA: nome do app na página
+      spdaApp && {
+        name: 'jvm-spda-app-html',
+        transformIndexHtml: (html: string) => html
+          .replace(/<title>[^<]*<\/title>/, '<title>JVM SPDA — Inspeção e ensaios de SPDA</title>')
+          .replace('content="JVM Ensaios"', 'content="JVM SPDA"')
+          .replace('content="JVM Ensaios Dielétricos"', 'content="JVM SPDA"')
+      },
       /**
-       * PWA: o app pode ser instalado pelo navegador (Android e iPhone) e abre
+       * PWA (só na plataforma web): o app pode ser instalado pelo navegador (Android e iPhone) e abre
        * SEM internet. Todos os arquivos do sistema ficam guardados no aparelho;
        * os dados ficam na fila local e são enviados ao Supabase quando houver conexão.
        */
-      VitePWA({
+      !spdaApp && VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         includeAssets: ['favicon.png', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png'],
@@ -95,6 +111,8 @@ export default defineConfig(() => {
       },
     },
     build: {
+      outDir: spdaApp ? 'android-spda/app/src/main/assets/www' : 'dist',
+      emptyOutDir: true,
       chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
@@ -109,7 +127,7 @@ export default defineConfig(() => {
     },
     server: {
       host: '0.0.0.0',
-      port: 3000,
+      port: 3020,
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },

@@ -5,8 +5,8 @@ const ids = (list: Array<{ id: string }>) => list.map(w => w.id);
 
 describe('Módulos liberados por usuário', () => {
   it('sem restrição no cadastro: todos os módulos do perfil', () => {
-    expect(ids(getAvailableWorkspaces({}, { role: 'tecnico', allowedModules: null }))).toEqual(['ensaios', 'treinamentos']);
-    expect(ids(getAvailableWorkspaces({}, { role: 'tecnico' }))).toEqual(['ensaios', 'treinamentos']);
+    expect(ids(getAvailableWorkspaces({}, { role: 'tecnico', allowedModules: null }))).toEqual(['ensaios', 'treinamentos', 'spda']);
+    expect(ids(getAvailableWorkspaces({}, { role: 'tecnico' }))).toEqual(['ensaios', 'treinamentos', 'spda']);
   });
 
   it('restrito: só os módulos marcados', () => {
@@ -21,7 +21,7 @@ describe('Módulos liberados por usuário', () => {
   });
 
   it('módulo desligado para a empresa não aparece nem pode ser liberado', () => {
-    const info = { enabledModules: { treinamentos: false } };
+    const info = { enabledModules: { treinamentos: false, spda: false } };
     expect(ids(getAssignableModules(info))).toEqual(['ensaios']);
     expect(ids(getAvailableWorkspaces(info, { role: 'tecnico', allowedModules: null }))).toEqual(['ensaios']);
   });

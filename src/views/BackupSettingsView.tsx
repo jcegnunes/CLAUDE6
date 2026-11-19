@@ -55,6 +55,7 @@ import { saveFileLocally } from '../utils/nativeFileSaver';
 import { ValidationPortalService, DEFAULT_VALIDATION_BASE_URL, PortalConnectionResult } from '../services/validationPortalService';
 import { CompleteBackupModal } from '../components/CompleteBackupModal';
 import { CompanyUsersPanel } from '../components/CompanyUsersPanel';
+import { AccountRequestsPanel } from '../components/AccountRequestsPanel';
 import { PLATFORM_MODULES, isModuleEnabled } from '../modules/registry';
 import { FullBackupService, BackupStats, BackupProgressInfo } from '../services/fullBackupService';
 
@@ -1091,6 +1092,9 @@ export const BackupSettingsView: React.FC = () => {
 
             {/* SEÇÃO: USUÁRIOS E TÉCNICOS DA EMPRESA */}
             <CompanyUsersPanel onChange={() => setUsersList(DielectricStorageService.getUsers())} />
+
+            {/* SEÇÃO: PEDIDOS DE CONTA ("Criar conta") — só o administrador master */}
+            <AccountRequestsPanel />
 
             {/* SEÇÃO: ASSINATURAS PADRÃO DOS ANALISTAS EXECUTORES */}
             <div className="pt-3 border-t border-slate-200">
