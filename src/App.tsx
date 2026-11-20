@@ -745,6 +745,7 @@ export default function App() {
           isOnline={isOnline}
           onLogout={handleLogout}
           userName={currentUser.name}
+          userRole={currentUser.role}
           companyName={DielectricStorageService.getActiveCompany()?.name || ''}
         />
       ) : (

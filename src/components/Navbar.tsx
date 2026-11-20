@@ -363,18 +363,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <UserCircle2 className="w-3.5 h-3.5 text-blue-600" />
                     <span>Meu perfil e assinatura</span>
                   </button>
-                  {onOpenInstallModal && (
-                    <button
-                      onClick={() => {
-                        onOpenInstallModal();
-                        setUserDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer"
-                    >
-                      <Smartphone className="w-3.5 h-3.5 text-orange-500" />
-                      <span>Instalar App Android</span>
-                    </button>
-                  )}
+                  {/* "Instalar App Android" saiu daqui: o download do app fica no menu lateral (Baixar o aplicativo) */}
                   <button
                     onClick={() => {
                       onNavigate('validar');

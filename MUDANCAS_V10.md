@@ -283,3 +283,13 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 - O APK do SPDA não leva essa pasta dentro dele (o build do app apaga `www/apps`); o modo offline (PWA) não guarda os APKs
   e não intercepta os links `/apps/`. `public/_headers`: `/apps/*` com tipo de arquivo de APK e download.
 - Teste novo (APKs presentes e endereços). 384 testes passando.
+
+## 10.0.22 (APK versionCode 22) — Sair do sistema pelo nome do usuário (igual ao app de EPI)
+- Barra superior do APP JVM SPDA: no lugar do ícone Sair, o **nome do usuário** com as iniciais num círculo laranja.
+  Ao tocar, abre o quadro com nome completo, perfil e empresa, e a opção **Sair do Sistema** (vermelha).
+  Tocar em Sair do Sistema pede a confirmação (Cancelar / Sair), com aviso se houver alterações aguardando envio.
+  Tocar fora do quadro fecha.
+
+## 10.0.23 (plataforma web) — menu do usuário sem "Instalar App Android"
+- Ao clicar no nome do usuário (barra superior da plataforma), a opção **Instalar App Android** foi retirada:
+  o aplicativo do módulo é baixado pelo botão **Baixar o aplicativo** do menu lateral.
