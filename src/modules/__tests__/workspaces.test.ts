@@ -46,3 +46,12 @@ describe('Gestão de Acessos (só master)', () => {
     expect(ids(getAvailableWorkspaces({ enabledModules: { ensaios: false } }, { role: 'tecnico', allowedModules: null }))).toEqual(['treinamentos', 'spda']);
   });
 });
+
+describe('Tela inicial de cada módulo', () => {
+  it('o SPDA abre no Painel do SPDA (nunca no painel dos Ensaios de EPI)', () => {
+    const ws = getAvailableWorkspaces({}, { role: 'tecnico', allowedModules: null });
+    expect(ws.find(w => w.id === 'spda')?.home).toBe('spda_dashboard');
+    expect(ws.find(w => w.id === 'treinamentos')?.home).toBe('treinamentos');
+    expect(ws.find(w => w.id === 'ensaios')?.home).toBe('dashboard');
+  });
+});

@@ -251,3 +251,18 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   Pessoa física: "Nome completo", campo CPF (sem a busca da Receita) e "Registro profissional (CREA/CFT)".
 - Banco: **executar de novo `supabase/modules/cadastro.sql`** (a aprovação passa a criar a empresa). Testes do banco:
   todos passam (empresa criada na aprovação, pessoa jurídica, pessoa física sem documento e com CPF).
+
+## 10.0.18 (APK versionCode 19) — Configurações em branco para empresa nova; telas do master
+- **Empresa nova abre em branco** em Configurações & Backup (sem logotipo, RT, endereço… da empresa usada antes no
+  mesmo aparelho). Antes, ao entrar com outra empresa, a plataforma partia dos dados da anterior. Agora os dados ficam
+  marcados com a empresa dona (`ownerCompanyId`); ao trocar, começam em branco e os da empresa chegam do banco.
+  Só a conexão com o banco é mantida.
+- **Portal Público de Validação & Sincronização**, **Backup & Registros Fotográficos** e **Recarregar Dados do Banco**
+  só aparecem para o administrador master.
+- Teste novo: troca de empresa no aparelho (dados em branco; mesma empresa mantém os dados). 380 testes passando.
+
+## 10.0.19 (APK versionCode 20) — o SPDA abre no Painel do SPDA
+- Ao entrar na plataforma com o módulo SPDA, abria o painel dos **Ensaios de EPI** (com botões de EPI): o login, a troca
+  de usuário e a empresa nova pediam a tela "dashboard", que é a dos ensaios. Agora:
+  - a tela inicial de cada módulo é o painel dele (SPDA → **Painel do SPDA**; Treinamentos → painel dos treinamentos);
+  - se algo pedir o painel dos Ensaios de EPI com outro módulo aberto, vai para o painel desse módulo.

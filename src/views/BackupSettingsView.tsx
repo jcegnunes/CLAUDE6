@@ -66,6 +66,8 @@ import { FullBackupService, BackupStats, BackupProgressInfo } from '../services/
  */
 export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspaceId }) => {
   const isEnsaios = !workspaceId || workspaceId === 'ensaios';
+  // Portal de validação, backup e recarregar do banco: só o administrador master
+  const isMaster = !!DielectricStorageService.getCurrentUser()?.isMasterAdmin;
   const [company, setCompany] = useState<CompanyLabInfo>(DielectricStorageService.getCompanyInfo());
   // pessoa física: escolhida, ou sem escolha e com CPF (11 dígitos) no lugar do CNPJ
   const isPf = company.personType === 'pf' || (!company.personType && (company.cnpj || '').replace(/\D/g, '').length === 11);
@@ -1479,6 +1481,8 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
 
                         </>)}
 
+            {/* portal de validação e sincronização: só o administrador master */}
+            {isMaster && (<>
             {/* SEÇÃO: PORTAL PÚBLICO DE VALIDAÇÃO & SINCRONIZAÇÃO */}
             <div className="pt-4 border-t-2 border-emerald-100 bg-gradient-to-br from-emerald-50/40 via-blue-50/30 to-slate-50 p-4 rounded-2xl border border-emerald-200 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-200/80 pb-2.5">
@@ -1622,6 +1626,7 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
                 </div>
               </div>
             </div>
+            </>)}
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-200">
               {savedSuccess && (
@@ -1749,6 +1754,8 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
 
                       </>)}
 
+            {/* backup e recarregar do banco: só o administrador master */}
+            {isMaster && (<>
             {/* Backup & Registros Fotográficos Card */}
           <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -1878,7 +1885,9 @@ export const BackupSettingsView: React.FC<{ workspaceId?: string }> = ({ workspa
               Limpar e Recarregar do Banco
             </button>
           </div>
-        </div>
+            </>)}
+
+                    </div>
       </div>
 
       {/* Complete Backup & Photographic Records Modal */}

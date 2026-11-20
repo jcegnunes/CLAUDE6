@@ -593,8 +593,9 @@ export class DielectricStorageService {
   }
 
   static setActiveCompany(company: Company): void {
+    const previousId = getLocal<Company | null>(STORAGE_KEYS.ACTIVE_COMPANY, null)?.id || '';
     setLocal(STORAGE_KEYS.ACTIVE_COMPANY, company);
-    this.syncCompanyInfoFromCompany(company);
+    this.syncCompanyInfoFromCompany(company, previousId);
     window.dispatchEvent(new CustomEvent('jvm-company-changed', { detail: { company } }));
     window.dispatchEvent(new Event('jvm-data-changed'));
   }
@@ -608,8 +609,28 @@ export class DielectricStorageService {
     return null;
   }
 
-  static syncCompanyInfoFromCompany(company: Company): void {
-    const currentInfo = this.getCompanyInfo();
+  /**
+   * Dados da empresa usados nos documentos. Ao trocar para OUTRA empresa no mesmo aparelho, começa em
+   * branco (sem logotipo, RT, endereço… da empresa anterior); só a conexão com o banco é mantida.
+   * Os dados próprios da empresa chegam do banco (lab_info) na sincronização.
+   */
+  static syncCompanyInfoFromCompany(company: Company, previousCompanyId = ''): void {
+    const stored = this.getCompanyInfo();
+    const owner = stored.ownerCompanyId || previousCompanyId;
+    const fromOtherCompany = owner
+      ? owner !== company.id
+      : !!((stored.cnpj && company.cnpj && stored.cnpj !== company.cnpj) || (stored.name && company.name && stored.name !== company.name));
+    const currentInfo: CompanyLabInfo = fromOtherCompany
+      ? {
+          ...JVM_COMPANY_INFO,
+          supabaseUrl: stored.supabaseUrl,
+          supabaseAnonKey: stored.supabaseAnonKey,
+          supabaseEnabled: stored.supabaseEnabled,
+          supabaseAutoSync: stored.supabaseAutoSync,
+          lastSupabaseSyncTime: stored.lastSupabaseSyncTime,
+          validationBaseUrl: stored.validationBaseUrl || JVM_COMPANY_INFO.validationBaseUrl
+        }
+      : stored;
     const formattedCityState = `${company.city || ''} - ${company.state || ''}${company.cep ? `, CEP: ${company.cep}` : ''}`.trim();
     const updatedInfo: CompanyLabInfo = {
       ...currentInfo,
@@ -629,7 +650,8 @@ export class DielectricStorageService {
       website: company.website || currentInfo.website,
       logoUrl: company.logoUrl !== undefined ? company.logoUrl : currentInfo.logoUrl,
       technicalResponsible: company.technicalResponsible || currentInfo.technicalResponsible,
-      certificateEmissionSettings: company.certificateEmissionSettings || currentInfo.certificateEmissionSettings
+      certificateEmissionSettings: company.certificateEmissionSettings || currentInfo.certificateEmissionSettings,
+      ownerCompanyId: company.id
     };
     setLocal(STORAGE_KEYS.COMPANY, updatedInfo);
   }

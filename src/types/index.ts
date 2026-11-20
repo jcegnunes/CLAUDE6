@@ -573,6 +573,8 @@ export interface CompanyLabInfo {
   enabledModules?: Record<string, boolean>;
   /** Cadastro como pessoa jurídica (CNPJ, razão social) ou pessoa física (CPF, nome completo) */
   personType?: 'pj' | 'pf';
+  /** Empresa dona destes dados no aparelho (ao trocar de empresa, os dados começam em branco) */
+  ownerCompanyId?: string;
   /** Parâmetros do módulo SPDA (Configuração do Sistema → Parâmetros do SPDA) */
   spdaSettings?: {
     /** prefixo da numeração das inspeções/laudos (padrão "SPDA-") → SPDA-2026-0001 */

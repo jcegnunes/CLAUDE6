@@ -59,7 +59,8 @@ export function getAvailableWorkspaces(
       label: m.label,
       description: m.description,
       icon: m.icon,
-      home: m.id,
+      // tela inicial: o painel do módulo (item "top" do menu, ex.: Dashboard do SPDA) ou a tela principal
+      home: m.menuItems?.find(it => it.top)?.id || m.id,
       // Dashboard do módulo e blocos do topo (ex.: Clientes) vêm antes do bloco do módulo
       groups: [`mod-${m.id}-inicio`, ...(m.workspace?.topGroups || []), `mod-${m.id}`, ...(m.workspace?.sharedGroups || ['validacao', 'sistema'])],
       hiddenItems: m.workspace?.hiddenItems || [],

@@ -122,13 +122,14 @@ export default function App() {
   // "Trocar" no menu: volta para a tela de escolha (o último usado fica marcado)
   const switchWorkspace = availableWorkspaces.length > 1 ? () => setWorkspaceId(null) : undefined;
 
-  // Tela inicial do módulo ao reabrir o app
+  // Tela inicial do módulo: o painel dos Ensaios de EPI ("dashboard") nunca abre dentro de outro módulo
+  // (login, troca de usuário e empresa nova pedem "dashboard"; no SPDA vai para o Painel do SPDA)
   useEffect(() => {
-    if (currentWorkspace && activeView === 'dashboard' && currentWorkspace.home !== 'dashboard') {
+    if (currentWorkspace && (activeView === 'dashboard' || activeView === 'android_home') && currentWorkspace.home !== 'dashboard') {
       setActiveView(currentWorkspace.home);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, activeView]);
 
   /**
    * Sessão da empresa: remove do aparelho dados de outras empresas e inicia a
