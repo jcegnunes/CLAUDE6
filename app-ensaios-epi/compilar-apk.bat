@@ -67,6 +67,10 @@ if not "%RESULT%"=="0" (
 )
 
 copy /y "app\build\outputs\apk\debug\app-debug.apk" "JVM-Ensaios-EPI.apk" >nul
+rem publica junto com a plataforma web (botao "Baixar o aplicativo")
+if not exist "..\public\apps" mkdir "..\public\apps"
+copy /y "JVM-Ensaios-EPI.apk" "..\public\apps\JVM-Ensaios-EPI.apk" >nul
+echo   Copiado para ..\public\apps\ (vai para o site ao publicar com publicar.bat)
 echo.
 echo ==============================================================
 echo   APK gerado: %~dp0JVM-Ensaios-EPI.apk

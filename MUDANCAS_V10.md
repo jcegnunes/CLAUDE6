@@ -266,3 +266,20 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   de usuário e a empresa nova pediam a tela "dashboard", que é a dos ensaios. Agora:
   - a tela inicial de cada módulo é o painel dele (SPDA → **Painel do SPDA**; Treinamentos → painel dos treinamentos);
   - se algo pedir o painel dos Ensaios de EPI com outro módulo aberto, vai para o painel desse módulo.
+
+## 10.0.20 (APK versionCode 21) — botão Sair no APP JVM SPDA
+- Barra superior do APP: ícone **Sair** (à direita do Sincronizar). Abre um quadro com o nome do usuário e a empresa,
+  aviso se houver alterações aguardando envio, e os botões **Cancelar** / **Sair do sistema** (logoff; volta à tela
+  de login).
+
+## 10.0.21 (plataforma web) — baixar o aplicativo de cada módulo
+- Menu lateral da plataforma: botão laranja **Baixar o aplicativo**, conforme o módulo aberto:
+  - **SPDA** → APP JVM SPDA (`apps/JVM-SPDA.apk`);
+  - **Ensaios de EPI** → APP JVM Ensaios de EPI (`apps/JVM-Ensaios-EPI.apk`; instala por cima do app atual, mantendo os dados).
+  Abre um quadro com **QR Code** (apontar a câmera do celular), o botão de download do .apk e o passo a passo de instalação.
+  Não aparece dentro do próprio APP.
+- Os APKs ficam em `public/apps/` e vão para o site ao publicar com `publicar.bat`. Os dois `compilar-apk.bat`
+  (android-spda e app-ensaios-epi) copiam o APK novo para lá automaticamente.
+- O APK do SPDA não leva essa pasta dentro dele (o build do app apaga `www/apps`); o modo offline (PWA) não guarda os APKs
+  e não intercepta os links `/apps/`. `public/_headers`: `/apps/*` com tipo de arquivo de APK e download.
+- Teste novo (APKs presentes e endereços). 384 testes passando.

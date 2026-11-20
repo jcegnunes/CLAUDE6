@@ -1,6 +1,6 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import {readFileSync} from 'fs';
+import fs, {readFileSync} from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 import {VitePWA} from 'vite-plugin-pwa';
@@ -31,6 +31,11 @@ export default defineConfig(({ mode }) => {
           .replace(/<title>[^<]*<\/title>/, '<title>JVM SPDA — Inspeção e ensaios de SPDA</title>')
           .replace('content="JVM Ensaios"', 'content="JVM SPDA"')
           .replace('content="JVM Ensaios Dielétricos"', 'content="JVM SPDA"')
+      },
+      // APP JVM SPDA: os APKs de public/apps/ (download na plataforma web) não entram no app
+      spdaApp && {
+        name: 'jvm-spda-app-sem-apks',
+        closeBundle: () => fs.rmSync(path.resolve(__dirname, 'android-spda/app/src/main/assets/www/apps'), { recursive: true, force: true })
       },
       /**
        * PWA (só na plataforma web): o app pode ser instalado pelo navegador (Android e iPhone) e abre
@@ -71,7 +76,7 @@ export default defineConfig(({ mode }) => {
           navigateFallback: '/index.html',
           // validador: sempre pela rede, para receber os cabeçalhos que liberam o Wix;
           // retorno do certificado em nuvem: página própria, nunca o app
-          navigateFallbackDenylist: [/^\/validar/i, /^\/validador/i, /^\/psc-retorno/i],
+          navigateFallbackDenylist: [/^\/apps\//i, /^\/validar/i, /^\/validador/i, /^\/psc-retorno/i],
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           skipWaiting: true,

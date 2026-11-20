@@ -25,6 +25,7 @@ import { UserRole } from '../types';
 import { DielectricStorageService } from '../services/syncEngine';
 import { PLATFORM_MODULES, canSeeModule, isModuleEnabled } from '../modules/registry';
 import type { Workspace } from '../modules/workspaces';
+import { ModuleAppDownload } from './ModuleAppDownload';
 import { APP_NAME, APP_TARGET } from '../appTarget';
 
 type NavItem = { id: string; label: string; icon: React.ElementType; roles: UserRole[]; badge?: string; highlight?: boolean };
@@ -230,6 +231,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           );
         })}
+        {/* Baixar o aplicativo do módulo aberto (SPDA → APP JVM SPDA; Ensaios de EPI → APP de EPI) */}
+        <ModuleAppDownload workspaceId={workspace?.id || 'ensaios'} />
+
         {/* App Android Quick Banner in Sidebar */}
         {(!workspace || workspace.id === 'ensaios') && (
         <div className="pt-2 pb-1">

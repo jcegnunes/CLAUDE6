@@ -10,8 +10,8 @@ android {
         applicationId "br.com.jvmengenharia.jvmspda"
         minSdk 24
         targetSdk 35
-        versionCode 20
-        versionName "10.0.19"
+        versionCode 21
+        versionName "10.0.20"
     }
 
     buildTypes {

@@ -743,6 +743,9 @@ export default function App() {
           isSyncing={isSyncing}
           pendingSyncCount={pendingSyncCount}
           isOnline={isOnline}
+          onLogout={handleLogout}
+          userName={currentUser.name}
+          companyName={DielectricStorageService.getActiveCompany()?.name || ''}
         />
       ) : (
       <Navbar
