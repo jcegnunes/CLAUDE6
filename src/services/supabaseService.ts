@@ -310,6 +310,28 @@ export class SupabaseService {
     }
   }
 
+  /**
+   * O usuário logado continua com acesso? (jvm_me com a sessão deste aparelho)
+   * - 'blocked': usuário bloqueado ou excluído no cadastro
+   * - 'expired': acesso da empresa venceu
+   * - 'unknown': sem internet, sem sessão ou erro de rede (não decide nada)
+   */
+  static async checkAccountAccess(): Promise<{ state: 'ok' | 'blocked' | 'expired' | 'unknown'; error?: string }> {
+    try {
+      if (!this.getConfig().enabled || !(await this.getSession())) return { state: 'unknown' };
+      const { data, error } = await this.getClient().rpc('jvm_me');
+      if (error) return { state: 'unknown' };
+      const payload: any = typeof data === 'string' ? JSON.parse(data) : data;
+      if (payload?.ok === true) return { state: 'ok' };
+      const msg = String(payload?.error || '');
+      if (/inativo|não cadastrado/i.test(msg)) return { state: 'blocked', error: msg };
+      if (/venceu/i.test(msg)) return { state: 'expired', error: msg };
+      return { state: 'unknown' };
+    } catch {
+      return { state: 'unknown' };
+    }
+  }
+
   /** Encerra a sessão do Supabase neste aparelho (funciona também offline). */
   static async signOut(): Promise<void> {
     try {

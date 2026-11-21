@@ -293,3 +293,42 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 ## 10.0.23 (plataforma web) — menu do usuário sem "Instalar App Android"
 - Ao clicar no nome do usuário (barra superior da plataforma), a opção **Instalar App Android** foi retirada:
   o aplicativo do módulo é baixado pelo botão **Baixar o aplicativo** do menu lateral.
+
+## 10.0.24 (APK versionCode 23 + plataforma web) — login vence a cada 7 dias; login offline no APP
+- **Novo login a cada 7 dias** (APP JVM SPDA e plataforma web): passados 7 dias do último login com senha, o sistema
+  volta à tela de login com o aviso "Por segurança, a cada 7 dias é preciso entrar novamente com usuário e senha."
+  Vale ao abrir e também com o sistema aberto (confere a cada minuto e ao voltar para a tela).
+  Trocar de empresa ou de perfil não renova o prazo; só digitar a senha de novo (online ou offline).
+  Os dados no aparelho que ainda não foram enviados continuam lá.
+- **Login offline**: sem internet, entra quem já entrou com internet neste aparelho nos últimos 30 dias (senha conferida
+  pela prova PBKDF2 guardada no aparelho). Novo: com sinal fraco (conectado mas o banco não responde), quem tem
+  acesso offline no aparelho entra offline depois de 15 s, em vez de ficar preso esperando.
+- Testes novos (`authSession.test.ts`): prazo de 7 dias, troca de empresa, login offline, sinal fraco. 389 testes passando.
+
+## 10.0.25 (APK versionCode 24 + plataforma web) — usuário bloqueado sai na hora
+- Com internet, o sistema aberto confere no banco (jvm_me) a cada minuto, ao voltar para a tela e ao reconectar,
+  se o usuário continua ativo:
+  - **bloqueado ou excluído** → sai na hora ("Acesso bloqueado: Usuário inativo…") e a **senha offline dele é apagada
+    neste aparelho** (não entra mais nem sem internet);
+  - **acesso da empresa vencido** → sai com o aviso da validade;
+  - sem internet ou erro de rede → não faz nada (o trabalho de campo continua).
+- Ao tentar entrar com internet e o banco responder "inativo", a senha offline daquele login também é apagada.
+- Limite que continua: um celular que nunca se conecta não fica sabendo do bloqueio; nele vale o prazo do login offline
+  (30 dias desde o último login com internet) e o banco recusa qualquer envio desse usuário.
+- Testes novos (bloqueio com o sistema aberto, login recusado, validade vencida, sem internet). 393 testes passando.
+
+## 10.0.26 (APK versionCode 25) — miliohmímetro INBRAT INMD 1 Pro pelo Bluetooth
+- Protocolo levantado do registro HCI de um ensaio feito com o Inbrat Connect: `android-spda/PROTOCOLO_INBRAT_INMD1PRO.md`
+  (nome do ensaio → partida → resultado em ~6 s com resistência em mΩ e corrente em A). Conferido com o visor: 352,2 mΩ.
+- **Cadastro do instrumento** (Instrumentos → editar): seção **Comunicação Bluetooth** → "INBRAT INMD 1 Pro" →
+  **Parear** (busca 10 s; o aparelho aparece como "IN433A", marcado INBRAT). Grava nome e endereço do aparelho no
+  instrumento (vai para o Supabase dentro do payload; nada muda no banco). Na plataforma web mostra o pareado e permite
+  remover; o pareamento é pelo APP.
+- **Ensaio de continuidade** (Captação/Descida/Aterramento/DPS/Ensaios, ao editar): botão azul **Bluetooth** ao lado
+  do valor medido. Conecta, dá a partida, mostra o valor (mΩ), a corrente e o nº do ensaio no instrumento; **Usar valor**
+  grava a resistência e a corrente no ensaio e registra a origem ("Lido pelo Bluetooth: INBRAT … nº … ensaio nº …").
+  Fora de escala (pontas abertas, 3000 mΩ) ou erro: avisa e não grava. Digitar o valor à mão apaga a marca de origem.
+  Usa o instrumento pareado com o mesmo nº de série do instrumento de continuidade da inspeção (ou o primeiro pareado).
+- Android: `InbratBle.java` (busca e medição BLE) + ponte `bleScan/bleMeasure/bleCancel` no MainActivity; pede as
+  permissões de Bluetooth (dispositivos próximos) e localização na primeira vez.
+- Testes novos com os bytes reais do ensaio (352,244 mΩ / 1,143 A; 3000 mΩ = fora de escala). 399 testes passando.

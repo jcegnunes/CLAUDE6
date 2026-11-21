@@ -17,7 +17,11 @@ const OFFLINE_CREDENTIALS_KEY = 'jvm_offline_credentials';
 const OFFLINE_VALIDITY_DAYS = 30;
 const PBKDF2_ITERATIONS = 150000;
 const DB_SESSION_PREFIX = 'jvm_db_session_';
+/** A cada 7 dias o usuário digita a senha de novo (APP e plataforma web; vale também para o login offline). */
+export const SESSION_MAX_DAYS = 7;
+export const SESSION_EXPIRED_REASON = `Por segurança, a cada ${SESSION_MAX_DAYS} dias é preciso entrar novamente com usuário e senha.`;
 const LOGOUT_REASON_KEY = 'jvm_logout_reason';
+const ONLINE_LOGIN_WAIT_MS = 15000;
 
 function toBase64(bytes: ArrayBuffer | Uint8Array): string {
   const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
@@ -75,7 +79,16 @@ export class AuthService {
 
     const online = typeof navigator === 'undefined' || navigator.onLine !== false;
     if (online) {
-      const res = await SupabaseService.authenticateWithSupabase(cleanLogin, password, companyId);
+      // sinal fraco no campo (conectado mas sem resposta): quem já tem acesso offline neste aparelho
+      // não fica preso esperando, entra offline após ONLINE_LOGIN_WAIT_MS
+      const hasOffline = this.readOfflineCredentials().some(c => c.logins.includes(cleanLogin));
+      const attempt = SupabaseService.authenticateWithSupabase(cleanLogin, password, companyId);
+      const res = hasOffline
+        ? await Promise.race([
+            attempt,
+            new Promise<Awaited<typeof attempt>>(r => setTimeout(() => r({ success: false, networkError: true, error: 'Sem resposta do banco de dados.' }), ONLINE_LOGIN_WAIT_MS))
+          ])
+        : await attempt;
       if (res.success && res.user) {
         DielectricStorageService.clearLegacyPendingPasswords();
         const user = this.applyCompany(res.user, companyId);
@@ -84,6 +97,8 @@ export class AuthService {
         return { success: true, user, source: 'supabase' };
       }
       if (!res.networkError) {
+        // bloqueado/excluído: a senha offline guardada neste aparelho deixa de valer
+        if (/inativo|não cadastrado/i.test(res.error || '')) this.forgetOfflineLogin(cleanLogin);
         return { success: false, error: res.error || 'Usuário ou senha inválidos.' };
       }
     }
@@ -164,6 +179,14 @@ export class AuthService {
     } catch {
       return null;
     }
+  }
+
+  /** Remove o acesso offline de quem usa este login (e-mail ou usuário) neste aparelho. */
+  private static forgetOfflineLogin(login: string): void {
+    try {
+      const rest = this.readOfflineCredentials().filter(c => !c.logins.includes(login));
+      localStorage.setItem(OFFLINE_CREDENTIALS_KEY, JSON.stringify(rest));
+    } catch { /* sem armazenamento: nada a apagar */ }
   }
 
   /** Remove o acesso offline de um usuário neste aparelho. */
@@ -286,6 +309,48 @@ export class AuthService {
 
   static isAuthenticated(): boolean {
     const token = this.getSessionToken();
-    return this.getCurrentUser() !== null && !!token && token.startsWith(DB_SESSION_PREFIX);
+    return this.getCurrentUser() !== null && !!token && token.startsWith(DB_SESSION_PREFIX) && !this.isSessionExpired();
+  }
+
+  /** Momento do último login com senha neste aparelho (online ou offline). */
+  static sessionStartedAt(): number | null {
+    const token = this.getSessionToken();
+    if (!token || !token.startsWith(DB_SESSION_PREFIX)) return null;
+    const ts = Number(token.slice(DB_SESSION_PREFIX.length));
+    return Number.isFinite(ts) && ts > 0 ? ts : null;
+  }
+
+  /** true quando já passaram SESSION_MAX_DAYS desde o último login com senha. */
+  static isSessionExpired(now: number = Date.now()): boolean {
+    const started = this.sessionStartedAt();
+    if (started === null) return false; // sem sessão: não há o que expirar
+    return now - started > SESSION_MAX_DAYS * 86400000 || started > now + 86400000; // relógio adiantado no login também não vale
+  }
+
+  /**
+   * Com internet, confere no banco se o usuário logado continua ativo. Bloqueado ou excluído:
+   * sai na hora e apaga a senha offline dele neste aparelho (não entra mais nem sem internet).
+   * Acesso da empresa vencido: sai com o aviso. Sem internet ou erro de rede: não faz nada.
+   */
+  static async enforceAccountAccess(): Promise<'ok' | 'blocked' | 'expired' | 'unknown'> {
+    const user = this.getCurrentUser();
+    if (!user || (typeof navigator !== 'undefined' && navigator.onLine === false)) return 'unknown';
+    const res = await SupabaseService.checkAccountAccess();
+    const still = this.getCurrentUser();
+    if (!still || still.id !== user.id) return res.state; // trocou de usuário enquanto conferia
+    if (res.state === 'blocked') {
+      this.forgetOfflineCredential(user.id);
+      this.logout(`Acesso bloqueado: ${res.error || 'usuário inativo. Contate o administrador.'}`);
+    } else if (res.state === 'expired') {
+      this.logout(res.error);
+    }
+    return res.state;
+  }
+
+  /** Encerra a sessão vencida (mostra o motivo na tela de login). Retorna true se saiu. */
+  static enforceSessionLimit(now: number = Date.now()): boolean {
+    if (this.getCurrentUser() === null || !this.isSessionExpired(now)) return false;
+    this.logout(SESSION_EXPIRED_REASON);
+    return true;
   }
 }

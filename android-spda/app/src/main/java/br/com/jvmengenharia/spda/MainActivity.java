@@ -59,6 +59,7 @@ public class MainActivity extends Activity {
     private static final int FILE_CHOOSER_RESULT_CODE = 1001;
     private static final int PERMISSION_REQUEST_CODE = 1002;
     private static final int CAMERA_PERMISSION_CODE = 1003;
+    private static final int BLE_PERMISSION_CODE = 1004;
     private static final String APP_URL = "https://appassets.androidplatform.net/assets/www/index.html";
     private WebViewAssetLoader assetLoader;
 
@@ -69,6 +70,10 @@ public class MainActivity extends Activity {
     // pedidos que aguardam a permissão de câmera do Android
     private PermissionRequest pendingWebPermission;
     private Runnable pendingCameraAction;
+    /** Bluetooth do miliohmímetro INBRAT INMD 1 Pro (InbratBle.java) */
+    private InbratBle inbratBle;
+    private Runnable pendingBleAction;
+    private String pendingBleRequestId;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -300,6 +305,15 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == BLE_PERMISSION_CODE) {
+            Runnable r = pendingBleAction;
+            String rid = pendingBleRequestId;
+            pendingBleAction = null;
+            pendingBleRequestId = null;
+            if (hasBlePermission()) { if (r != null) r.run(); }
+            else sendBle(rid, "{\"type\":\"error\",\"message\":\"Permita o Bluetooth (dispositivos próximos) e a localização para o app nas configurações do celular.\"}");
+            return;
+        }
         if (requestCode != CAMERA_PERMISSION_CODE) return;
         boolean granted = hasCameraPermission();
         if (pendingWebPermission != null) {
@@ -315,6 +329,43 @@ public class MainActivity extends Activity {
         if (!granted) {
             Toast.makeText(this, "Permita o acesso à câmera nas configurações do app para fotografar o visor.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    // ------------------------------------------------------------ Bluetooth (INMD 1 Pro)
+    private String[] blePermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return new String[]{Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.ACCESS_FINE_LOCATION};
+        }
+        return new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
+    }
+
+    private boolean hasBlePermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return true;
+        for (String p : blePermissions()) {
+            // a busca BLE devolve resultados só com localização (o manifesto não usa neverForLocation)
+            if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) return false;
+        }
+        return true;
+    }
+
+    /** Roda a ação do Bluetooth depois de garantir as permissões. */
+    private void withBle(String requestId, Runnable action) {
+        if (inbratBle == null) inbratBle = new InbratBle(this, (rid, event) -> sendBle(rid, event.toString()));
+        if (hasBlePermission()) { action.run(); return; }
+        pendingBleAction = action;
+        pendingBleRequestId = requestId;
+        requestPermissions(blePermissions(), BLE_PERMISSION_CODE);
+    }
+
+    private void sendBle(String requestId, String json) {
+        final String js = "window.__spdaBle && window.__spdaBle(" + org.json.JSONObject.quote(requestId == null ? "" : requestId) + "," + json + ")";
+        runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(js, null); });
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (inbratBle != null) inbratBle.release();
+        super.onDestroy();
     }
 
     private File createPhotoFile() {
@@ -522,6 +573,27 @@ public class MainActivity extends Activity {
                 while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
                 return bos.toByteArray();
             }
+        }
+
+        /** Bluetooth do miliohmímetro INBRAT INMD 1 Pro disponível neste app */
+        @JavascriptInterface
+        public boolean bleAvailable() {
+            return true;
+        }
+
+        @JavascriptInterface
+        public void bleScan(final String requestId, final int seconds) {
+            MainActivity.this.runOnUiThread(() -> withBle(requestId, () -> inbratBle.scan(requestId, seconds)));
+        }
+
+        @JavascriptInterface
+        public void bleMeasure(final String requestId, final String address, final String testName) {
+            MainActivity.this.runOnUiThread(() -> withBle(requestId, () -> inbratBle.measure(requestId, address, testName)));
+        }
+
+        @JavascriptInterface
+        public void bleCancel() {
+            MainActivity.this.runOnUiThread(() -> { if (inbratBle != null) { inbratBle.stopScan(); inbratBle.cancel(); } });
         }
 
         @JavascriptInterface

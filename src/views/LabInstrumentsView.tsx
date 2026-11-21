@@ -25,7 +25,8 @@ import {
   Building2,
   Sparkles
 } from 'lucide-react';
-import { LabInstrument } from '../types';
+import { LabInstrument, InstrumentBluetooth } from '../types';
+import { InstrumentBluetoothField } from '../components/InstrumentBluetoothField';
 import { DielectricStorageService } from '../services/syncEngine';
 import { StatusBadge } from '../components/StatusBadge';
 import { formatDateBR } from '../utils/dateUtils';
@@ -69,6 +70,7 @@ export const LabInstrumentsView: React.FC = () => {
   const [maxVoltageCapacity_kV, setMaxVoltageCapacity_kV] = useState(50);
   const [measurementRange, setMeasurementRange] = useState('');
   const [notes, setNotes] = useState('');
+  const [bluetooth, setBluetooth] = useState<InstrumentBluetooth | undefined>(undefined);
   
   // Image and Certificate attachment state
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
@@ -139,6 +141,7 @@ export const LabInstrumentsView: React.FC = () => {
     setMaxVoltageCapacity_kV(50);
     setMeasurementRange('0 a 50 kV CA / 0 a 100 mA');
     setNotes('Instrumento padrão verificado para ensaios dielétricos.');
+    setBluetooth(undefined);
     setImageUrl(undefined);
     setCertFileUrl(undefined);
     setCertFileName(undefined);
@@ -163,6 +166,7 @@ export const LabInstrumentsView: React.FC = () => {
     setMaxVoltageCapacity_kV(inst.maxVoltageCapacity_kV || 50);
     setMeasurementRange(inst.measurementRange || '');
     setNotes(inst.notes || '');
+    setBluetooth(inst.bluetooth);
     setImageUrl(inst.imageUrl);
     setCertFileUrl(inst.certFileUrl);
     setCertFileName(inst.certFileName);
@@ -220,7 +224,8 @@ export const LabInstrumentsView: React.FC = () => {
       notes: notes.trim() || 'Instrumento de ensaio verificado.',
       imageUrl,
       certFileUrl,
-      certFileName
+      certFileName,
+      bluetooth
     };
 
     DielectricStorageService.saveInstrument(instrumentData);
@@ -839,6 +844,9 @@ export const LabInstrumentsView: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Comunicação Bluetooth (miliohmímetro INBRAT INMD 1 Pro) */}
+              <InstrumentBluetoothField key={editingInstrument?.id || 'novo'} value={bluetooth} onChange={setBluetooth} />
 
               {/* Observações */}
               <div>

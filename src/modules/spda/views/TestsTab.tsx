@@ -19,6 +19,7 @@ import { DecimalField, Field, RESULT_ACCENT, TestBadge, TestResultBanner, btnDan
 import { TestPhotos } from './TestPhotos';
 import { PlateauChart } from './PlateauChart';
 import { ReadingCaptureButton } from './ReadingCapture';
+import { BleMeasureButton } from './BleMeasureButton';
 import { confirmAsk, notify } from './dialogs';
 
 type Props = {
@@ -101,7 +102,7 @@ const ContinuityIdentity: React.FC<{ t: ContinuityTest; code: string; buildingNa
   );
 };
 
-const ContinuityRow: React.FC<{ t: ContinuityTest; code: string; buildingName?: string; readOnly: boolean; editing: boolean; set: (p: Partial<ContinuityTest>) => void; actions: React.ReactNode }> = ({ t, code, buildingName, readOnly, editing, set, actions }) => {
+const ContinuityRow: React.FC<{ t: ContinuityTest; code: string; buildingName?: string; readOnly: boolean; editing: boolean; set: (p: Partial<ContinuityTest>) => void; actions: React.ReactNode; instrumentSerial?: string }> = ({ t, code, buildingName, readOnly, editing, set, actions, instrumentSerial }) => {
   const caption = `${code} · ${CONTINUITY_GROUP_INFO[continuityGroupOf(t)].label}${buildingName ? ` · ${buildingName}` : ''} — continuidade ${t.from || 'ponto'} → ${t.to || 'ponto'}`;
   const status = continuityStatus(t);
   const limit = fmtMilliOhm(CONTINUITY_LIMIT_OHM);
@@ -130,17 +131,29 @@ const ContinuityRow: React.FC<{ t: ContinuityTest; code: string; buildingName?: 
         </label>
         <div className="text-[10px] text-slate-500">Valor medido (mΩ)
           <div className="flex items-center gap-1">
-            <DecimalField className={smallInput} disabled={readOnly} value={toMilli(t.resistanceOhm)} onChange={n => set({ resistanceOhm: fromMilli(n) })} ariaLabel="Resistência medida (mΩ)" />
+            <DecimalField className={smallInput} disabled={readOnly} value={toMilli(t.resistanceOhm)} onChange={n => set({ resistanceOhm: fromMilli(n), reading: undefined })} ariaLabel="Resistência medida (mΩ)" />
+            {!readOnly && (
+              <BleMeasureButton
+                testName={code}
+                preferredSerial={instrumentSerial}
+                onUse={(value, currentA, reading) => set({ resistanceOhm: value, currentA, reading })}
+              />
+            )}
             {!readOnly && (
               <ReadingCaptureButton
                 unit="mΩ"
                 caption={caption}
-                onUse={(value, photo) => set({ resistanceOhm: value, ...(photo ? { photos: [...(t.photos || []), photo] } : {}) })}
+                onUse={(value, photo) => set({ resistanceOhm: value, reading: undefined, ...(photo ? { photos: [...(t.photos || []), photo] } : {}) })}
               />
             )}
           </div>
         </div>
       </div>
+      {t.reading && (
+        <p className="text-[10px] text-blue-700 flex items-center gap-1">
+          Lido pelo Bluetooth: {t.reading.instrument}{t.reading.deviceTestNo != null ? `, ensaio nº ${t.reading.deviceTestNo}` : ''} — {new Date(t.reading.at).toLocaleString('pt-BR')}
+        </p>
+      )}
       {currentOutOfRange(t) && (
         <p className="text-[10px] text-amber-700 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Corrente fora da faixa de 1 A a 5 A (F.1.3.1).</p>
       )}
@@ -264,6 +277,7 @@ export const TestsTab: React.FC<Props> = ({ value: v, onChange, readOnly, kinds,
                 t={t}
                 code={continuityCode(v.continuity, t)}
                 buildingName={building?.name || undefined}
+                instrumentSerial={v.instruments.find(i => i.use === 'continuidade')?.serialNumber}
                 readOnly={readOnly || !editing}
                 editing={editing}
                 set={cd.update}

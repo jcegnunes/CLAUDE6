@@ -91,7 +91,33 @@ export default function App() {
   const pathValidationCode = isDirectValidation ? validationCodeFromLocation(currentPath, window.location.search) : '';
 
   // Auth & Multi-Company Login State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => AuthService.isAuthenticated());
+  // login vence a cada 7 dias (AuthService.SESSION_MAX_DAYS): ao abrir já vai para a tela de login com o aviso
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => { AuthService.enforceSessionLimit(); return AuthService.isAuthenticated(); });
+
+  // ...e também com o sistema aberto (aparelho que fica ligado de um dia para o outro)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    // prazo de 7 dias + usuário bloqueado/excluído no cadastro (confere no banco quando há internet)
+    let lastAccessCheck = 0;
+    const check = () => {
+      if (AuthService.enforceSessionLimit()) return;
+      if (Date.now() - lastAccessCheck < 60000) return;
+      lastAccessCheck = Date.now();
+      void AuthService.enforceAccountAccess();
+    };
+    check();
+    const timer = window.setInterval(check, 60000);
+    window.addEventListener('online', check);
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', check);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', check);
+      window.removeEventListener('online', check);
+    };
+  }, [isAuthenticated]);
 
   // App Navigation & User State
   const [activeView, setActiveView] = useState<string>(isDirectValidation ? 'validar' : 'dashboard');

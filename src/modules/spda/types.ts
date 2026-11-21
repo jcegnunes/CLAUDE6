@@ -120,6 +120,20 @@ export interface ContinuityTest {
   obs?: string;
   /** Registro fotográfico do ensaio */
   photos?: SpdaPhoto[];
+  /** Valor lido direto do instrumento pelo Bluetooth (rastreabilidade da medição) */
+  reading?: InstrumentReading;
+}
+
+export interface InstrumentReading {
+  source: 'bluetooth';
+  /** ex.: "INBRAT INMD 1 Pro — nº ML2511013" */
+  instrument: string;
+  serial?: string;
+  /** nº do ensaio na memória do instrumento */
+  deviceTestNo?: number;
+  resistanceMilliOhm: number;
+  currentA?: number;
+  at: string;
 }
 
 export type GroundingMethod = 'queda_potencial' | 'alicate' | 'outro';

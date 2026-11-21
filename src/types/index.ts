@@ -265,6 +265,20 @@ export interface LabInstrument {
   updatedAt?: string;
   deletedAt?: string; // Exclusão lógica (propagada ao Supabase)
   syncStatus?: 'synced' | 'pending' | 'conflict';
+  /** Comunicação Bluetooth com o aparelho (pareada pelo APP JVM SPDA) */
+  bluetooth?: InstrumentBluetooth;
+}
+
+/** Instrumento pareado por Bluetooth (hoje: miliohmímetro INBRAT INMD 1 Pro). */
+export interface InstrumentBluetooth {
+  protocol: 'inbrat-inmd1pro';
+  /** nome anunciado no Bluetooth (ex.: IN433A) */
+  deviceName: string;
+  /** endereço Bluetooth do aparelho */
+  address: string;
+  /** nº de série lido do aparelho na última medição */
+  serial?: string;
+  pairedAt: string;
 }
 
 export interface NormCriterion {
