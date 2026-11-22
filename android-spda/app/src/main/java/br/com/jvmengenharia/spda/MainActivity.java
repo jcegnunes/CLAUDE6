@@ -158,6 +158,13 @@ public class MainActivity extends Activity {
             .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
             .build();
         webView.setWebViewClient(new WebViewClient() {
+            /** O WebView caiu (falta de memória etc.): reinicia o app em vez de ficar em branco */
+            @Override
+            public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                Log.w(TAG, "WebView encerrado (crash=" + (detail != null && detail.didCrash()) + "): reiniciando o app");
+                restartWholeApp();
+                return true;
+            }
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return assetLoader.shouldInterceptRequest(request.getUrl());
@@ -360,6 +367,19 @@ public class MainActivity extends Activity {
     private void sendBle(String requestId, String json) {
         final String js = "window.__spdaBle && window.__spdaBle(" + org.json.JSONObject.quote(requestId == null ? "" : requestId) + "," + json + ")";
         runOnUiThread(() -> { if (webView != null) webView.evaluateJavascript(js, null); });
+    }
+
+    /** Reinicia o processo inteiro (RestartActivity): destrava o armazenamento do WebView. */
+    void restartWholeApp() {
+        try {
+            Intent i = new Intent(this, RestartActivity.class);
+            i.putExtra(RestartActivity.EXTRA_PID, android.os.Process.myPid());
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            Log.e(TAG, "Falha ao reiniciar", e);
+            recreate();
+        }
     }
 
     @Override
@@ -573,6 +593,40 @@ public class MainActivity extends Activity {
                 while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
                 return bos.toByteArray();
             }
+        }
+
+        /**
+         * ID fixo deste celular para a licença do app (um aparelho por usuário).
+         * ANDROID_ID não muda ao reinstalar o app (só com restauração de fábrica); vai com hash.
+         */
+        @JavascriptInterface
+        public String getDeviceId() {
+            try {
+                String raw = android.provider.Settings.Secure.getString(getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+                if (raw == null || raw.isEmpty()) return "";
+                java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+                byte[] h = md.digest(("jvm-spda:" + raw).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder("AND-");
+                for (int i = 0; i < 16; i++) sb.append(String.format("%02x", h[i] & 0xff));
+                return sb.toString();
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        /** Nome do celular (ex.: "Xiaomi 24117RN76O") para mostrar ao administrador */
+        @JavascriptInterface
+        public String getDeviceName() {
+            String man = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.trim();
+            String model = Build.MODEL == null ? "" : Build.MODEL.trim();
+            if (!man.isEmpty()) man = man.substring(0, 1).toUpperCase(Locale.ROOT) + man.substring(1);
+            return model.toLowerCase(Locale.ROOT).startsWith(man.toLowerCase(Locale.ROOT)) ? model : (man + " " + model).trim();
+        }
+
+        /** Botão "Reiniciar o app" da tela de carregamento */
+        @JavascriptInterface
+        public void restartApp() {
+            MainActivity.this.runOnUiThread(MainActivity.this::restartWholeApp);
         }
 
         /** Bluetooth do miliohmímetro INBRAT INMD 1 Pro disponível neste app */

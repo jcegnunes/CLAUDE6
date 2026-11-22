@@ -332,6 +332,26 @@ export class SupabaseService {
     }
   }
 
+  /**
+   * Licença do APP em um único aparelho (supabase/modules/aparelhos.sql).
+   * - 'ok': este é o aparelho do usuário (registrado agora ou antes)
+   * - 'other': o usuário já usa o app em outro celular (error traz o modelo e a data)
+   * - 'unknown': sem internet, sem sessão, erro, ou o script ainda não foi executado (não bloqueia)
+   */
+  static async checkDevice(app: string, deviceId: string, deviceName: string): Promise<{ state: 'ok' | 'other' | 'unknown'; error?: string }> {
+    try {
+      if (!this.getConfig().enabled || !(await this.getSession())) return { state: 'unknown' };
+      const { data, error } = await this.getClient().rpc('jvm_device_check', { p_app: app, p_device_id: deviceId, p_device_name: deviceName || null });
+      if (error) return { state: 'unknown' };
+      const payload: any = typeof data === 'string' ? JSON.parse(data) : data;
+      if (payload?.ok === true) return { state: 'ok' };
+      if (payload?.ok === false && /outro celular/i.test(String(payload.error || ''))) return { state: 'other', error: String(payload.error) };
+      return { state: 'unknown' };
+    } catch {
+      return { state: 'unknown' };
+    }
+  }
+
   /** Encerra a sessão do Supabase neste aparelho (funciona também offline). */
   static async signOut(): Promise<void> {
     try {

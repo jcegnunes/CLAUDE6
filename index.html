@@ -15,10 +15,19 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Fonte do Google: carregada pelo main.tsx DEPOIS de o app abrir. Aqui no <head> ela bloqueava o início:
+         com internet ruim o download ficava pendurado e o app abria em branco. -->
   </head>
   <body class="bg-slate-100 text-slate-900 antialiased selection:bg-orange-500 selection:text-white">
-    <div id="root"></div>
+    <div id="root">
+      <!-- tela de carregamento (o React troca pelo app); src/utils/bootWatchdog.ts mostra o aviso se demorar -->
+      <div id="boot-splash" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0A2540;color:#fff;padding:24px;text-align:center">
+        <div style="width:56px;height:56px;border-radius:14px;background:#F97316;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">JVM</div>
+        <div id="boot-msg" style="font-size:15px;font-weight:600">Carregando…</div>
+        <div id="boot-help" style="display:none;max-width:320px;font-size:13px;line-height:1.45;color:#cbd5e1"></div>
+        <button id="boot-restart" type="button" style="display:none;min-height:48px;padding:0 22px;border:0;border-radius:12px;background:#F97316;color:#fff;font-size:15px;font-weight:700">Reiniciar o app</button>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

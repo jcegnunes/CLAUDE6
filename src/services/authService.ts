@@ -1,6 +1,7 @@
 import { User, UserRole, Company } from '../types';
 import { DielectricStorageService } from './syncEngine';
 import { SupabaseService } from './supabaseService';
+import { LICENSED_APP, appDeviceInfo } from './deviceLicense';
 
 /** Credencial offline: prova de senha (PBKDF2) de quem já entrou neste aparelho. */
 interface OfflineCredential {
@@ -90,6 +91,17 @@ export class AuthService {
           ])
         : await attempt;
       if (res.success && res.user) {
+        // APP: licença em um único celular (o 1º login registra; outro celular é recusado)
+        const device = appDeviceInfo();
+        if (device) {
+          const dc = await SupabaseService.checkDevice(LICENSED_APP, device.id, device.name);
+          if (dc.state === 'other') {
+            await SupabaseService.signOut();
+            this.forgetOfflineCredential(res.user.id);
+            this.forgetOfflineLogin(cleanLogin);
+            return { success: false, error: dc.error };
+          }
+        }
         DielectricStorageService.clearLegacyPendingPasswords();
         const user = this.applyCompany(res.user, companyId);
         await this.saveOfflineCredential(user, cleanLogin, password);
@@ -343,6 +355,18 @@ export class AuthService {
       this.logout(`Acesso bloqueado: ${res.error || 'usuário inativo. Contate o administrador.'}`);
     } else if (res.state === 'expired') {
       this.logout(res.error);
+    } else if (res.state === 'ok') {
+      // APP: o aparelho foi liberado e o usuário entrou em outro celular → este sai
+      const device = appDeviceInfo();
+      if (device) {
+        const dc = await SupabaseService.checkDevice(LICENSED_APP, device.id, device.name);
+        const now = this.getCurrentUser();
+        if (dc.state === 'other' && now && now.id === user.id) {
+          this.forgetOfflineCredential(user.id);
+          this.logout(dc.error);
+          return 'blocked';
+        }
+      }
     }
     return res.state;
   }

@@ -332,3 +332,35 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 - Android: `InbratBle.java` (busca e medição BLE) + ponte `bleScan/bleMeasure/bleCancel` no MainActivity; pede as
   permissões de Bluetooth (dispositivos próximos) e localização na primeira vez.
 - Testes novos com os bytes reais do ensaio (352,244 mΩ / 1,143 A; 3000 mΩ = fora de escala). 399 testes passando.
+
+## 10.0.27 (APK versionCode 26 + plataforma web) — app abrindo em branco
+- **Causa principal:** o `index.html` carregava a fonte do Google Fonts no `<head>` antes do app. O WebView só executa
+  o app depois de baixar esse estilo: com internet ruim (sinal fraco, Wi-Fi sem resposta) o download ficava pendurado
+  e o app ficava em branco (sem internet nenhuma falhava rápido e abria). Agora a fonte é carregada pelo `main.tsx`
+  depois que o app abre (`src/utils/bootWatchdog.ts`); sem ela, usa a fonte do sistema.
+- **Tela de carregamento** no lugar do branco (logo + "Carregando…"). Se o app não abrir em 20 s: aviso e botão
+  **Reiniciar o app** (no APP reinicia o processo inteiro — o mesmo efeito de reiniciar o celular; na web recarrega).
+- **Armazenamento do celular travado** (ex.: o Android encerrou o app no meio de uma gravação — o relatório de bug de
+  20/11 mostra o app encerrado por "one-time permission revoked"): abrir o banco com limite de 10 s e ler os dados com
+  limite de 30 s. Se travar, o app NÃO abre vazio (abriria sem os dados e as gravações apagariam o que está guardado):
+  mostra o aviso com **Reiniciar o app**. IndexedDB indisponível de verdade continua usando o localStorage.
+- Android: `RestartActivity` (processo separado que encerra o principal e abre o app de novo), ponte `restartApp()`,
+  e `onRenderProcessGone`: se o WebView cair (falta de memória), reinicia o app em vez de ficar em branco.
+- Testes novos (banco que não abre, leitura que não termina, tela de carregamento, fonte). 404 testes passando.
+
+## 10.0.28 (APK versionCode 27 + plataforma web + SQL) — licença do APP em um único celular
+- **Executar uma vez no Supabase:** `supabase/modules/aparelhos.sql` (tabela `jvm_user_devices` e as funções
+  `jvm_device_check`, `jvm_master_devices`, `jvm_master_release_device`). Já entra no `recriar_banco.sql`.
+  Sem o script o app funciona normalmente, sem o limite.
+- **APP JVM SPDA:** o 1º login de cada usuário registra o celular (ID fixo do Android — `ANDROID_ID` com hash —, que não
+  muda ao reinstalar o app; muda só com restauração de fábrica). Login em outro celular: recusado com a mensagem
+  "Esta licença do aplicativo já está em uso em outro celular (modelo), desde dd/mm/aaaa. Para usar este celular, peça ao
+  administrador para liberar o aparelho." e o acesso offline daquele usuário é apagado nesse celular.
+- **Troca de celular:** Acessos → Usuários → "Celular do APP JVM SPDA" → **Liberar aparelho** (só o master, com
+  confirmação na tela). O próximo login no APP registra o celular novo; o antigo é desconectado na conferência
+  seguinte (a cada minuto com internet).
+- Sem limite: administrador master e a plataforma web. A licença é por aplicativo (`spda`).
+- Limites: APKs anteriores a esta versão não mandam o ID do celular (não são limitados) — distribuir só esta versão
+  em diante; celular sem internet não é conferido (vale o prazo do login offline).
+- Testes: banco (PGlite: registra, recusa outro celular, usuário não apaga o próprio registro, admin de empresa não
+  libera, master vê/libera, master sem limite) e login (recusa, desconexão do antigo, web sem limite). 409 testes.

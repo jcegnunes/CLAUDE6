@@ -3,7 +3,7 @@
  * (supabase/modules/acessos.sql e cadastro.sql), que conferem que quem chama é master. Precisa de internet.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Building2, Check, KeyRound, Lock, RefreshCw, Save, Search, Trash2, Unlock, Users } from 'lucide-react';
+import { Building2, Check, KeyRound, Lock, RefreshCw, Save, Search, Smartphone, Trash2, Unlock, Users } from 'lucide-react';
 import { AccountRequestsPanel } from '../../../components/AccountRequestsPanel';
 import { AuthService } from '../../../services/authService';
 
@@ -249,7 +249,64 @@ interface UserRow {
   hasLogin: boolean; allowedModules: string[] | null; companyId?: string | null; companyName?: string | null; createdAt?: string;
 }
 
-const UserCard: React.FC<{ u: UserRow; isMe: boolean; onSaved: (text: string) => void; onError: (text: string) => void }> = ({ u, isMe, onSaved, onError }) => {
+/** Celular registrado na licença do APP (supabase/modules/aparelhos.sql) */
+interface DeviceRow { userId: string; app: string; deviceName?: string | null; registeredAt: string; lastSeenAt?: string | null }
+
+/** Lista os aparelhos; null = o script aparelhos.sql ainda não foi executado. */
+async function loadDevices(): Promise<DeviceRow[] | null> {
+  const { SupabaseService } = await import('../../../services/supabaseService');
+  const { data, error } = await SupabaseService.getClient().rpc('jvm_master_devices', { p_company_id: null });
+  if (error) {
+    if (/jvm_master_devices|does not exist|schema cache|Could not find/i.test(error.message)) return null;
+    throw new Error(error.message);
+  }
+  return ((typeof data === 'string' ? JSON.parse(data) : data) || []) as DeviceRow[];
+}
+
+/** Celular do APP JVM SPDA: mostra o aparelho registrado e libera (com confirmação na tela). */
+const AppDeviceBox: React.FC<{ u: UserRow; device?: DeviceRow; devicesMissing: boolean; onSaved: (text: string) => void; onError: (text: string) => void }> = ({ u, device, devicesMissing, onSaved, onError }) => {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  let body: React.ReactNode;
+  if (devicesMissing) body = <p className="text-xs text-amber-800">Para controlar o celular de cada usuário, execute supabase/modules/aparelhos.sql no Supabase.</p>;
+  else if (u.isMasterAdmin) body = <p className="text-xs text-slate-500">Administrador master: sem limite de aparelho.</p>;
+  else if (!device) body = <p className="text-xs text-slate-500">Nenhum celular registrado. O próximo login no APP registra o aparelho.</p>;
+  else body = (
+    <div className="space-y-2">
+      <p className="text-xs text-slate-700"><b>{device.deviceName || 'Celular'}</b> · registrado em {fmtDate(device.registeredAt)}{device.lastSeenAt ? ` · último uso ${fmtDate(device.lastSeenAt)}` : ''}</p>
+      {!asking ? (
+        <button type="button" onClick={() => setAsking(true)} className={`${btn} border border-[#0A2540]/40 text-[#0A2540] bg-white hover:bg-[#EFF6FF]`}>
+          <Smartphone className="w-4 h-4" /> Liberar aparelho
+        </button>
+      ) : (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 space-y-2" role="alert">
+          <p className="text-sm text-amber-900"><b>Liberar o celular de {u.name}?</b> O próximo login no APP registra o celular novo; este ({device.deviceName || 'celular atual'}) é desconectado na próxima conferência.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={busy} className={`${btn} bg-[#F97316] hover:bg-[#EA580C] text-white`}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await rpc('jvm_master_release_device', { p_user_id: u.id, p_app: device.app });
+                  onSaved(`${u.name}: aparelho liberado. O próximo login no APP registra o celular novo.`);
+                } catch (e) { onError(e instanceof Error ? e.message : String(e)); } finally { setBusy(false); setAsking(false); }
+              }}>
+              {busy ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Confirmar liberação
+            </button>
+            <button type="button" disabled={busy} className={`${btn} border border-slate-300 bg-white text-slate-700 hover:bg-slate-50`} onClick={() => setAsking(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+      <p className="text-xs font-bold text-slate-700 mb-1 inline-flex items-center gap-1.5"><Smartphone className="w-3.5 h-3.5" /> Celular do APP JVM SPDA (1 aparelho por usuário)</p>
+      {body}
+    </div>
+  );
+};
+
+const UserCard: React.FC<{ u: UserRow; isMe: boolean; device?: DeviceRow; devicesMissing: boolean; onSaved: (text: string) => void; onError: (text: string) => void }> = ({ u, isMe, device, devicesMissing, onSaved, onError }) => {
   const [active, setActive] = useState(u.active);
   const [role, setRole] = useState(u.role);
   const [all, setAll] = useState(u.allowedModules === null);
@@ -309,6 +366,7 @@ const UserCard: React.FC<{ u: UserRow; isMe: boolean; onSaved: (text: string) =>
             </div>
           )}
       </div>
+      <AppDeviceBox u={u} device={device} devicesMissing={devicesMissing} onSaved={onSaved} onError={onError} />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <DeleteBox
           what={`o usuário ${u.name}`}
@@ -339,10 +397,15 @@ export const UsersScreen: React.FC = () => {
   const [company, setCompany] = useState('');
   const [onlyBlocked, setOnlyBlocked] = useState(false);
   const [version, setVersion] = useState(0);
+  const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [devicesMissing, setDevicesMissing] = useState(false);
   const load = useCallback(async () => {
     setLoading(true);
     try {
       setList(await rpc<UserRow[]>('jvm_master_users', { p_company_id: null }) || []);
+      const devs = await loadDevices();
+      setDevicesMissing(devs === null);
+      setDevices(devs || []);
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
     } finally {
@@ -357,7 +420,7 @@ export const UsersScreen: React.FC = () => {
     && (!term || [u.name, u.email, u.username, u.companyName].some(x => (x || '').toLowerCase().includes(term))));
   return (
     <div className="space-y-4">
-      <Header icon={Users} title="Gestão de Acessos — Usuários e bloqueio" text="Usuários de todas as empresas: bloquear ou liberar o acesso, perfil e módulos de cada um." onReload={() => void load()} loading={loading} />
+      <Header icon={Users} title="Gestão de Acessos — Usuários e bloqueio" text="Usuários de todas as empresas: bloquear ou liberar o acesso, perfil, módulos e o celular do APP de cada um." onReload={() => void load()} loading={loading} />
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="relative sm:col-span-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -374,6 +437,7 @@ export const UsersScreen: React.FC = () => {
       <div className="grid gap-3 lg:grid-cols-2">
         {shown.map(u => (
           <UserCard key={`${u.id}_${version}`} u={u} isMe={u.email?.toLowerCase() === (me?.email || '').toLowerCase()}
+            device={devices.find(d => d.userId === u.id && d.app === 'spda')} devicesMissing={devicesMissing}
             onSaved={text => { setMsg({ ok: true, text }); void load().then(() => setVersion(v => v + 1)); }}
             onError={text => setMsg({ ok: false, text })} />
         ))}

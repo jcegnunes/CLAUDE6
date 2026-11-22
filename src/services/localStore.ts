@@ -15,7 +15,26 @@
 const DB_NAME = 'jvm_dielectric_store';
 const STORE = 'kv';
 const CHANNEL = 'jvm-local-store';
-const OPEN_TIMEOUT_MS = 4000;
+/** Abrir o banco: além disso o IndexedDB do aparelho está travado (não cai para o localStorage vazio). */
+const OPEN_TIMEOUT_MS = 10000;
+/** Ler/migrar os dados na abertura (fotos deixam o banco grande). */
+const LOAD_TIMEOUT_MS = 30000;
+
+/**
+ * O armazenamento do aparelho não respondeu (ex.: o Android encerrou o app no meio de uma gravação).
+ * O app NÃO deve abrir assim: abriria sem os dados e as gravações apagariam o que está guardado.
+ * A tela de início mostra "Reiniciar o app" (src/utils/bootWatchdog.ts).
+ */
+export class StorageStuckError extends Error {
+  constructor(message: string) { super(message); this.name = 'StorageStuckError'; }
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new StorageStuckError(message)), ms);
+    p.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+}
 
 let db: IDBDatabase | null = null;
 let managedKeys = new Set<string>();
@@ -49,7 +68,7 @@ function transactionDone(tx: IDBTransaction): Promise<void> {
 
 function openDb(factory: IDBFactory): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('IndexedDB não respondeu')), OPEN_TIMEOUT_MS);
+    const timer = setTimeout(() => reject(new StorageStuckError('O armazenamento do celular não respondeu.')), OPEN_TIMEOUT_MS);
     let req: IDBOpenDBRequest;
     try {
       req = factory.open(DB_NAME, 1);
@@ -63,7 +82,7 @@ function openDb(factory: IDBFactory): Promise<IDBDatabase> {
     };
     req.onsuccess = () => { clearTimeout(timer); resolve(req.result); };
     req.onerror = () => { clearTimeout(timer); reject(req.error); };
-    req.onblocked = () => { clearTimeout(timer); reject(new Error('IndexedDB bloqueado')); };
+    req.onblocked = () => { clearTimeout(timer); reject(new StorageStuckError('O armazenamento do celular está bloqueado por outra janela do app.')); };
   });
 }
 
@@ -106,11 +125,28 @@ export async function initLocalStore(keys: string[], factory: IDBFactory | undef
   try {
     db = await openDb(factory);
   } catch (err) {
+    if (err instanceof StorageStuckError) { db = null; throw err; }
     console.warn('[Armazenamento] IndexedDB indisponível — usando o armazenamento simples do navegador:', err);
     db = null;
     return false;
   }
 
+  try {
+    await withTimeout(loadAndMigrate(db, keys), LOAD_TIMEOUT_MS, 'O armazenamento do celular não terminou de carregar os dados.');
+  } catch (err) {
+    if (err instanceof StorageStuckError) {
+      try { db.close(); } catch { /* já fechado */ }
+      db = null;
+      memory.clear();
+    }
+    throw err;
+  }
+  connectOtherTabs();
+  return true;
+}
+
+/** Carrega o que está no IndexedDB e migra o que ainda está no localStorage. */
+async function loadAndMigrate(db: IDBDatabase, keys: string[]): Promise<void> {
   // 1. Carrega o que já está no IndexedDB
   const readTx = db.transaction(STORE, 'readonly');
   const store = readTx.objectStore(STORE);
@@ -137,7 +173,9 @@ export async function initLocalStore(keys: string[], factory: IDBFactory | undef
     // só remove do localStorage depois de gravado no IndexedDB
     migrated.forEach(key => { try { localStorage.removeItem(key); } catch {} });
   }
+}
 
+function connectOtherTabs(): void {
   // 3. Outras abas do app: recarrega a chave que elas gravaram
   try {
     channel = new BroadcastChannel(CHANNEL);
@@ -151,7 +189,6 @@ export async function initLocalStore(keys: string[], factory: IDBFactory | undef
   } catch {
     channel = null;
   }
-  return true;
 }
 
 /** true se a chave é guardada no IndexedDB (e não no localStorage). */

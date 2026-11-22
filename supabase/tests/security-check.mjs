@@ -734,6 +734,40 @@ async function main() {
   ok(!!r.error, 'NÃO exclui a empresa de um administrador master');
   await db.exec(`UPDATE public.users SET company_id = NULL WHERE id = 'usr-m'`);
 
+  // ------------------------------- licença do APP em um único aparelho (modules/aparelhos.sql)
+  const dev = async (uid, devId, name = 'Celular') => j((await as(db, user(uid), `SELECT public.jvm_device_check('spda', $1, $2) AS v`, [devId, name])).rows?.[0]?.v);
+  await db.exec(`UPDATE public.users SET active = true WHERE id = 'usr-b'`);
+  r = await as(db, anon, `SELECT public.jvm_device_check('spda', 'ANDROID-AAAA1111', 'X') AS v`);
+  ok(!!r.error, 'visitante (sem login) NÃO registra aparelho');
+  let dv = await dev(b, 'ANDROID-AAAA1111', 'Xiaomi Redmi');
+  ok(dv?.ok === true && dv.registered === true, '1º login no APP: registra o aparelho');
+  dv = await dev(b, 'ANDROID-AAAA1111', 'Xiaomi Redmi');
+  ok(dv?.ok === true, 'mesmo celular: continua entrando');
+  dv = await dev(b, 'ANDROID-BBBB2222', 'Samsung A15');
+  ok(dv?.ok === false && /outro celular \(Xiaomi Redmi\)/.test(dv.error || ''), 'outro celular: recusado, mostrando o aparelho registrado');
+  ok(j((await as(db, user(b), `SELECT public.jvm_device_check('ensaios', 'ANDROID-BBBB2222', 'Samsung A15') AS v`)).rows?.[0]?.v)?.ok === true,
+    'a licença é por aplicativo: outro app pode usar outro celular');
+  r = await as(db, user(b), `SELECT * FROM public.jvm_user_devices`);
+  ok(!!r.error, 'usuário NÃO lê a tabela de aparelhos diretamente');
+  r = await as(db, user(b), `DELETE FROM public.jvm_user_devices`);
+  ok(!!r.error, 'usuário NÃO apaga o próprio registro para trocar de celular');
+  for (const sql of [`SELECT public.jvm_master_devices(NULL) AS v`, `SELECT public.jvm_master_release_device('usr-b', 'spda') AS v`]) {
+    r = await as(db, user(a), sql);
+    ok(!!r.error, `admin de empresa (não master) NÃO libera aparelho: ${sql.slice(14, 40)}`);
+  }
+  r = await as(db, user(m), `SELECT public.jvm_master_devices('comp-2') AS v`);
+  const devs = j(r.rows?.[0]?.v) || [];
+  ok(!r.error && devs.some(d => d.userId === 'usr-b' && d.app === 'spda' && d.deviceName === 'Xiaomi Redmi') && !JSON.stringify(devs).includes('AAAA1111'),
+    'master vê o aparelho registrado (sem o ID do aparelho)');
+  r = await as(db, user(m), `SELECT public.jvm_master_release_device('usr-b', 'spda') AS v`);
+  ok(!r.error && j(r.rows?.[0]?.v)?.released === true, 'master libera o aparelho');
+  dv = await dev(b, 'ANDROID-BBBB2222', 'Samsung A15');
+  ok(dv?.ok === true, 'depois de liberado: o celular novo entra e fica registrado');
+  dv = await dev(b, 'ANDROID-AAAA1111', 'Xiaomi Redmi');
+  ok(dv?.ok === false, 'o celular antigo passa a ser recusado');
+  ok(j((await as(db, user(m), `SELECT public.jvm_device_check('spda', 'ANDROID-QQQQ9999', 'Qualquer') AS v`)).rows?.[0]?.v)?.unlimited === true,
+    'administrador master não tem limite de aparelho');
+
   // ---------------------------------------------------- migração de banco antigo
   if (OLD_SCHEMA) {
     const old = await newDb();

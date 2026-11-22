@@ -78,6 +78,13 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- "Reiniciar o app": processo separado que encerra o principal e abre o app de novo -->
+        <activity
+            android:name=".RestartActivity"
+            android:process=":restart"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

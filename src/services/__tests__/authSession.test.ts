@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const auth = vi.hoisted(() => ({ impl: (() => Promise.resolve({ success: false })) as (...a: unknown[]) => Promise<any>, access: { state: 'ok' } as any }));
+const auth = vi.hoisted(() => ({ impl: (() => Promise.resolve({ success: false })) as (...a: unknown[]) => Promise<any>, access: { state: 'ok' } as any, device: null as null | { id: string; name: string }, deviceCheck: { state: 'ok' } as any }));
+vi.mock('../deviceLicense', () => ({ LICENSED_APP: 'spda', appDeviceInfo: () => auth.device }));
 
 vi.mock('../syncEngine', () => ({
   DielectricStorageService: {
@@ -12,7 +13,8 @@ vi.mock('../supabaseService', () => ({
   SupabaseService: {
     authenticateWithSupabase: (...a: unknown[]) => auth.impl(...a),
     signOut: () => Promise.resolve(), getSession: () => Promise.resolve(null),
-    checkAccountAccess: () => Promise.resolve(auth.access)
+    checkAccountAccess: () => Promise.resolve(auth.access),
+    checkDevice: () => Promise.resolve(auth.deviceCheck)
   }
 }));
 
@@ -36,7 +38,7 @@ beforeEach(() => {
   if (!(globalThis as any).CustomEvent) (globalThis as any).CustomEvent = class extends Event { detail: unknown; constructor(t: string, o?: any) { super(t); this.detail = o?.detail; } };
   Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, configurable: true });
 });
-afterEach(() => { vi.useRealTimers(); });
+afterEach(() => { vi.useRealTimers(); auth.device = null; auth.deviceCheck = { state: 'ok' }; auth.access = { state: 'ok' }; });
 
 describe(`Login vence a cada ${SESSION_MAX_DAYS} dias`, () => {
   it('logo após o login a sessão vale; depois de 7 dias pede o login de novo com o aviso', () => {
@@ -138,5 +140,52 @@ describe('Usuário bloqueado', () => {
     auth.access = { state: 'blocked' };
     expect(await AuthService.enforceAccountAccess()).toBe('unknown');
     expect(AuthService.getCurrentUser()).not.toBeNull();
+  });
+});
+
+describe('Licença do APP em um único celular', () => {
+  const OTHER = 'Esta licença do aplicativo já está em uso em outro celular (Xiaomi Redmi), desde 20/11/2026.';
+
+  it('no celular registrado: entra normalmente', async () => {
+    auth.device = { id: 'AND-1234567890', name: 'Xiaomi Redmi' };
+    auth.impl = () => Promise.resolve({ success: true, user: USER });
+    const res = await AuthService.loginAsync('tec', 'senha-1');
+    expect(res.success).toBe(true);
+  });
+
+  it('em outro celular: login recusado com o aviso e sem acesso offline neste celular', async () => {
+    auth.device = { id: 'AND-OUTRO00000', name: 'Samsung A15' };
+    auth.deviceCheck = { state: 'other', error: OTHER };
+    auth.impl = () => Promise.resolve({ success: true, user: USER });
+    const res = await AuthService.loginAsync('tec', 'senha-1');
+    expect(res.success).toBe(false);
+    expect(res.error).toBe(OTHER);
+    expect(AuthService.getCurrentUser()).toBeNull();
+    auth.impl = () => Promise.resolve({ success: false, networkError: true });
+    expect((await AuthService.loginAsync('tec', 'senha-1')).success).toBe(false);
+  });
+
+  it('aparelho liberado e usado em outro celular: este sai na próxima conferência', async () => {
+    auth.device = { id: 'AND-1234567890', name: 'Xiaomi Redmi' };
+    auth.impl = () => Promise.resolve({ success: true, user: USER });
+    await AuthService.loginAsync('tec', 'senha-1');
+    auth.deviceCheck = { state: 'other', error: OTHER };
+    expect(await AuthService.enforceAccountAccess()).toBe('blocked');
+    expect(AuthService.consumeLogoutReason()).toBe(OTHER);
+  });
+
+  it('sem internet / script não executado (unknown): não bloqueia', async () => {
+    auth.device = { id: 'AND-1234567890', name: 'Xiaomi Redmi' };
+    auth.deviceCheck = { state: 'unknown' };
+    auth.impl = () => Promise.resolve({ success: true, user: USER });
+    expect((await AuthService.loginAsync('tec', 'senha-1')).success).toBe(true);
+    expect(await AuthService.enforceAccountAccess()).toBe('ok');
+  });
+
+  it('plataforma web (sem ID do aparelho): sem limite', async () => {
+    auth.device = null;
+    auth.deviceCheck = { state: 'other', error: OTHER };
+    auth.impl = () => Promise.resolve({ success: true, user: USER });
+    expect((await AuthService.loginAsync('tec', 'senha-1')).success).toBe(true);
   });
 });
