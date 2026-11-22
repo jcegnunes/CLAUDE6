@@ -115,11 +115,13 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
   const toggleActive = (user: User) => {
     const activate = user.active === false;
     const text = activate
-      ? `Reativar o acesso de ${user.name}?`
+      ? (me?.isMasterAdmin ? `Reativar o acesso de ${user.name}?` : `Pedir a reativação de ${user.name}? Só o administrador master libera o acesso.`)
       : `Desativar ${user.name}? O acesso ao sistema é bloqueado imediatamente (os ensaios já feitos não mudam).`;
     if (!window.confirm(text)) return;
     DielectricStorageService.saveUser({ ...user, active: activate });
-    refresh(activate ? `${user.name} reativado.` : `${user.name} desativado.`);
+    refresh(activate
+      ? (me?.isMasterAdmin ? `${user.name} reativado.` : `Pedido de reativação de ${user.name} enviado: o acesso volta quando o administrador master liberar.`)
+      : `${user.name} desativado.`);
   };
 
   return (
@@ -196,7 +198,7 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
                   ) : (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">Sem acesso (só nos laudos)</span>
                   )}
-                  {inactive && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200">Inativo</span>}
+                  {inactive && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800 border border-red-200">{user.hasLogin && !me?.isMasterAdmin ? 'Inativo — liberação pelo master' : 'Inativo'}</span>}
                   {user.hasLogin && user.role !== 'admin' && !user.isMasterAdmin && Array.isArray(user.allowedModules) && (
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-orange-800 border border-orange-200">
                       Só {getAssignableModules(DielectricStorageService.getCompanyInfo()).filter(o => user.allowedModules!.includes(o.id)).map(o => o.label).join(' + ') || 'nenhum módulo'}
@@ -237,7 +239,7 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
                       className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border ${inactive ? 'border-emerald-300 text-emerald-700 hover:bg-emerald-50' : 'border-red-200 text-red-700 hover:bg-red-50'} bg-white`}
                     >
                       {inactive ? <UserCheck className="w-3.5 h-3.5" /> : <UserX className="w-3.5 h-3.5" />}
-                      {inactive ? 'Reativar' : 'Desativar'}
+                      {inactive ? (me?.isMasterAdmin ? 'Reativar' : 'Pedir reativação') : 'Desativar'}
                     </button>
                   )}
                   {!isMe && !user.isMasterAdmin && (
@@ -265,10 +267,10 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
       />
 
       {dialog?.kind === 'create' && (
-        <CreateUserDialog onClose={() => setDialog(null)} onDone={u => { setDialog(null); refresh(`Usuário ${u.name} cadastrado com acesso ao sistema.`); }} />
+        <CreateUserDialog onClose={() => setDialog(null)} onDone={u => { setDialog(null); refresh(me?.isMasterAdmin ? `Usuário ${u.name} cadastrado com acesso ao sistema.` : `Usuário ${u.name} cadastrado. O acesso fica bloqueado até o administrador master liberar.`); }} />
       )}
       {dialog?.kind === 'password' && (
-        <PasswordDialog user={dialog.user} onClose={() => setDialog(null)} onDone={u => { setDialog(null); refresh(`Senha de ${u.name} definida.`); }} />
+        <PasswordDialog user={dialog.user} onClose={() => setDialog(null)} onDone={u => { setDialog(null); refresh(me?.isMasterAdmin || u.active !== false ? `Senha de ${u.name} definida.` : `Senha de ${u.name} definida. O acesso fica bloqueado até o administrador master liberar.`); }} />
       )}
       {dialog?.kind === 'edit' && (
         <EditUserDialog

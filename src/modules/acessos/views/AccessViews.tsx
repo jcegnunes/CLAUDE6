@@ -247,6 +247,8 @@ export const CompaniesScreen: React.FC = () => {
 interface UserRow {
   id: string; name: string; email: string; username?: string | null; role: string; active: boolean; isMasterAdmin: boolean;
   hasLogin: boolean; allowedModules: string[] | null; companyId?: string | null; companyName?: string | null; createdAt?: string;
+  /** cadastrado/reativado pela empresa: aguardando a liberação do master (supabase/modules/liberacao.sql) */
+  awaitingMaster?: boolean;
 }
 
 /** Celular registrado na licença do APP (supabase/modules/aparelhos.sql) */
@@ -326,14 +328,17 @@ const UserCard: React.FC<{ u: UserRow; isMe: boolean; device?: DeviceRow; device
     }
   };
   return (
-    <div className={`${card} p-4 space-y-3 ${!u.active ? 'border-red-200 bg-red-50/30' : ''}`}>
+    <div className={`${card} p-4 space-y-3 ${u.awaitingMaster && !u.active ? 'border-amber-300 bg-amber-50/40' : !u.active ? 'border-red-200 bg-red-50/30' : ''}`}>
+      {u.awaitingMaster && !u.active && (
+        <p className="text-xs rounded-lg bg-amber-100 text-amber-900 px-2.5 py-1.5">A empresa cadastrou (ou pediu a reativação de) este usuário. Para liberar: <b>Desbloquear acesso</b> e <b>Salvar</b>.</p>
+      )}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-900">{u.name}{u.isMasterAdmin && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">MASTER</span>}{isMe && <span className="ml-1 text-[10px] text-slate-500">(você)</span>}</p>
           <p className="text-xs text-slate-500 break-all">{u.email}{u.username ? ` · ${u.username}` : ''}</p>
           <p className="text-[11px] text-slate-500">{u.companyName || 'Sem empresa (cadastra no 1º acesso)'} · {u.hasLogin ? 'com login' : 'sem login (só assinatura)'}</p>
         </div>
-        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${u.active ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-700'}`}>{u.active ? 'Ativo' : 'Bloqueado'}</span>
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${u.active ? 'bg-emerald-100 text-emerald-800' : u.awaitingMaster ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'}`}>{u.active ? 'Ativo' : u.awaitingMaster ? 'Aguardando liberação' : 'Bloqueado'}</span>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-xs font-bold text-slate-700">Perfil
@@ -396,6 +401,7 @@ export const UsersScreen: React.FC = () => {
   const [q, setQ] = useState('');
   const [company, setCompany] = useState('');
   const [onlyBlocked, setOnlyBlocked] = useState(false);
+  const [onlyAwaiting, setOnlyAwaiting] = useState(false);
   const [version, setVersion] = useState(0);
   const [devices, setDevices] = useState<DeviceRow[]>([]);
   const [devicesMissing, setDevicesMissing] = useState(false);
@@ -416,11 +422,12 @@ export const UsersScreen: React.FC = () => {
   const companies = useMemo(() => Array.from(new Map(list.map(u => [u.companyId || '', u.companyName || 'Sem empresa'])).entries()).sort((a, b) => String(a[1]).localeCompare(String(b[1]))), [list]);
   if (!isMaster) return <NotMaster />;
   const term = q.trim().toLowerCase();
-  const shown = list.filter(u => (!company || (u.companyId || '') === company) && (!onlyBlocked || !u.active)
+  const awaiting = list.filter(u => u.awaitingMaster && !u.active).length;
+  const shown = list.filter(u => (!company || (u.companyId || '') === company) && (!onlyBlocked || !u.active) && (!onlyAwaiting || (u.awaitingMaster && !u.active))
     && (!term || [u.name, u.email, u.username, u.companyName].some(x => (x || '').toLowerCase().includes(term))));
   return (
     <div className="space-y-4">
-      <Header icon={Users} title="Gestão de Acessos — Usuários e bloqueio" text="Usuários de todas as empresas: bloquear ou liberar o acesso, perfil, módulos e o celular do APP de cada um." onReload={() => void load()} loading={loading} />
+      <Header icon={Users} title="Gestão de Acessos — Usuários e bloqueio" text="Usuários de todas as empresas: novos acessos só entram depois da sua liberação. Bloquear ou liberar, perfil, módulos e o celular do APP de cada um." onReload={() => void load()} loading={loading} />
       <div className="grid gap-2 sm:grid-cols-3">
         <div className="relative sm:col-span-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -430,8 +437,16 @@ export const UsersScreen: React.FC = () => {
           <option value="">Todas as empresas ({list.length} usuários)</option>
           {companies.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
         </select>
-        <label className="inline-flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={onlyBlocked} onChange={e => setOnlyBlocked(e.target.checked)} /> Só bloqueados</label>
+        <div className="flex flex-wrap gap-3">
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={onlyBlocked} onChange={e => setOnlyBlocked(e.target.checked)} /> Só bloqueados</label>
+          <label className="inline-flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={onlyAwaiting} onChange={e => setOnlyAwaiting(e.target.checked)} /> Só aguardando liberação</label>
+        </div>
       </div>
+      {awaiting > 0 && (
+        <button type="button" onClick={() => setOnlyAwaiting(true)} className="w-full text-left text-sm rounded-xl px-3 py-2 border bg-amber-50 border-amber-300 text-amber-900 font-semibold hover:bg-amber-100">
+          {awaiting} usuário(s) aguardando a sua liberação — toque para ver.
+        </button>
+      )}
       <Msg msg={msg} />
       {!loading && shown.length === 0 && !msg && <p className="text-sm text-slate-400 text-center py-6">Nenhum usuário encontrado.</p>}
       <div className="grid gap-3 lg:grid-cols-2">

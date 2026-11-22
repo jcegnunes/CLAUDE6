@@ -561,6 +561,39 @@ async function main() {
   r = await as(db, user(m), `SELECT count(*)::int n FROM public.clients`);
   ok(r.rows[0].n === 2, 'master enxerga todas as empresas');
 
+  // ---------------------- novos acessos só com liberação do master (modules/liberacao.sql)
+  const st = async id => (await db.query(`SELECT u.active, u.awaiting_master, a.banned_until IS NOT NULL AS banned
+      FROM public.users u LEFT JOIN auth.users a ON a.id = u.auth_user_id WHERE u.id = $1`, [id])).rows[0];
+  let s1 = await st(carla.id);
+  ok(s1.active === false && s1.awaiting_master === true && s1.banned === true, 'usuário cadastrado pela empresa nasce INATIVO, aguardando o master (login bloqueado)');
+  r = await as(db, user(carlaUid), `SELECT public.jvm_me() AS v`);
+  ok(/inativo/i.test(JSON.stringify(r.rows?.[0]?.v || r.error || '')), 'aguardando o master: não entra no sistema');
+  await as(db, user(a2), `UPDATE public.users SET active = true, awaiting_master = false WHERE id = $1`, [carla.id]);
+  s1 = await st(carla.id);
+  ok(s1.active === false && s1.awaiting_master === true, 'admin da empresa NÃO ativa o usuário pela tabela');
+  r = await setPassword(user(a2), carla.id, 'OutraSenha2026');
+  s1 = await st(carla.id);
+  ok(!r.error && s1.active === false && s1.awaiting_master === true, 'admin da empresa NÃO ativa o usuário trocando a senha');
+  s1 = await st('usr-fake');
+  ok(s1.active === false && s1.awaiting_master === true, 'dar acesso a quem não tinha login também aguarda o master');
+  r = await as(db, user(m), `SELECT public.jvm_master_users('comp-2') AS v`);
+  ok((j2 => j2.some(u => u.id === carla.id && u.awaitingMaster === true))(typeof r.rows[0].v === 'string' ? JSON.parse(r.rows[0].v) : r.rows[0].v), 'master vê quem está aguardando liberação');
+  await db.exec(`SELECT 1`);
+  r = await as(db, user(m), `SELECT public.jvm_master_set_user($1, true, 'tecnico', NULL) AS v`, [carla.id]);
+  s1 = await st(carla.id);
+  ok(!r.error && s1.active === true && s1.awaiting_master === false && s1.banned === false, `master libera: usuário ativo e login desbloqueado ${r.error || ''}`);
+  r = await as(db, user(carlaUid), `SELECT public.jvm_me() AS v`);
+  ok((typeof r.rows?.[0]?.v === 'string' ? JSON.parse(r.rows[0].v) : r.rows?.[0]?.v)?.ok === true, 'liberado pelo master: entra no sistema');
+  await as(db, user(a2), `UPDATE public.users SET active = false WHERE id = $1`, [carla.id]);
+  ok((await st(carla.id)).active === false, 'admin da empresa continua podendo BLOQUEAR');
+  await as(db, user(a2), `UPDATE public.users SET active = true WHERE id = $1`, [carla.id]);
+  s1 = await st(carla.id);
+  ok(s1.active === false && s1.awaiting_master === true, 'reativar pela empresa volta a aguardar o master');
+  await as(db, user(m), `SELECT public.jvm_master_set_user($1, true, 'tecnico', NULL) AS v`, [carla.id]);
+  await as(db, user(m), `SELECT public.jvm_master_set_user('usr-fake', true, 'tecnico', NULL) AS v`);
+  r = await createUser(user(m), { name: 'Pelo Master', email: 'pelomaster@x.com', role: 'tecnico', password: 'Senha1234' });
+  ok(!!r.error || parse(r).user.active === true, 'usuário cadastrado pelo próprio master já nasce liberado (ou master sem empresa não cadastra por aqui)');
+
   // conta de login "solta" (cadastro público) não acessa nada
   const stranger = '11111111-1111-1111-1111-111111111111';
   await db.exec(`INSERT INTO auth.users (id, email) VALUES ('${stranger}', 'x@sem-email.local')`);

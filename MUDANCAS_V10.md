@@ -364,3 +364,17 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   em diante; celular sem internet não é conferido (vale o prazo do login offline).
 - Testes: banco (PGlite: registra, recusa outro celular, usuário não apaga o próprio registro, admin de empresa não
   libera, master vê/libera, master sem limite) e login (recusa, desconexão do antigo, web sem limite). 409 testes.
+
+## 10.0.29 (plataforma web + SQL) — novos acessos só com liberação do master
+- **Executar uma vez no Supabase:** `supabase/modules/liberacao.sql` (coluna `users.awaiting_master`, gatilho
+  `jvm_aa_master_approval` e `jvm_master_users` com "aguardando liberação"). Já entra no `recriar_banco.sql`.
+- Regra no banco (vale para qualquer caminho: tela, troca de senha, sincronização): quando quem NÃO é master
+  cadastra um usuário com acesso, dá acesso a quem não tinha login ou reativa um usuário inativo, o usuário fica
+  **inativo e aguardando o master** (login bloqueado). Usuários que já existem não mudam.
+- Corrigido: "Trocar senha" pelo admin da empresa reativava o usuário (podia desbloquear quem o master bloqueou).
+- Admin da empresa continua podendo **bloquear**. Na tela dele: "Inativo — liberação pelo master", botão
+  "Pedir reativação" e avisos de que o acesso depende do master.
+- Master (Acessos → Usuários): aviso "N usuário(s) aguardando a sua liberação", filtro "Só aguardando liberação",
+  selo **Aguardando liberação**; libera com **Desbloquear acesso** + **Salvar**.
+- Testes de banco (PGlite): nasce inativo e com login bloqueado, empresa não ativa pela tabela nem pela senha,
+  dar acesso também aguarda, master vê e libera, empresa bloqueia e reativação volta a aguardar.
