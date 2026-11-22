@@ -378,3 +378,15 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   selo **Aguardando liberação**; libera com **Desbloquear acesso** + **Salvar**.
 - Testes de banco (PGlite): nasce inativo e com login bloqueado, empresa não ativa pela tabela nem pela senha,
   dar acesso também aguarda, master vê e libera, empresa bloqueia e reativação volta a aguardar.
+
+## 10.0.30 (SQL + plataforma web) — usuário excluído libera o e-mail para novo cadastro
+- **Executar uma vez no Supabase:** `supabase/modules/liberar_email.sql` (coluna `users.deleted_email` e gatilho
+  `jvm_release_email`). Já entra no `recriar_banco.sql`. No fim, libera também os e-mails de quem já tinha sido excluído.
+- Ao excluir um usuário (master, empresa ou sincronização), o registro continua no banco (histórico: laudos, ensaios e
+  certificados mantêm o nome), mas o e-mail vira `excluido.<id>@sem-email.local` (o original fica em `deleted_email`),
+  o nome de usuário é apagado e a conta de login antiga troca de e-mail junto e continua bloqueada.
+- "Criar conta", o cadastro pela empresa e a aprovação do master aceitam o mesmo e-mail de novo: é criado um usuário
+  **novo**, com conta de login nova (não herda perfil, assinatura nem empresa do antigo) e segue a liberação pelo master.
+- Textos de exclusão atualizados (antes diziam que o e-mail ficava reservado).
+- Testes de banco: e-mail liberado, conta antiga bloqueada com o endereço interno, novo cadastro com o mesmo e-mail
+  cria usuário e login novos, pedido de conta com e-mail de excluído aceito, registro excluído não volta a ocupar o e-mail.

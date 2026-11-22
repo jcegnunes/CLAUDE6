@@ -106,7 +106,7 @@ export const CompanyUsersPanel: React.FC<CompanyUsersPanelProps> = ({ onChange }
     const text = `Excluir ${user.name}${user.email && user.hasLogin ? ` (${user.email})` : ''}?\n\n`
       + (user.hasLogin ? 'O acesso ao sistema é bloqueado imediatamente. ' : '')
       + 'O usuário sai da lista e dos cadastros; ensaios, laudos e certificados já emitidos continuam com o nome dele.\n\n'
-      + (user.hasLogin ? 'O e-mail de login continua reservado: para voltar a usar o mesmo e-mail, prefira "Desativar".\n\n' : '')
+      + (user.hasLogin ? 'O e-mail fica livre para um novo cadastro (que cria um usuário novo). Para só suspender o acesso, prefira "Desativar".\n\n' : '')
       + 'Esta ação não pode ser desfeita pelo sistema.';
     if (!window.confirm(text)) return;
     if (DielectricStorageService.deleteUser(user.id)) refresh(`${user.name} excluído.`);

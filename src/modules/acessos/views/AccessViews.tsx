@@ -375,7 +375,7 @@ const UserCard: React.FC<{ u: UserRow; isMe: boolean; device?: DeviceRow; device
       <div className="flex flex-wrap items-center justify-between gap-2">
         <DeleteBox
           what={`o usuário ${u.name}`}
-          detail="O acesso é bloqueado na hora e ele some da lista. O e-mail continua reservado (para usar o mesmo e-mail de novo, prefira Bloquear)."
+          detail="O acesso é bloqueado na hora e ele some da lista. O e-mail fica livre para um novo cadastro (que cria um usuário novo); laudos e certificados mantêm o nome."
           disabledReason={isMe ? 'É você (não pode se excluir).' : u.isMasterAdmin ? 'Administrador master (não pode ser excluído aqui).' : undefined}
           onConfirm={async () => {
             try {

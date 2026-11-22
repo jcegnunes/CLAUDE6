@@ -762,6 +762,24 @@ async function main() {
   ok((await db.query(`SELECT count(*)::int n FROM public.clients WHERE id='cli-del'`)).rows[0].n === 1, 'empresa excluída: os dados continuam guardados no banco');
   r = await as(db, user(m), `SELECT public.jvm_master_companies() AS v`);
   ok(!(j(r.rows?.[0]?.v) || []).some(c => c.id === 'comp-del'), 'empresa excluída some da lista');
+
+  // ------------------ excluído libera o e-mail para um novo cadastro (modules/liberar_email.sql)
+  const old2 = (await db.query(`SELECT u.email, u.deleted_email, u.username, a.email AS login_email, a.banned_until IS NOT NULL AS banned
+      FROM public.users u LEFT JOIN auth.users a ON a.id = u.auth_user_id WHERE u.id = 'usr-del2'`)).rows[0];
+  ok(old2.email === 'excluido.usr-del2@sem-email.local' && old2.deleted_email === 'del2@x.com' && old2.username === null,
+    'excluído: o e-mail vira um endereço interno (o original fica guardado para consulta)');
+  ok(old2.login_email === 'excluido.usr-del2@sem-email.local' && old2.banned === true, 'excluído: a conta de login antiga solta o e-mail e continua bloqueada');
+  r = await createUser(user(a2), { name: 'Del Dois de Novo', email: 'DEL2@x.com', role: 'tecnico', password: 'Senha1234' });
+  const novo2 = r.error ? null : parse(r).user;
+  ok(!r.error && novo2 && novo2.id !== 'usr-del2', `o mesmo e-mail pode ser cadastrado de novo (usuário novo) ${r.error || ''}`);
+  const novoAuth = novo2 && (await db.query(`SELECT a.id, a.email FROM public.users u JOIN auth.users a ON a.id = u.auth_user_id WHERE u.id = $1`, [novo2.id])).rows[0];
+  ok(novoAuth && novoAuth.id !== del2 && novoAuth.email === 'del2@x.com', 'o novo cadastro ganha uma conta de login nova (não reaproveita a antiga)');
+  r = await as(db, anon, reqSql, ['Del Um Voltou', 'del1@x.com', 'Senha@Volta1', 'Empresa Nova', null, null, null]);
+  ok(!r.error, `excluído junto com a empresa: o e-mail pode pedir conta de novo ${r.error || ''}`);
+  await db.exec(`UPDATE public.users SET email = 'del2@x.com' WHERE id = 'usr-del2'`);
+  ok((await db.query(`SELECT email FROM public.users WHERE id = 'usr-del2'`)).rows[0].email === 'excluido.usr-del2@sem-email.local',
+    'registro excluído não volta a ocupar o e-mail');
+
   await db.exec(`UPDATE public.users SET company_id = 'comp-1' WHERE id = 'usr-m'`);
   r = await as(db, user(m), `SELECT public.jvm_master_delete_company('comp-1') AS v`);
   ok(!!r.error, 'NÃO exclui a empresa de um administrador master');
