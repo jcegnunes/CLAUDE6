@@ -404,3 +404,11 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 - Confirmado o que já existia: no APP, cada foto tirada ou anexada é gravada também em
   **Download/JVM SPDA/<OS>/<edificação>/<subsistema>/**, com o nome "legenda_AAAAMMDD-HHMMSS.jpg" (sem OS: nº da inspeção).
   Os PDFs e documentos continuam em Download/JVM SPDA. Na plataforma web (navegador) não há essa gravação automática.
+
+## 10.0.33 (plataforma web) — versão do app no botão "Baixar o aplicativo"
+- No menu lateral, o botão "Baixar o aplicativo" e o quadro de download agora mostram a **versão** do aplicativo
+  (ex.: "Android · versão 10.0.32").
+- A versão fica num arquivo ao lado do APK (`public/apps/JVM-SPDA.version.txt` e `JVM-Ensaios-EPI.version.txt`), que os
+  dois `compilar-apk.bat` gravam automaticamente a cada compilação (lendo do output-metadata.json do Android). O modal lê
+  esse arquivo; se não houver, o botão apenas não mostra a versão. `public/_headers`: `/apps/*.txt` servido como texto.
+- Teste atualizado (arquivos de versão presentes em public/apps). 412 testes passando.

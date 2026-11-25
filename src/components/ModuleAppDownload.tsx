@@ -8,18 +8,33 @@ import React, { useEffect, useState } from 'react';
 import { Download, Smartphone, X } from 'lucide-react';
 import { APP_TARGET } from '../appTarget';
 
-export const MODULE_APPS: Record<string, { file: string; name: string; note: string }> = {
+export const MODULE_APPS: Record<string, { file: string; versionFile: string; name: string; note: string }> = {
   spda: {
     file: 'apps/JVM-SPDA.apk',
+    versionFile: 'apps/JVM-SPDA.version.txt',
     name: 'APP JVM SPDA',
     note: 'Inspeção e ensaios de SPDA no celular, funcionando sem internet e sincronizando com a plataforma.'
   },
   ensaios: {
     file: 'apps/JVM-Ensaios-EPI.apk',
+    versionFile: 'apps/JVM-Ensaios-EPI.version.txt',
     name: 'APP JVM Ensaios de EPI',
     note: 'Ensaios dielétricos de EPI/EPC no celular. Já tem o app? Instale por cima: os dados do celular são mantidos.'
   }
 };
+
+/** Lê a versão gravada ao lado do APK (os compilar-apk.bat escrevem). Vazio se não houver. */
+export async function fetchAppVersion(versionFile: string): Promise<string> {
+  try {
+    const r = await fetch(`${versionFile}?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return '';
+    const txt = (await r.text()).trim();
+    // só aceita algo com cara de versão (evita cair numa página HTML de erro)
+    return /^[\w.\- ]{1,40}$/.test(txt) && /\d/.test(txt) ? txt : '';
+  } catch {
+    return '';
+  }
+}
 
 /** Endereço completo do APK (para o QR Code). */
 export function appDownloadUrl(file: string, origin = typeof window !== 'undefined' ? window.location.origin : ''): string {
@@ -30,7 +45,15 @@ export const ModuleAppDownload: React.FC<{ workspaceId?: string }> = ({ workspac
   const app = workspaceId ? MODULE_APPS[workspaceId] : undefined;
   const [open, setOpen] = useState(false);
   const [qr, setQr] = useState('');
+  const [version, setVersion] = useState('');
   const url = app ? appDownloadUrl(app.file) : '';
+
+  useEffect(() => {
+    if (!app) return;
+    let cancelled = false;
+    fetchAppVersion(app.versionFile).then(v => { if (!cancelled) setVersion(v); });
+    return () => { cancelled = true; };
+  }, [app]);
 
   useEffect(() => {
     if (!open || !url) return;
@@ -52,7 +75,7 @@ export const ModuleAppDownload: React.FC<{ workspaceId?: string }> = ({ workspac
         <span className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0"><Smartphone className="w-4 h-4" /></span>
         <span className="min-w-0">
           <span className="block text-[12px] font-bold leading-tight">Baixar o aplicativo</span>
-          <span className="block text-[10px] text-orange-100 truncate">{app.name} (Android)</span>
+          <span className="block text-[10px] text-orange-100 truncate">Android{version ? ` · versão ${version}` : ''}</span>
         </span>
       </button>
 
@@ -60,8 +83,11 @@ export const ModuleAppDownload: React.FC<{ workspaceId?: string }> = ({ workspac
         <div className="fixed inset-0 z-[90] bg-slate-900/60 flex items-center justify-center p-4" onClick={() => setOpen(false)}>
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl text-slate-900" onClick={e => e.stopPropagation()} role="dialog" aria-label={`Baixar o ${app.name}`}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
-              <h3 className="font-bold text-base">{app.name}</h3>
-              <button type="button" onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500" aria-label="Fechar"><X className="w-4 h-4" /></button>
+              <div className="min-w-0">
+                <h3 className="font-bold text-base leading-tight">{app.name}</h3>
+                <p className="text-[11px] text-slate-500">Android{version ? ` · versão ${version}` : ''}</p>
+              </div>
+              <button type="button" onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 shrink-0" aria-label="Fechar"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-600">{app.note}</p>

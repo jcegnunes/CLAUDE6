@@ -21,3 +21,7 @@
   Content-Type: application/vnd.android.package-archive
   Content-Disposition: attachment
   Cache-Control: no-cache
+/apps/*.txt
+  Content-Type: text/plain; charset=utf-8
+  Content-Disposition: inline
+  Cache-Control: no-cache, no-store, must-revalidate
