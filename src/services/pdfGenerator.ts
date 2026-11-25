@@ -254,8 +254,10 @@ export async function renderLaudoToDoc(
     : [];
 
   const allUsers = DielectricStorageService.getUsers();
-  const techUser = allUsers.find(u => u.id === test.technicianId || u.name === test.technicianName);
-  const rtUser = allUsers.find(u => u.id === test.techResponsibleId || u.name === test.techResponsibleName || u.role === 'responsavel_tecnico');
+  const normName = (s?: string) => (s || '').trim().toLowerCase();
+  const techUser = allUsers.find(u => (test.technicianId && u.id === test.technicianId) || (!!test.technicianName && normName(u.name) === normName(test.technicianName)));
+  const rtUser = allUsers.find(u => (test.techResponsibleId && u.id === test.techResponsibleId) || (!!test.techResponsibleName && normName(u.name) === normName(test.techResponsibleName)))
+    || allUsers.find(u => u.role === 'responsavel_tecnico');
 
   const rawTechSig = test.technicianSignature?.signatureImage || techUser?.signatureUrl || '';
   const rawRTSig = test.techResponsibleSignature?.signatureImage || rtUser?.signatureUrl || company.technicalResponsible?.signatureUrl || '';

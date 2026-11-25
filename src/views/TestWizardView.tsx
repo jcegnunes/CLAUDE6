@@ -338,8 +338,16 @@ export const TestWizardView: React.FC<TestWizardViewProps> = ({
   const [ambientInstrumentId, setAmbientInstrumentId] = useState<string>(editingTest?.environmental?.instrumentUsedId || 'inst-3');
   const [testLocation, setTestLocation] = useState<string>(editingTest?.location || 'Laboratório Móvel JVM');
 
-  // Visual Checklist
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(editingTest?.visualInspection || []);
+  // Visual Checklist — ao editar: usa o checklist salvo; se o laudo veio sem ele
+  // (laudos antigos ou sincronizados sem itens), carrega o padrão do tipo de equipamento
+  // para que o checklist apareça para edição em vez de ficar em branco.
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(
+    editingTest?.visualInspection?.length
+      ? editingTest.visualInspection
+      : editingTest
+        ? getDefaultChecklistForEquipment(editingTest.equipmentType || 'luva_isolante')
+        : []
+  );
 
   // Electrical Measurements
   const [appliedVoltage, setAppliedVoltage] = useState<number>(editingTest?.appliedVoltage_kV ?? 20.0);

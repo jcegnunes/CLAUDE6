@@ -99,7 +99,9 @@ export async function exportTestsSummaryReportPDF(
 
   // Carregar Assinatura do RT se houver
   const allUsers = DielectricStorageService.getUsers();
-  const rtUser = allUsers.find(u => u.name === customOptions?.techResponsibleName || u.name === company.technicalResponsible?.name || u.role === 'responsavel_tecnico');
+  const normName = (s?: string) => (s || '').trim().toLowerCase();
+  const rtUser = allUsers.find(u => (!!customOptions?.techResponsibleName && normName(u.name) === normName(customOptions.techResponsibleName)) || (!!company.technicalResponsible?.name && normName(u.name) === normName(company.technicalResponsible?.name)))
+    || allUsers.find(u => u.role === 'responsavel_tecnico');
   const rawRTSig = rtUser?.signatureUrl || company.technicalResponsible?.signatureUrl || '';
   const cleanedRTSig = rawRTSig ? await cleanSignatureImage(rawRTSig) : '';
   const rtSigUrl = cleanedRTSig ? await loadImageAsDataUrl(cleanedRTSig) : null;

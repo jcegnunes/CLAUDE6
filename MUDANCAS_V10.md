@@ -412,3 +412,19 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   dois `compilar-apk.bat` gravam automaticamente a cada compilação (lendo do output-metadata.json do Android). O modal lê
   esse arquivo; se não houver, o botão apenas não mostra a versão. `public/_headers`: `/apps/*.txt` servido como texto.
 - Teste atualizado (arquivos de versão presentes em public/apps). 412 testes passando.
+
+## 10.0.34 (plataforma web) — checklist ao editar o laudo e assinaturas por cadastro (EPI)
+- **Editar laudo de EPI:** o checklist do laudo voltou a aparecer. Se o laudo veio sem o checklist salvo (laudos antigos
+  ou sincronizados sem itens), carrega o checklist padrão do tipo de equipamento para edição, mantendo as respostas
+  já salvas quando existirem.
+- **Laudo e relatórios (técnico consolidado e resumo de lote):** o nome e a **assinatura** do Analista Executor e do
+  Responsável Técnico são buscados no cadastro (Usuários / Configurações) ignorando maiúsculas e espaços no nome, e a
+  imagem da assinatura é embutida no PDF. O laudo já casava por id; agora o nome também casa de forma tolerante, então a
+  assinatura cadastrada aparece mesmo com pequena diferença de digitação. RT sem correspondência usa a assinatura do
+  Responsável Técnico do menu Configurações.
+
+## 10.0.35 (plataforma web) — assinaturas na tela da Ordem de Serviço
+- Na tela de detalhes da OS, abaixo do escopo/ART, agora aparecem **Analista Executor** e **Responsável Técnico** com o
+  **nome e a imagem da assinatura** do cadastro (Usuários / Configurações): o executor pela técnico da OS (id ou nome),
+  o RT pelo responsável da OS, ou o Responsável Técnico do menu Configurações. Sem assinatura cadastrada, mostra
+  "Assinatura não cadastrada". É só exibição na tela (sem PDF da OS).

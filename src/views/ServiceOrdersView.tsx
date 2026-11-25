@@ -715,6 +715,35 @@ export const ServiceOrdersView: React.FC<ServiceOrdersViewProps> = ({ onStartTes
                   })}
                 </div>
               </div>}
+
+              {/* Assinaturas (nome + imagem) conforme cadastro em Usuários / Configurações */}
+              {(() => {
+                const norm = (s?: string) => (s || '').trim().toLowerCase();
+                const comp = DielectricStorageService.getCompanyInfo();
+                const execUser = users.find(u => (selectedOSForDetails.technicianId && u.id === selectedOSForDetails.technicianId) || (!!selectedOSForDetails.technicianName && norm(u.name) === norm(selectedOSForDetails.technicianName)));
+                const rtUser = users.find(u => (selectedOSForDetails.responsibleId && u.id === selectedOSForDetails.responsibleId) || (!!selectedOSForDetails.responsibleName && norm(u.name) === norm(selectedOSForDetails.responsibleName)))
+                  || users.find(u => u.role === 'responsavel_tecnico');
+                const sigs = [
+                  { role: 'Analista Executor', name: selectedOSForDetails.technicianName || execUser?.name || '', sig: execUser?.signatureUrl || '', extra: execUser?.creaOrCft || execUser?.registrationNumber || '' },
+                  { role: 'Responsável Técnico', name: selectedOSForDetails.responsibleName || rtUser?.name || comp.technicalResponsible?.name || '', sig: rtUser?.signatureUrl || comp.technicalResponsible?.signatureUrl || '', extra: rtUser?.creaOrCft || comp.technicalResponsible?.creaNumber || '' }
+                ];
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {sigs.map(s => (
+                      <div key={s.role} className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">{s.role}</span>
+                        <div className="h-16 flex items-end justify-center border-b border-slate-300 mb-1">
+                          {s.sig
+                            ? <img src={s.sig} alt={`Assinatura de ${s.name || s.role}`} className="max-h-16 max-w-full object-contain" />
+                            : <span className="text-[10px] text-slate-400 pb-1">Assinatura não cadastrada</span>}
+                        </div>
+                        <span className="text-xs font-bold text-slate-900 block text-center">{s.name || '—'}</span>
+                        {s.extra && <span className="text-[10px] text-slate-500 block text-center">{s.extra}</span>}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="bg-slate-50 p-4 border-t border-slate-200 flex items-center justify-between">

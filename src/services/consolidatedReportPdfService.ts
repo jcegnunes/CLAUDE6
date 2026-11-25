@@ -61,8 +61,11 @@ export async function exportConsolidatedReportPDF(
   const logoDataUrl = company.logoUrl ? await loadImageAsDataUrl(company.logoUrl) : null;
 
   const allUsers = DielectricStorageService.getUsers();
-  const techUser = allUsers.find(u => u.name === report.technicianName);
-  const rtUser = allUsers.find(u => u.name === report.techResponsibleName || u.role === 'responsavel_tecnico');
+  // casa o nome do cadastro sem depender de maiúsculas/espaços (assim a assinatura cadastrada é encontrada)
+  const norm = (s?: string) => (s || '').trim().toLowerCase();
+  const techUser = allUsers.find(u => norm(u.name) === norm(report.technicianName));
+  const rtUser = allUsers.find(u => norm(u.name) === norm(report.techResponsibleName))
+    || allUsers.find(u => u.role === 'responsavel_tecnico');
   const rawTechSig = techUser?.signatureUrl || '';
   const rawRTSig = rtUser?.signatureUrl || company.technicalResponsible?.signatureUrl || '';
   const cleanedTechSig = rawTechSig ? await cleanSignatureImage(rawTechSig) : '';
