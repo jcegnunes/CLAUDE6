@@ -437,3 +437,7 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   (1 a 99), com − e +. APK recompilado (versão 6.1.261125.1646).
 - Correção: os dois `compilar-apk.bat` passaram a gravar o arquivo de versão do APK via PowerShell direto (o modo
   anterior gravava texto inválido no arquivo da versão do app de EPI).
+
+## 10.0.37 (plataforma web) — remover a faixa "App Android JVM" do menu lateral
+- Saiu do menu lateral a faixa antiga "App Android JVM — Modo Campo & PWA" (botões "Abrir Modo Android" e
+  "Gerar APK / Instalar App"). O download do aplicativo fica no botão **Baixar o aplicativo** (que mostra a versão).

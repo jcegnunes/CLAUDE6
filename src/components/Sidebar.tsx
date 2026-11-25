@@ -234,39 +234,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Baixar o aplicativo do módulo aberto (SPDA → APP JVM SPDA; Ensaios de EPI → APP de EPI) */}
         <ModuleAppDownload workspaceId={workspace?.id || 'ensaios'} />
 
-        {/* App Android Quick Banner in Sidebar */}
-        {(!workspace || workspace.id === 'ensaios') && (
-        <div className="pt-2 pb-1">
-          <div className="p-3 bg-gradient-to-br from-blue-950/80 to-slate-950 border border-blue-800/50 rounded-2xl space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-xl bg-orange-500 flex items-center justify-center text-white">
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-white block">App Android JVM</span>
-                <span className="text-[9px] text-orange-300">Modo Campo & PWA</span>
-              </div>
-            </div>
-            {onToggleFieldMode && (
-              <button
-                onClick={onToggleFieldMode}
-                className="w-full py-1.5 px-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-              >
-                <span>Abrir Modo Android</span>
-              </button>
-            )}
-            {onOpenInstallModal && (
-              <button
-                onClick={onOpenInstallModal}
-                className="w-full py-1 px-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
-              >
-                <Download className="w-3 h-3 text-white" />
-                <span>Gerar APK / Instalar App</span>
-              </button>
-            )}
-          </div>
-        </div>
-        )}
+        {/* A faixa "App Android JVM / Modo Campo & PWA" foi removida: o download do app
+            fica no botão "Baixar o aplicativo" (ModuleAppDownload) acima. */}
       </div>
 
       {/* Footer Info Box */}
