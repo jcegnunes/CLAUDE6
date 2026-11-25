@@ -1,10 +1,34 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildingArea, buildingsOf, formatCoordinates, levelEfficiencyPct, mapUrl, minDownConductors, validCoordinates, withBuildings
+  buildingArea, buildingsOf, formatCoordinates, levelEfficiencyPct, levelParams, mapUrl, minDownConductors, protectionLabel, validCoordinates, withBuildings
 } from '../rules';
+import { newBuilding } from '../repository';
 import type { SpdaBuilding } from '../types';
 
 const b = (p: Partial<SpdaBuilding>): SpdaBuilding => ({ id: 'b', name: 'Galpão', type: 'industrial', spdaKind: 'externo', protectionLevel: 'III', ...p });
+
+describe('Nível de proteção sem valor (opcional)', () => {
+  it('nova edificação já nasce sem nível de proteção', () => {
+    expect(newBuilding().protectionLevel).toBe('');
+  });
+
+  it('sem NP: não calcula o mínimo de descidas, e os parâmetros/rótulo têm um retorno seguro', () => {
+    expect(minDownConductors(b({ lengthM: 50, widthM: 30, protectionLevel: '' }))).toBeNull();
+    expect(levelParams('')).toBeNull();
+    expect(protectionLabel('')).toBe('Não definido');
+    expect(protectionLabel('II')).toBe('Nível II');
+  });
+
+  it('resumo: NP mais restritivo ignora as edificações sem nível; só sem nível = vazio', () => {
+    const comUm = withBuildings({ protectionLevel: '' as const }, [
+      b({ id: '1', name: 'A', protectionLevel: '' }),
+      b({ id: '2', name: 'B', protectionLevel: 'III' })
+    ]);
+    expect(comUm.protectionLevel).toBe('III');
+    const semNenhum = withBuildings({ protectionLevel: 'II' as const }, [b({ id: '1', name: 'A', protectionLevel: '' })]);
+    expect(semNenhum.protectionLevel).toBe('');
+  });
+});
 
 describe('Edificações da OS', () => {
   it('área projetada C × L (50 × 30 = 1500 m²)', () => {

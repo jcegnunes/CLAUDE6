@@ -5,7 +5,7 @@
  */
 import {
   AIR_TERMINATION_LABEL, AIR_TERMINATION_ORDER, DOWN_CONDUCTOR_LABEL, DOWN_CONDUCTOR_ORDER,
-  GROUNDING_SYSTEM_LABEL, GROUNDING_SYSTEM_ORDER, LEVEL_PARAMS, airTerminationName, downConductorName, groundingSystemName, kindOf
+  GROUNDING_SYSTEM_LABEL, GROUNDING_SYSTEM_ORDER, levelParams, airTerminationName, downConductorName, groundingSystemName, kindOf
 } from './rules';
 import type { SpdaBuilding, SpdaInspection, SpdaPhoto } from './types';
 
@@ -33,12 +33,15 @@ const m = (x?: number | null) => (typeof x === 'number' && Number.isFinite(x) ? 
 
 function captacao(b: SpdaBuilding): SubsystemDescription {
   const a = b.airTermination;
-  const lp = LEVEL_PARAMS[b.protectionLevel];
+  const lp = levelParams(b.protectionLevel);
+  const np = b.protectionLevel || 'a definir';
+  const sphere = lp ? `${lp.sphereRadiusM} m` : 'a definir conforme o NP';
+  const mesh = lp ? `${lp.meshM} m` : 'a definir conforme o NP';
   const sel = AIR_TERMINATION_ORDER.filter(t => a?.types?.includes(t));
   const TEXT: Record<string, string> = {
-    franklin: `Captor tipo Franklin (haste de pontas) instalado em mastro elevado acima da cobertura, dimensionado pelo método do ângulo de proteção (NBR 5419-3:2026, 5.3 e Tabela 2). O volume protegido é o cone definido pelo ângulo da Tabela 2 em função da altura do captor e do nível de proteção ${b.protectionLevel}; o mastro deve estar interligado ao restante da captação e às descidas.`,
-    mini_captores: `Minicaptores (captores verticais curtos, da ordem de 0,3 m a 0,6 m) distribuídos ao longo das bordas, cumeeiras e pontos salientes da cobertura e interligados pelos condutores horizontais, com espaçamento compatível com o método da esfera rolante (raio de ${lp.sphereRadiusM} m para o nível ${b.protectionLevel}).`,
-    faraday: `Captação em malha (método das malhas / gaiola de Faraday): condutores horizontais sobre a cobertura formando quadrículas de, no máximo, ${lp.meshM} m para o nível de proteção ${b.protectionLevel} (NBR 5419-3:2026, Tabela 2), com condutores nas bordas e cumeeiras e fixação conforme 5.6.2.`,
+    franklin: `Captor tipo Franklin (haste de pontas) instalado em mastro elevado acima da cobertura, dimensionado pelo método do ângulo de proteção (NBR 5419-3:2026, 5.3 e Tabela 2). O volume protegido é o cone definido pelo ângulo da Tabela 2 em função da altura do captor e do nível de proteção ${np}; o mastro deve estar interligado ao restante da captação e às descidas.`,
+    mini_captores: `Minicaptores (captores verticais curtos, da ordem de 0,3 m a 0,6 m) distribuídos ao longo das bordas, cumeeiras e pontos salientes da cobertura e interligados pelos condutores horizontais, com espaçamento compatível com o método da esfera rolante (raio de ${sphere} para o nível ${np}).`,
+    faraday: `Captação em malha (método das malhas / gaiola de Faraday): condutores horizontais sobre a cobertura formando quadrículas de, no máximo, ${mesh} para o nível de proteção ${np} (NBR 5419-3:2026, Tabela 2), com condutores nas bordas e cumeeiras e fixação conforme 5.6.2.`,
     telhas_metalicas: 'Cobertura em telhas metálicas utilizada como captor natural (NBR 5419-3:2026, 5.3.2.16): a chapa deve ter espessura mínima conforme a Tabela 3 e continuidade elétrica garantida entre as peças (solda, rebites ou parafusos), interligada às descidas.',
     anel_superior: `Condutor em anel no topo da edificação (platibanda / perímetro da cobertura)${a?.ringMaterial === 'cobre' ? ', em cobre' : a?.ringMaterial === 'aluminio' ? ', em alumínio' : ''}, interligando os captores e as descidas e equalizando o potencial no nível da cobertura. Material e seção mínima conforme a Tabela 7 da NBR 5419-3:2026${a?.ringMaterial === 'cobre' ? ' (cobre: 35 mm²)' : a?.ringMaterial === 'aluminio' ? ' (alumínio: 70 mm²)' : ''}.`,
     outro: 'Sistema de captação descrito pelo inspetor (ver registro fotográfico).'
@@ -55,11 +58,13 @@ function captacao(b: SpdaBuilding): SubsystemDescription {
 
 function descida(b: SpdaBuilding): SubsystemDescription {
   const d = b.downConductor;
-  const lp = LEVEL_PARAMS[b.protectionLevel];
+  const lp = levelParams(b.protectionLevel);
+  const np = b.protectionLevel || 'a definir';
+  const spacing = lp ? `${lp.downSpacingM} m` : 'a definir conforme o NP';
   const sel = DOWN_CONDUCTOR_ORDER.filter(t => d?.types?.includes(t));
   const mat = d?.material === 'cobre' ? 'cobre' : d?.material === 'aluminio' ? 'alumínio' : '';
   const TEXT: Record<string, string> = {
-    externa: `Descidas externas não naturais, em condutor ${mat || 'metálico'} aparente fixado na fachada, como extensão direta da captação até o conector de ensaio e a caixa de inspeção próxima ao solo (NBR 5419-3:2026, 5.4 e 5.4.6). Seção mínima conforme a Tabela 7${mat === 'cobre' ? ' (cobre: 35 mm²)' : mat === 'alumínio' ? ' (alumínio: 70 mm²)' : ''}; fixação a cada 1,0 m na horizontal e 1,5 m na vertical (5.6.2.2); espaçamento médio entre descidas de até ${lp.downSpacingM} m para o nível ${b.protectionLevel} (Tabela 5).`,
+    externa: `Descidas externas não naturais, em condutor ${mat || 'metálico'} aparente fixado na fachada, como extensão direta da captação até o conector de ensaio e a caixa de inspeção próxima ao solo (NBR 5419-3:2026, 5.4 e 5.4.6). Seção mínima conforme a Tabela 7${mat === 'cobre' ? ' (cobre: 35 mm²)' : mat === 'alumínio' ? ' (alumínio: 70 mm²)' : ''}; fixação a cada 1,0 m na horizontal e 1,5 m na vertical (5.6.2.2); espaçamento médio entre descidas de até ${spacing} para o nível ${np} (Tabela 5).`,
     pilar_estrutural: 'Descidas naturais pelas armaduras de aço dos pilares de concreto armado (NBR 5419-3:2026, 5.4.5), interligadas à captação no topo e ao aterramento nas fundações. A continuidade elétrica das armaduras deve ser comprovada por ensaio (Anexo F), e as ligações externas são feitas por pontos de conexão (terminais) embutidos no pilar.',
     pilar_metalico: 'Descidas naturais pelos pilares da estrutura metálica (ferro/aço), eletricamente contínuos da cobertura até a fundação (NBR 5419-3:2026, 5.4.5), com as ligações à captação e ao aterramento por conexões aparafusadas ou soldadas e continuidade verificada por ensaio.'
   };

@@ -1,7 +1,7 @@
 /**
  * Anexo de um PDF (ART da OS, certificado de calibração do instrumento): escolher, abrir e remover.
  * O arquivo fica salvo no aparelho junto com o cadastro (data URL no IndexedDB), entra no backup
- * e funciona sem internet. No app Android, "Abrir" grava em Download/JVM_SPDA e abre no leitor de PDF.
+ * e funciona sem internet. No app Android, "Abrir" grava em Download/JVM SPDA e abre no leitor de PDF.
  */
 import React, { useRef, useState } from 'react';
 import { ExternalLink, FileText, Paperclip, RefreshCw, Trash2 } from 'lucide-react';
@@ -34,7 +34,7 @@ export function dataUrlSizeKb(url?: string): number {
   return i < 0 ? 0 : Math.round(((url!.length - i - 1) * 3) / 4 / 1024);
 }
 
-/** Abre o PDF: no app Android grava em Download/JVM_SPDA e abre; no navegador, abre numa aba nova. */
+/** Abre o PDF: no app Android grava em Download/JVM SPDA e abre; no navegador, abre numa aba nova. */
 export function openPdf(url: string, fileName: string): void {
   const bridge = (window as unknown as { AndroidBridge?: { saveBase64File?: (b64: string, mime: string, name: string, open: boolean) => boolean } }).AndroidBridge;
   const m = /^data:([^;]+);base64,(.*)$/.exec(url);

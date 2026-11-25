@@ -13,7 +13,7 @@ import { readCompanyInfo } from '../repository';
 import { cleanCaption } from './PhotoReport';
 import { laudoIssued, laudoNumber, LAUDO_RESULT_LABEL, RESULT_LABEL, finalResult, resultFromVerdict, techText, type ShownResult } from '../techReport';
 import {
-  INSPECTION_KIND_LABEL, LEVEL_PARAMS, METHOD_LABEL, PROTECTION_LEVEL_LABEL, TEST_STATUS_LABEL,
+  INSPECTION_KIND_LABEL, levelParams, METHOD_LABEL, protectionLabel, TEST_STATUS_LABEL,
   CONTINUITY_KIND_LABEL, RESISTIVITY, fmtMilliOhm, aboveDesign, currentOutOfRange, designValue, effectiveLimit, kindOf, theoreticalResistance,
   answerOf, checklistProgress, continuityStatus, fallOfPotentialPlateau, fmtOhm, groundingStatus, groundingValue,
   validityText, inspectionVerdict, listImprovements, listNonConformities, nextInspectionDate,
@@ -90,7 +90,7 @@ export const SpdaReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
     .map(item => ({ item, a: answerOf(v.checklist, item.id, isPerBuilding(sub) ? buildingId : undefined) }))
     .filter(x => isEvaluated(x.a));
   const nEvaluated = v.checklist.filter(a => isKnownItem(a) && isEvaluated(a)).length;
-  const lp = LEVEL_PARAMS[v.protectionLevel];
+  const lp = levelParams(v.protectionLevel);
   const buildings = buildingsOf(v);
   const aerials = buildings.filter(b => !!b.aerialImage);
   const photos = v.checklist.flatMap(a => {
@@ -183,7 +183,7 @@ export const SpdaReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
                     <td className={`${td} font-mono`}>{n(b.heightM)} × {n(b.lengthM)} × {n(b.widthM)}</td>
                     <td className={`${td} font-mono`}>{area !== null ? `${area.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m²` : '—'}</td>
                     <td className={td}>{spdaKindText(b)}{airTerminationText(b) && <span className="block text-[9px] text-slate-600">Captação: {airTerminationText(b)}</span>}{downConductorText(b) && <span className="block text-[9px] text-slate-600">Descidas: {downConductorText(b)}</span>}{groundingSystemText(b) && <span className="block text-[9px] text-slate-600">Aterramento: {groundingSystemText(b)}</span>}</td>
-                    <td className={td}>{b.protectionLevel} ({levelEfficiencyPct(b.protectionLevel)} %)</td>
+                    <td className={td}>{b.protectionLevel ? `${b.protectionLevel} (${levelEfficiencyPct(b.protectionLevel)} %)` : '—'}</td>
                     <td className={`${td} ${minD !== null && b.downConductorsCount != null && b.downConductorsCount < minD ? 'text-red-700 font-bold' : ''}`}>
                       {n(b.downConductorsCount)}{minD !== null ? ` (${minD})` : ''}
                     </td>
@@ -195,7 +195,7 @@ export const SpdaReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
           </table>
         )}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Info label="Nível de proteção (mais restritivo)" value={`${PROTECTION_LEVEL_LABEL[v.protectionLevel]} — eficiência ${levelEfficiencyPct(v.protectionLevel)} % (5419-2, Tabela B.2)`} />
+          <Info label="Nível de proteção (mais restritivo)" value={v.protectionLevel ? `${protectionLabel(v.protectionLevel)} — eficiência ${levelEfficiencyPct(v.protectionLevel)} % (5419-2, Tabela B.2)` : "Não definido"} />
           <Info label="Método de proteção" value={METHOD_LABEL[v.method]} />
           <Info label="Nº de descidas" value={v.downConductorsCount != null ? String(v.downConductorsCount) : ''} />
           <Info label="Tipo de inspeção" value={INSPECTION_KIND_LABEL[v.inspectionKind]} />
@@ -203,7 +203,9 @@ export const SpdaReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
           <Info label="Validade do laudo" value={`${validityText(v)} — NBR 5419-3:2026, 7.3.2 f)`} />
         </div>
         <p className="text-[10px] text-slate-500 mt-2">
-          Parâmetros do {PROTECTION_LEVEL_LABEL[v.protectionLevel]} (NBR 5419-3:2026): raio da esfera rolante {lp.sphereRadiusM} m e malha máxima {lp.meshM} m (Tabela 2); distância entre descidas {lp.downSpacingM} m, até +20 % (Tabela 5 e 5.4.3.3).
+          {lp
+            ? <>Parâmetros do {protectionLabel(v.protectionLevel)} (NBR 5419-3:2026): raio da esfera rolante {lp.sphereRadiusM} m e malha máxima {lp.meshM} m (Tabela 2); distância entre descidas {lp.downSpacingM} m, até +20 % (Tabela 5 e 5.4.3.3).</>
+            : <>Nível de proteção não definido nas edificações: os parâmetros da NBR 5419-3:2026 (esfera rolante, malha e descidas) não foram aplicados.</>}
           {buildings.length > 0 && ' Descidas (mín.): perímetro ÷ distância da Tabela 5, no mínimo 2 (5.4.3.1).'}
         </p>
         {aerials.length > 0 && (

@@ -263,7 +263,7 @@ export function newGroundingTest(partial: Partial<GroundingTest> = {}): Groundin
 }
 
 export function newBuilding(partial: Partial<SpdaBuilding> = {}): SpdaBuilding {
-  return { id: newId('edif'), name: '', type: 'industrial', spdaKind: 'externo', protectionLevel: 'III', ...partial };
+  return { id: newId('edif'), name: '', type: 'industrial', spdaKind: 'externo', protectionLevel: '', ...partial };
 }
 
 /** Inspeção nova com dados do técnico logado e do responsável técnico da empresa. */
@@ -288,7 +288,7 @@ export function createInspection(): SpdaInspection {
     clientName: '',
     buildingName: '',
     address: '',
-    protectionLevel: 'III',
+    protectionLevel: '',
     method: 'gaiola',
     inspectionKind: 'periodica',
     criticalStructure: false,

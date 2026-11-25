@@ -4,7 +4,7 @@
  *
  * - APP JVM SPDA (Android): o PDF é gerado pelo motor de impressão do Android direto em arquivo
  *   (AndroidBridge.createPdf) — PDF VETORIAL, texto nítido e selecionável, com a mesma qualidade
- *   do PDF do app de Ensaios de EPI. Visualizar = salva em Download/JVM_SPDA e abre no leitor de PDF.
+ *   do PDF do app de Ensaios de EPI. Visualizar = salva em Download/JVM SPDA e abre no leitor de PDF.
  * - Plataforma web: Visualizar PDF abre a visualização de impressão do navegador (PDF vetorial em
  *   "Salvar como PDF"); Compartilhar usa o compartilhar do aparelho quando o navegador permite e,
  *   senão, baixa o arquivo.
@@ -80,7 +80,7 @@ export async function sharePdf(sheet: HTMLElement, title: string, onProgress?: (
 export async function exportWord(sheet: HTMLElement, title: string): Promise<DocResult> {
   const doc = await buildWordDoc(sheet, title);
   const where = downloadFile(`${safeFileName(title)}.doc`, doc, 'application/msword');
-  return where === 'android' ? 'Arquivo Word salvo em Download/JVM_SPDA.' : 'Arquivo Word (.doc) baixado — abre e edita no Microsoft Word.';
+  return where === 'android' ? 'Arquivo Word salvo em Download/JVM SPDA.' : 'Arquivo Word (.doc) baixado — abre e edita no Microsoft Word.';
 }
 
 /** Compartilhar Word. */

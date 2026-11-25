@@ -95,7 +95,7 @@ export const SpdaBuildingsView: React.FC = () => {
                         <td className="px-3 py-2">{BUILDING_TYPE_LABEL[b.type]}{b.activity ? ` — ${b.activity}` : ''}</td>
                         <td className="px-3 py-2">{area !== null ? `${area.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m²` : '—'}</td>
                         <td className="px-3 py-2">{spdaKindText(b)}</td>
-                        <td className="px-3 py-2">{b.protectionLevel} ({levelEfficiencyPct(b.protectionLevel)} %)</td>
+                        <td className="px-3 py-2">{b.protectionLevel ? `${b.protectionLevel} (${levelEfficiencyPct(b.protectionLevel)} %)` : '—'}</td>
                         <td className="px-3 py-2">
                           <span className="font-mono text-blue-700">{insp.serviceOrderNumber || insp.number}</span>
                           <span className="block text-[10px] text-slate-500">{insp.clientName || '—'}</span>

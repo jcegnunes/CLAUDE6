@@ -10,7 +10,7 @@ import React from 'react';
 import { CHECKLIST_TEMPLATE, SUBSYSTEM_LABEL } from '../checklist';
 import { readCompanyInfo } from '../repository';
 import {
-  BUILDING_TYPE_LABEL, INSPECTION_KIND_LABEL, LEVEL_PARAMS, PROTECTION_LEVEL_LABEL, answerOf, buildingArea,
+  BUILDING_TYPE_LABEL, INSPECTION_KIND_LABEL, levelParams, protectionLabel, answerOf, buildingArea,
   buildingPerimeter, buildingsOf, continuityCode, continuityStatus, fmtMilliOhm, fmtOhm, formatCoordinates, fop3Plateau, groundingValue,
   isPerBuilding, listImprovements, airTerminationText, downConductorText, groundingSystemText, listNonConformities, mapUrl, minDownConductors, nextInspectionDate, probeDistances, spdaKindText,
   type ContinuityGroup, type Improvement, type NonConformity, type Verdict
@@ -523,7 +523,7 @@ export const TechReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
                 {buildings.map(b => (
                   <tr key={b.id}>
                     <td className={`${td} font-semibold`}>{b.name}</td><td className={td}>{BUILDING_TYPE_LABEL[b.type]}{b.activity ? ` — ${b.activity}` : ''}</td>
-                    <td className={td}>{dims(b)}</td><td className={td}>{PROTECTION_LEVEL_LABEL[b.protectionLevel]}</td><td className={`${td} text-center`}>{b.downConductorsCount ?? '—'}</td>
+                    <td className={td}>{dims(b)}</td><td className={td}>{b.protectionLevel ? protectionLabel(b.protectionLevel) : "—"}</td><td className={`${td} text-center`}>{b.downConductorsCount ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -541,7 +541,7 @@ export const TechReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
   }
 
   function Characterization({ b, fig }: { b: SpdaBuilding; fig: string }) {
-    const lp = LEVEL_PARAMS[b.protectionLevel];
+    const lp = levelParams(b.protectionLevel);
     const area = buildingArea(b);
     const min = minDownConductors(b);
     const per = buildingPerimeter(b);
@@ -555,7 +555,7 @@ export const TechReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
       ['SPDA existente', `${spdaKindText(b)}${capObs ? ` — ${capObs}` : ''}`],
       ['Sistemas de captação', `${airTerminationText(b) || '—'}${b.airTermination?.notes?.trim() ? ` — ${b.airTermination.notes.trim()}` : ''}`],
       ['Tipos de descida', `${downConductorText(b) || '—'}${b.downConductor?.notes?.trim() ? ` — ${b.downConductor.notes.trim()}` : ''}`],
-      ['Nível de proteção', `${PROTECTION_LEVEL_LABEL[b.protectionLevel]} · esfera rolante R = ${lp.sphereRadiusM} m · malha ${lp.meshM} m · espaçamento das descidas ${lp.downSpacingM} m`],
+      ['Nível de proteção', b.protectionLevel && lp ? `${protectionLabel(b.protectionLevel)} · esfera rolante R = ${lp.sphereRadiusM} m · malha ${lp.meshM} m · espaçamento das descidas ${lp.downSpacingM} m` : 'Não definido'],
       ['Descidas', `${b.downConductorsCount ?? '—'} existente(s)${min !== null ? ` · mínimo exigido: ${min}${per !== null ? ` (perímetro ${per.toLocaleString('pt-BR')} m ÷ ${lp.downSpacingM} m)` : ''}` : ''}${min !== null && b.downConductorsCount != null && b.downConductorsCount < min ? ' — abaixo do mínimo' : ''}`],
       ['Aterramento', [groundingSystemText(b), b.groundingSystem?.notes?.trim(), ateObs].filter(Boolean).join(' — ') || '—'],
       ['Endereço', local || '—'],

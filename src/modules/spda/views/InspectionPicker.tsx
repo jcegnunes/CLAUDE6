@@ -76,7 +76,7 @@ export const BuildingTabs: React.FC<{ insp: SpdaInspection; buildings: SpdaBuild
               className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition-colors ${on ? 'border-teal-600 bg-teal-50 text-teal-800 ring-1 ring-teal-600' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}`}>
               <span className={`w-2 h-2 rounded-full ${VERDICT_DOT[verdict]}`} />
               {b.name || `Edificação ${i + 1}`}
-              <span className="text-[10px] font-normal text-slate-400">NP {b.protectionLevel}</span>
+              <span className="text-[10px] font-normal text-slate-400">{b.protectionLevel ? `NP ${b.protectionLevel}` : 'NP —'}</span>
             </button>
           );
         })}

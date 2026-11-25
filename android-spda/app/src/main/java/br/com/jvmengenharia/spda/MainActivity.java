@@ -142,11 +142,11 @@ public class MainActivity extends Activity {
                 request.setTitle(URLUtil.guessFileName(url, contentDisposition, mimetype));
                 request.allowScanningByMediaScanner();
                 request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "JVM_SPDA/" + URLUtil.guessFileName(url, contentDisposition, mimetype));
+                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "JVM SPDA/" + URLUtil.guessFileName(url, contentDisposition, mimetype));
                 DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
                 if (dm != null) {
                     dm.enqueue(request);
-                    Toast.makeText(MainActivity.this, "Download iniciado para /Download/JVM_SPDA/", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Download iniciado para /Download/JVM SPDA/", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
                 Log.w(TAG, "Download manager fallback", e);
@@ -527,7 +527,7 @@ public class MainActivity extends Activity {
         /**
          * PDF do laudo/relatório aberto, gerado pelo motor de impressão do WebView direto em arquivo
          * (vetorial: texto nítido e selecionável, como o PDF do app de Ensaios de EPI).
-         * action: "view" = salva em Download/JVM_SPDA e abre no leitor de PDF; "share" = abre o compartilhar.
+         * action: "view" = salva em Download/JVM SPDA e abre no leitor de PDF; "share" = abre o compartilhar.
          * Ao terminar chama window.__spdaNativePdf(requestId, ok, mensagem).
          */
         @JavascriptInterface
@@ -560,7 +560,7 @@ public class MainActivity extends Activity {
                                 } else {
                                     byte[] bytes = readAll(file);
                                     boolean ok = saveBase64File(Base64.encodeToString(bytes, Base64.NO_WRAP), "application/pdf", name, true);
-                                    notifyPdf(requestId, ok, ok ? "PDF salvo em Download/JVM_SPDA." : "Não foi possível salvar o PDF.");
+                                    notifyPdf(requestId, ok, ok ? "PDF salvo em Download/JVM SPDA." : "Não foi possível salvar o PDF.");
                                 }
                             } catch (Exception e) {
                                 Log.e(TAG, "Erro ao abrir/compartilhar o PDF", e);
@@ -657,7 +657,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String getStorageDirectory() {
-            return "/Download/JVM_SPDA/";
+            return "/Download/JVM SPDA/";
         }
 
         @JavascriptInterface
@@ -682,7 +682,7 @@ public class MainActivity extends Activity {
                     ContentValues values = new ContentValues();
                     values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
                     values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
-                    values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/JVM_SPDA");
+                    values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/JVM SPDA");
 
                     ContentResolver resolver = context.getContentResolver();
                     savedFileUri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
@@ -696,7 +696,7 @@ public class MainActivity extends Activity {
                         }
                     }
                 } else {
-                    File downloadsDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "JVM_SPDA");
+                    File downloadsDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "JVM SPDA");
                     if (!downloadsDir.exists()) {
                         downloadsDir.mkdirs();
                     }
@@ -710,7 +710,7 @@ public class MainActivity extends Activity {
                 }
 
                 // Exibe Toast de Confirmação
-                runOnUiThread(() -> Toast.makeText(context, "✅ Arquivo salvo: " + fileName + "\nLocal: Downloads/JVM_SPDA/", Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> Toast.makeText(context, "✅ Arquivo salvo: " + fileName + "\nLocal: Downloads/JVM SPDA/", Toast.LENGTH_LONG).show());
 
                 // Emite Notificação com Ação de Abrir
                 showFileSavedNotification(fileName, mimeType, savedFileUri);
@@ -732,14 +732,14 @@ public class MainActivity extends Activity {
         }
 
         /**
-         * Grava uma foto automaticamente em Download/JVM_SPDA/&lt;subFolder&gt;/ (ex.: OS-SPDA-2026-0001/Bloco A/Captação),
+         * Grava uma foto automaticamente em Download/JVM SPDA/&lt;subFolder&gt;/ (ex.: OS-SPDA-2026-0001/Bloco A/Captação),
          * sem notificação nem abrir o arquivo — só um aviso curto. Usado ao tirar/anexar fotos dos ensaios.
          */
         @JavascriptInterface
         public boolean savePhotoFile(String base64Data, String mimeType, String subFolder, String fileName) {
             try {
                 byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
-                String folder = "JVM_SPDA" + (subFolder == null || subFolder.trim().isEmpty() ? "" : "/" + subFolder.trim());
+                String folder = "JVM SPDA" + (subFolder == null || subFolder.trim().isEmpty() ? "" : "/" + subFolder.trim());
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     ContentValues values = new ContentValues();
                     values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
@@ -849,7 +849,7 @@ public class MainActivity extends Activity {
                     .setSmallIcon(android.R.drawable.stat_sys_download_done)
                     .setContentTitle("📄 Documento Salvo no Celular")
                     .setContentText(fileName)
-                    .setSubText("Downloads/JVM_SPDA")
+                    .setSubText("Downloads/JVM SPDA")
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setAutoCancel(true)
                     .setContentIntent(pi);

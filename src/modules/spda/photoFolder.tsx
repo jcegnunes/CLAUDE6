@@ -1,6 +1,6 @@
 /**
  * Pasta local das fotos por ordem de serviço (app Android): cada foto tirada ou anexada é gravada
- * automaticamente em Download/JVM_SPDA/<OS>/<edificação>/<subsistema>/.
+ * automaticamente em Download/JVM SPDA/<OS>/<edificação>/<subsistema>/.
  * No navegador (sem o app) não há gravação automática — as fotos continuam salvas na inspeção.
  */
 import React, { createContext, useContext } from 'react';
@@ -27,7 +27,7 @@ export function safeName(s: string, max = 60): string {
   return s.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/[→]/g, '-').replace(/\s+/g, ' ').trim().slice(0, max).replace(/[ .]+$/, '') || 'foto';
 }
 
-/** Caminho relativo dentro de Download/JVM_SPDA. */
+/** Caminho relativo dentro de Download/JVM SPDA. */
 export function photoFolderPath(f: PhotoFolder): string {
   return [f.os, f.building, f.subsystem].filter((x): x is string => !!x && !!x.trim()).map(x => safeName(x)).join('/');
 }

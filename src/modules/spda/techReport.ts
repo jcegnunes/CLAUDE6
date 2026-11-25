@@ -4,7 +4,7 @@
  */
 import { formatDateBR } from '../../utils/dateUtils';
 import { INSPECTION_KIND_LABEL, PROTECTION_LEVEL_LABEL, buildingsOf, inspectionVerdict, listNonConformities, nextInspectionDate, spdaKindText, type ContinuityGroup, type Verdict } from './rules';
-import type { ReportResult, SpdaInspection, TechReportTexts } from './types';
+import type { ProtectionLevel, ReportResult, SpdaInspection, TechReportTexts } from './types';
 
 /** Textos livres do relatório técnico (os resultados e os textos por subsistema ficam à parte). */
 export type TechTextKey = Exclude<keyof TechReportTexts, 'results' | 'subsystemTexts'>;
@@ -80,9 +80,9 @@ export function defaultResumo(v: SpdaInspection): string {
   const r = finalResult(v);
   const ncs = listNonConformities(v).length;
   const proxima = formatDateBR(nextInspectionDate(v));
-  const levels = [...new Set(bs.map(b => PROTECTION_LEVEL_LABEL[b.protectionLevel]))].join(' / ');
+  const levels = [...new Set(bs.map(b => b.protectionLevel).filter(Boolean).map(l => PROTECTION_LEVEL_LABEL[l as ProtectionLevel]))].join(' / ');
   const kinds = [...new Set(bs.map(b => spdaKindText(b).toLowerCase()))].join(' / ');
-  return `O SPDA ${kinds} ${bs.length > 1 ? `das edificações ${listPt(bs.map(b => b.name))}` : `do ${bs[0]?.name || 'edifício'}`}, ${levels.replace(/^Nível/, 'Nível de Proteção')}, foi inspecionado e ensaiado em ${formatDateBR(v.inspectionDate)}. `
+  return `O SPDA ${kinds} ${bs.length > 1 ? `das edificações ${listPt(bs.map(b => b.name))}` : `do ${bs[0]?.name || 'edifício'}`}${levels ? `, ${levels.replace(/^Nível/, 'Nível de Proteção')}` : ''}, foi inspecionado e ensaiado em ${formatDateBR(v.inspectionDate)}. `
     + (r === 'aprovado' ? 'Os subsistemas avaliados atendem à ABNT NBR 5419:2026; o SPDA foi aprovado. '
       : r === 'reprovado' ? `O SPDA foi reprovado${ncs ? `, com ${ncs} não conformidade(s) detalhada(s) nas folhas de ensaio e na Seção 8` : ''}. `
         : r === 'parcial' ? `O SPDA atende parcialmente à ABNT NBR 5419:2026${ncs ? `; ${ncs} não conformidade(s) detalhada(s) nas folhas de ensaio e na Seção 8 devem ser corrigidas` : ''}. `

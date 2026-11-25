@@ -9,7 +9,7 @@ import { CHECKLIST_TEMPLATE, SUBSYSTEM_LABEL } from '../checklist';
 import { cleanCaption } from './PhotoReport';
 import { readCompanyInfo } from '../repository';
 import {
-  BUILDING_TYPE_LABEL, CONTINUITY_KIND_LABEL, PROTECTION_LEVEL_LABEL, SPDA_KIND_LABEL, spdaKindText, TEST_STATUS_LABEL, VERDICT_LABEL,
+  BUILDING_TYPE_LABEL, CONTINUITY_KIND_LABEL, protectionLabel, SPDA_KIND_LABEL, spdaKindText, TEST_STATUS_LABEL, VERDICT_LABEL,
   answerOf, buildingsOf, fmtMilliOhm, continuityStatus, currentOutOfRange, effectiveLimit, fmtOhm, formatCoordinates, groundingStatus,
   groundingValue, isPerBuilding, kindOf, levelEfficiencyPct, subsystemSummary, theoreticalResistance, type Verdict,
   CONTINUITY_GROUP_INFO, continuityCode, continuityGroupOf, probeDistances, fmtMeters, fopStep, isEvaluated, airTerminationText, downConductorText, groundingSystemText } from '../rules';
@@ -64,7 +64,7 @@ export const BuildingBlock: React.FC<{
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
           <Info label="Tipo" value={`${BUILDING_TYPE_LABEL[b.type]}${b.activity ? ` — ${b.activity}` : ''}`} />
           <Info label="SPDA existente" value={spdaKindText(b)} />
-          <Info label="Nível de proteção" value={`${PROTECTION_LEVEL_LABEL[b.protectionLevel]} (${levelEfficiencyPct(b.protectionLevel)} %)`} />
+          <Info label="Nível de proteção" value={b.protectionLevel ? `${protectionLabel(b.protectionLevel)} (${levelEfficiencyPct(b.protectionLevel)} %)` : "Não definido"} />
           <Info label="Coordenadas" value={formatCoordinates(b.latitude, b.longitude)} />
         </div>
       )}

@@ -8,7 +8,7 @@ import React from 'react';
 import { CHECKLIST_TEMPLATE } from '../checklist';
 import { readCompanyInfo } from '../repository';
 import {
-  CONTINUITY_GROUP_INFO, LEVEL_PARAMS, PROTECTION_LEVEL_LABEL, RESISTIVITY, answerOf, buildingsOf, continuityCode, continuityGroupOf,
+  CONTINUITY_GROUP_INFO, levelParams, protectionLabel, RESISTIVITY, answerOf, buildingsOf, continuityCode, continuityGroupOf,
   continuityStatus, fmtMilliOhm, fmtOhm, fop3Plateau, groundingValue, isPerBuilding, type ContinuityGroup
 } from '../rules';
 import type { SketchKind, SpdaBuilding, SpdaInspection, SpdaSubsystem } from '../types';
@@ -169,7 +169,7 @@ export const ContinuitySheet: React.FC<{
         </table>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Info label="Condição do solo / tempo" value={[v.soilCondition && SOIL_LABEL_FULL[v.soilCondition], v.weather?.trim()].filter(Boolean).join(' — ')} />
-          <Info label="Nível de proteção" value={`${PROTECTION_LEVEL_LABEL[level]} (malha ${LEVEL_PARAMS[level].meshM} m)`} />
+          <Info label="Nível de proteção" value={level ? `${protectionLabel(level)} (malha ${levelParams(level)!.meshM} m)` : 'Não definido'} />
           <Info label="Pontos medidos" value={rows.length ? String(rows.length) : undefined} />
           <Info label="Tipo de material" value={material} />
         </div>

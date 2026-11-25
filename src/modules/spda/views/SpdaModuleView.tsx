@@ -9,7 +9,7 @@ import {
   canEditSpda, createInspection, deleteInspection, getInspection, listInspections, saveInspection, subscribeSpda
 } from '../repository';
 import {
-  NORM_LABEL, PROTECTION_LEVEL_LABEL, checklistProgress, continuityStatus, inspectionVerdict,
+  NORM_LABEL, protectionLabel, checklistProgress, continuityStatus, inspectionVerdict,
   listImprovements, listNonConformities, nextInspectionDate, suggestRecommendations, withBuildings
 } from '../rules';
 import type { SpdaInspection } from '../types';
@@ -138,7 +138,7 @@ const Editor: React.FC<{ initial: SpdaInspection; onBack: () => void }> = ({ ini
 
       <div className={`${cardCls} p-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600`}>
         <span><b className="text-slate-900">{draft.clientName || 'Cliente não informado'}</b>{draft.buildingName ? ` — ${draft.buildingName}` : ''}</span>
-        <span>{PROTECTION_LEVEL_LABEL[draft.protectionLevel]}</span>
+        <span>{protectionLabel(draft.protectionLevel)}</span>
         <span>Checklist {prog.answered}/{prog.total}</span>
         <span>Ensaios: {draft.continuity.length} continuidade · {draft.grounding.length} aterramento{pendingTests ? ` (${pendingTests} pendente(s))` : ''}</span>
         <ResultBadge insp={draft} />
@@ -382,7 +382,7 @@ export const SpdaModuleView: React.FC = () => {
                       {i.clientName || 'Cliente não informado'}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {[i.serviceOrderNumber && `OS ${i.serviceOrderNumber}`, i.buildingName, i.city, formatDateBR(i.inspectionDate), PROTECTION_LEVEL_LABEL[i.protectionLevel], `checklist ${prog.answered}/${prog.total}`].filter(Boolean).join(' · ')}
+                      {[i.serviceOrderNumber && `OS ${i.serviceOrderNumber}`, i.buildingName, i.city, formatDateBR(i.inspectionDate), i.protectionLevel ? protectionLabel(i.protectionLevel) : null, `checklist ${prog.answered}/${prog.total}`].filter(Boolean).join(' · ')}
                     </p>
                   </button>
                   {/* celular: selos numa linha e os 3 botões dividindo a largura; tela larga: tudo numa linha */}

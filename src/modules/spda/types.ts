@@ -184,7 +184,8 @@ export interface SpdaBuilding {
   widthM?: number | null;
   floors?: number | null;
   spdaKind: SpdaKind;
-  protectionLevel: ProtectionLevel;
+  /** Nível de proteção; '' = sem valor (edificação sem NP definido) */
+  protectionLevel: ProtectionLevel | '';
   /** Nº de descidas existentes */
   downConductorsCount?: number | null;
   /** Coordenadas geográficas (graus decimais, WGS 84) */
@@ -308,8 +309,8 @@ export interface SpdaInspection {
   /** Edificações da OS (dados por edificação). Os campos de edificação abaixo são derivados delas. */
   buildings?: SpdaBuilding[];
 
-  // SPDA (protectionLevel = NP mais restritivo entre as edificações)
-  protectionLevel: ProtectionLevel;
+  // SPDA (protectionLevel = NP mais restritivo entre as edificações; '' = sem valor)
+  protectionLevel: ProtectionLevel | '';
   method: SpdaMethod;
   inspectionKind: InspectionKind;
   /** Áreas classificadas, corrosão severa ou serviços essenciais: periodicidade de 1 ano */

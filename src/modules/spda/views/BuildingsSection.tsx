@@ -9,8 +9,8 @@ import {
 } from 'lucide-react';
 import { newBuilding } from '../repository';
 import {
-  BUILDING_TYPE_LABEL, LEVEL_PARAMS, LEVEL_PB, PROTECTION_LEVEL_LABEL, SPDA_KIND_LABEL, buildingArea, formatCoordinates,
-  levelEfficiencyPct, mapEmbedUrl, mapUrl, minDownConductors, parseMapsLink, validCoordinates
+  BUILDING_TYPE_LABEL, LEVEL_PB, PROTECTION_LEVEL_LABEL, SPDA_KIND_LABEL, buildingArea, formatCoordinates,
+  levelEfficiencyPct, levelParams, mapEmbedUrl, mapUrl, minDownConductors, parseMapsLink, validCoordinates
 } from '../rules';
 import type { BuildingType, ProtectionLevel, SpdaBuilding, SpdaKind } from '../types';
 import { DecimalField, Field, alertError, btnDanger, btnPrimary, btnSecondary, cardCls, inputCls } from './ui';
@@ -39,7 +39,7 @@ const BuildingCard: React.FC<{
   const [locating, setLocating] = useState(false);
   const area = buildingArea(b);
   const minDowns = minDownConductors(b);
-  const lp = LEVEL_PARAMS[b.protectionLevel];
+  const lp = levelParams(b.protectionLevel);
   const url = mapUrl(b.latitude, b.longitude);
   const embed = mapEmbedUrl(b.latitude, b.longitude);
   const camRef = useRef<HTMLInputElement>(null);
@@ -155,15 +155,18 @@ const BuildingCard: React.FC<{
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Field label="Nível de proteção (NP)">
-          <select className={inputCls} value={b.protectionLevel} onChange={e => set({ protectionLevel: e.target.value as ProtectionLevel })}>
+          <select className={inputCls} value={b.protectionLevel} onChange={e => set({ protectionLevel: e.target.value as ProtectionLevel | '' })}>
+            <option value="">Sem nível definido</option>
             {LEVELS.map(l => <option key={l} value={l}>{PROTECTION_LEVEL_LABEL[l]} — {levelEfficiencyPct(l)} % de eficiência</option>)}
           </select>
         </Field>
-        <Field label="Nº de descidas existentes" hint={minDowns !== null ? `Mínimo pela NBR: ${minDowns} (perímetro ÷ ${lp.downSpacingM} m, 5.4.3.1)` : 'Informe C e L para calcular o mínimo'}>
+        <Field label="Nº de descidas existentes" hint={minDowns !== null ? `Mínimo pela NBR: ${minDowns} (perímetro ÷ ${lp!.downSpacingM} m, 5.4.3.1)` : lp ? 'Informe C e L para calcular o mínimo' : 'Defina o nível de proteção para calcular o mínimo'}>
           <DecimalField className={inputCls} value={b.downConductorsCount} onChange={n => set({ downConductorsCount: n })} />
         </Field>
         <div className="text-[11px] text-slate-600 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 self-end">
-          Esfera rolante <b>{lp.sphereRadiusM} m</b> · malha <b>{lp.meshM} m</b> · PB {LEVEL_PB[b.protectionLevel].toLocaleString('pt-BR')} (5419-2, Tabela B.2)
+          {lp
+            ? <>Esfera rolante <b>{lp.sphereRadiusM} m</b> · malha <b>{lp.meshM} m</b> · PB {LEVEL_PB[b.protectionLevel as ProtectionLevel].toLocaleString('pt-BR')} (5419-2, Tabela B.2)</>
+            : <>Defina o nível de proteção (NP) para ver os parâmetros da NBR 5419 (esfera rolante, malha e descidas).</>}
           {minDowns !== null && b.downConductorsCount != null && b.downConductorsCount < minDowns && (
             <span className="block text-red-700 font-bold">Descidas abaixo do mínimo ({b.downConductorsCount} &lt; {minDowns})</span>
           )}

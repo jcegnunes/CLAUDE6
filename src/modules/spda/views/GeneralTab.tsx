@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ClipboardPlus } from 'lucide-react';
 import { generateServiceOrder, readClients, readInstruments, readServiceOrders } from '../repository';
 import {
-  INSPECTION_KIND_LABEL, LEVEL_PARAMS, METHOD_LABEL, PROTECTION_LEVEL_LABEL, buildingsOf, validityText, nextInspectionDate,
+  INSPECTION_KIND_LABEL, METHOD_LABEL, protectionLabel, levelParams, buildingsOf, validityText, nextInspectionDate,
   withBuildings
 } from '../rules';
 import { BuildingsSection } from './BuildingsSection';
@@ -19,7 +19,7 @@ export const GeneralTab: React.FC<Props> = ({ value: v, onChange, readOnly }) =>
   const instruments = readInstruments();
   const [, setVersion] = useState(0);
   const serviceOrders = readServiceOrders(v.clientId);
-  const lp = LEVEL_PARAMS[v.protectionLevel];
+  const lp = levelParams(v.protectionLevel);
   const buildings = buildingsOf(v);
 
   const pickClient = (id: string) => {
@@ -163,7 +163,9 @@ export const GeneralTab: React.FC<Props> = ({ value: v, onChange, readOnly }) =>
           <span>Estrutura com áreas classificadas 0, 1, 20 ou 21, munição, explosivos, componentes tóxicos, corrosão atmosférica severa (litoral, atmosfera industrial agressiva) ou de serviço essencial (energia, água, sinais, apoio à vida) — periodicidade de 1 ano (NBR 5419-3:2026, 7.3.2 f)</span>
         </label>
         <div className="mt-3 text-[11px] text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
-          NP mais restritivo entre as edificações: <b>{PROTECTION_LEVEL_LABEL[v.protectionLevel]}</b> — raio da esfera rolante <b>{lp.sphereRadiusM} m</b> e malha máxima <b>{lp.meshM} m</b> (Tabela 2) · distância entre descidas <b>{lp.downSpacingM} m</b>, até +20 % (Tabela 5, 5.4.3.3).
+          NP mais restritivo entre as edificações: <b>{protectionLabel(v.protectionLevel)}</b>{lp
+            ? <> — raio da esfera rolante <b>{lp.sphereRadiusM} m</b> e malha máxima <b>{lp.meshM} m</b> (Tabela 2) · distância entre descidas <b>{lp.downSpacingM} m</b>, até +20 % (Tabela 5, 5.4.3.3).</>
+            : <> (defina o nível de proteção nas edificações para ver os parâmetros da NBR 5419).</>}
           {' '}Próxima inspeção: <b>{formatDateBR(nextInspectionDate(v)) || '—'}</b> (validade do laudo: {validityText(v)}).
         </div>
       </section>

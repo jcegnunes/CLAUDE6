@@ -390,3 +390,17 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 - Textos de exclusão atualizados (antes diziam que o e-mail ficava reservado).
 - Testes de banco: e-mail liberado, conta antiga bloqueada com o endereço interno, novo cadastro com o mesmo e-mail
   cria usuário e login novos, pedido de conta com e-mail de excluído aceito, registro excluído não volta a ocupar o e-mail.
+
+## 10.0.31 (APK versionCode 28 + plataforma web) — nível de proteção (NP) pode ficar sem valor
+- No cadastro de edificações (APP e plataforma), o campo **Nível de proteção (NP)** agora aceita **"Sem nível definido"**
+  e nova edificação já nasce sem NP (antes vinha "Nível III" por padrão).
+- Sem NP: não há mínimo de descidas a calcular e os parâmetros da NBR (esfera rolante, malha, espaçamento) aparecem como
+  "a definir" em vez de quebrar a tela. O resumo da inspeção usa o NP mais restritivo entre as edificações **que têm NP**;
+  se nenhuma tiver, fica "Não definido". Relatórios, laudo técnico e descrições dos subsistemas tratam o NP vazio.
+- Testes novos (nova edificação sem NP, sem cálculo de descidas, resumo ignora edificação sem NP). 412 testes passando.
+
+## 10.0.32 (APK versionCode 29) — fotos e arquivos na pasta "JVM SPDA"
+- No APP, a pasta de downloads passou a se chamar **JVM SPDA** (antes `JVM_SPDA`, com sublinhado), igual ao nome do app.
+- Confirmado o que já existia: no APP, cada foto tirada ou anexada é gravada também em
+  **Download/JVM SPDA/<OS>/<edificação>/<subsistema>/**, com o nome "legenda_AAAAMMDD-HHMMSS.jpg" (sem OS: nº da inspeção).
+  Os PDFs e documentos continuam em Download/JVM SPDA. Na plataforma web (navegador) não há essa gravação automática.

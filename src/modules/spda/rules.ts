@@ -41,6 +41,16 @@ export const PROTECTION_LEVEL_LABEL: Record<ProtectionLevel, string> = {
   I: 'Nível I', II: 'Nível II', III: 'Nível III', IV: 'Nível IV'
 };
 
+/** Rótulo do NP aceitando "sem valor" (''). */
+export function protectionLabel(level: ProtectionLevel | ''): string {
+  return level ? PROTECTION_LEVEL_LABEL[level] : 'Não definido';
+}
+
+/** Parâmetros do NP, ou null quando a edificação está sem nível de proteção. */
+export function levelParams(level: ProtectionLevel | ''): { sphereRadiusM: number; meshM: string; downSpacingM: number } | null {
+  return level ? LEVEL_PARAMS[level] : null;
+}
+
 /** NBR 5419-3:2026, Tabela 2 (esfera rolante e malha) e Tabela 5 (descidas e anéis intermediários). */
 export const LEVEL_PARAMS: Record<ProtectionLevel, { sphereRadiusM: number; meshM: string; downSpacingM: number }> = {
   I: { sphereRadiusM: 20, meshM: '5 × 5', downSpacingM: 10 },
@@ -749,7 +759,7 @@ export function buildingPerimeter(b: Pick<SpdaBuilding, 'lengthM' | 'widthM'>): 
 /** Nº mínimo de descidas: perímetro ÷ distância da Tabela 5, nunca menos que 2 (5.4.3.1). */
 export function minDownConductors(b: Pick<SpdaBuilding, 'lengthM' | 'widthM' | 'protectionLevel'>): number | null {
   const p = buildingPerimeter(b);
-  if (p === null) return null;
+  if (p === null || !b.protectionLevel) return null; // sem C/L ou sem NP: não há mínimo a calcular
   return Math.max(2, Math.ceil(p / LEVEL_PARAMS[b.protectionLevel].downSpacingM - 1e-9));
 }
 
@@ -818,9 +828,11 @@ export function withBuildings<T extends Pick<SpdaInspection, 'protectionLevel'>>
   const named = buildings.map(b => b.name.trim()).filter(Boolean);
   const heights = buildings.map(b => b.heightM).filter(isNum);
   const downs = buildings.map(b => b.downConductorsCount).filter(isNum);
-  const level = buildings.length
-    ? buildings.reduce<ProtectionLevel>((acc, b) => (LEVEL_RANK[b.protectionLevel] < LEVEL_RANK[acc] ? b.protectionLevel : acc), 'IV')
-    : insp.protectionLevel;
+  // NP mais restritivo entre as edificações COM nível definido; nenhuma definida = sem valor ('')
+  const defined = buildings.map(b => b.protectionLevel).filter((l): l is ProtectionLevel => !!l);
+  const level: ProtectionLevel | '' = defined.length
+    ? defined.reduce((acc, l) => (LEVEL_RANK[l] < LEVEL_RANK[acc] ? l : acc))
+    : buildings.length ? '' : insp.protectionLevel;
   // edificação removida: saem as respostas e os ensaios vinculados a ela
   const ids = new Set(buildings.map(b => b.id));
   const keep = <R extends { buildingId?: string }>(list: R[] | undefined) => (Array.isArray(list) ? list.filter(r => !r.buildingId || ids.has(r.buildingId)) : list);
