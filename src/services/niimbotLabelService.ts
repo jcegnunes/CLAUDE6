@@ -556,14 +556,17 @@ export async function exportNiimbotPDF(
 export async function printNiimbotDirect(
   tests: TestRecord[],
   company: CompanyLabInfo,
-  rollSize: NiimbotRollSize = '50x30'
+  rollSize: NiimbotRollSize = '50x30',
+  copies: number = 1
 ): Promise<void> {
   const config = NIIMBOT_ROLL_CONFIGS[rollSize] || NIIMBOT_ROLL_CONFIGS['50x30'];
+  const nCopies = Math.min(99, Math.max(1, Math.floor(copies) || 1));
   const canvases: HTMLCanvasElement[] = [];
 
   for (const test of tests) {
     const canvas = await renderNiimbotLabelToCanvas(test, company, rollSize);
-    canvases.push(canvas);
+    // cada etiqueta sai nCopies vezes
+    for (let i = 0; i < nCopies; i++) canvases.push(canvas);
   }
 
   const iframe = document.createElement('iframe');

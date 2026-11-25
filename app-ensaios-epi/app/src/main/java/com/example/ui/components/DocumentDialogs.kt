@@ -84,6 +84,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -2093,26 +2097,40 @@ fun NiimbotLabelDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text("Cópias:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155))
+                            // caixa para digitar a quantidade de cópias (1 a 99), com - e +
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                listOf(1, 2, 3).forEach { count ->
-                                    val isSelected = copies == count
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isSelected) NavyPrimary else Color.White,
-                                        modifier = Modifier
-                                            .clickable { copies = count }
-                                    ) {
-                                        Text(
-                                            text = "$count",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else Color(0xFF334155),
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                        )
-                                    }
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color.White,
+                                    modifier = Modifier.clickable { copies = (copies - 1).coerceAtLeast(1) }
+                                ) {
+                                    Text("−", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155),
+                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 1.dp))
+                                }
+                                BasicTextField(
+                                    value = if (copies == 0) "" else copies.toString(),
+                                    onValueChange = { input ->
+                                        val digits = input.filter { it.isDigit() }.take(2)
+                                        copies = digits.toIntOrNull()?.coerceIn(1, 99) ?: if (digits.isEmpty()) 1 else copies
+                                    },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), textAlign = TextAlign.Center),
+                                    modifier = Modifier
+                                        .width(40.dp)
+                                        .background(Color.White, RoundedCornerShape(4.dp))
+                                        .padding(vertical = 3.dp)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color.White,
+                                    modifier = Modifier.clickable { copies = (copies + 1).coerceAtMost(99) }
+                                ) {
+                                    Text("+", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF334155),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 1.dp))
                                 }
                             }
                         }

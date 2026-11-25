@@ -428,3 +428,12 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
   **nome e a imagem da assinatura** do cadastro (Usuários / Configurações): o executor pela técnico da OS (id ou nome),
   o RT pelo responsável da OS, ou o Responsável Técnico do menu Configurações. Sem assinatura cadastrada, mostra
   "Assinatura não cadastrada". É só exibição na tela (sem PDF da OS).
+
+## 10.0.36 (plataforma web + APP Ensaios de EPI) — cópias da etiqueta digitáveis
+- **Plataforma web (etiqueta Niimbot):** no quadro de impressão, nova caixa **"Cópias por etiqueta"** (digitável, 1 a 99,
+  com − e +). A impressão direta no driver térmico sai com cada etiqueta repetida esse número de vezes; o botão mostra o
+  total de etiquetas.
+- **APP de Ensaios de EPI:** o seletor de cópias (antes fixo em 1/2/3) virou uma **caixa para digitar** a quantidade
+  (1 a 99), com − e +. APK recompilado (versão 6.1.261125.1646).
+- Correção: os dois `compilar-apk.bat` passaram a gravar o arquivo de versão do APK via PowerShell direto (o modo
+  anterior gravava texto inválido no arquivo da versão do app de EPI).

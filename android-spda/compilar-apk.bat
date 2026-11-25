@@ -73,10 +73,8 @@ rem publica junto com a plataforma web (botao "Baixar o aplicativo")
 if not exist "..\public\apps" mkdir "..\public\apps"
 copy /y "JVM-SPDA.apk" "..\public\apps\JVM-SPDA.apk" >nul
 rem grava a versao ao lado do APK (a plataforma web mostra no botao "Baixar o aplicativo")
-set "VNAME="
-for /f "usebackq delims=" %%v in (`powershell -NoProfile -Command "(Get-Content 'app\build\outputs\apk\debug\output-metadata.json' -Raw ^| ConvertFrom-Json).elements[0].versionName"`) do set "VNAME=%%v"
-if not "%VNAME%"=="" > "..\public\apps\JVM-SPDA.version.txt" echo %VNAME%
-echo   Copiado para ..\public\apps\ (vai para o site ao publicar com publicar.bat; versao %VNAME%)
+powershell -NoProfile -Command "try { ((Get-Content 'app\build\outputs\apk\debug\output-metadata.json' -Raw | ConvertFrom-Json).elements[0].versionName) | Out-File -Encoding ascii -NoNewline '..\public\apps\JVM-SPDA.version.txt' } catch {}"
+echo   Copiado para ..\public\apps\ (vai para o site ao publicar com publicar.bat)
 echo.
 echo ==============================================================
 echo   APK gerado: %~dp0JVM-SPDA.apk

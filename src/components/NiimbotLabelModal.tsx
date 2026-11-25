@@ -53,6 +53,7 @@ export const NiimbotLabelModal: React.FC<NiimbotLabelModalProps> = ({
   initialRollSize = '50x30'
 }) => {
   const [rollSize, setRollSize] = useState<NiimbotRollSize>(initialRollSize);
+  const [copies, setCopies] = useState(1); // nº de cópias por etiqueta na impressão direta
   const [currentIndex, setCurrentIndex] = useState(0);
   const [previewDataUrl, setPreviewDataUrl] = useState<string>('');
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -161,7 +162,7 @@ export const NiimbotLabelModal: React.FC<NiimbotLabelModalProps> = ({
 
   const handleDirectPrint = async () => {
     try {
-      await printNiimbotDirect(tests, company, rollSize);
+      await printNiimbotDirect(tests, company, rollSize, copies);
     } catch (err) {
       alert('Erro ao enviar para impressão direta.');
     }
@@ -644,6 +645,23 @@ export const NiimbotLabelModal: React.FC<NiimbotLabelModalProps> = ({
                   <Download className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 shrink-0" />
                 </button>
 
+                {/* Quantidade de cópias por etiqueta */}
+                <div className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
+                  <label htmlFor="niimbot-copies" className="text-xs font-bold text-slate-700">Cópias por etiqueta</label>
+                  <div className="flex items-center gap-1">
+                    <button type="button" aria-label="Diminuir" onClick={() => setCopies(c => Math.max(1, c - 1))}
+                      className="w-8 h-8 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50">−</button>
+                    <input
+                      id="niimbot-copies" type="number" inputMode="numeric" min={1} max={99}
+                      value={copies}
+                      onChange={e => { const n = parseInt(e.target.value, 10); setCopies(Number.isFinite(n) ? Math.min(99, Math.max(1, n)) : 1); }}
+                      className="w-16 h-8 text-center border border-slate-300 rounded-lg text-sm font-bold text-slate-900 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                    />
+                    <button type="button" aria-label="Aumentar" onClick={() => setCopies(c => Math.min(99, c + 1))}
+                      className="w-8 h-8 rounded-lg border border-slate-300 text-slate-700 font-bold hover:bg-slate-50">+</button>
+                  </div>
+                </div>
+
                 {/* Button 5: Direct Print */}
                 <button
                   type="button"
@@ -652,7 +670,7 @@ export const NiimbotLabelModal: React.FC<NiimbotLabelModalProps> = ({
                   className="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 active:scale-98 text-white rounded-xl font-bold text-xs shadow-md shadow-orange-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Imprimir Direto no Driver Térmico</span>
+                  <span>Imprimir Direto no Driver Térmico{tests.length * copies > 1 ? ` (${tests.length * copies} etiquetas)` : ''}</span>
                 </button>
               </div>
 
