@@ -14,7 +14,7 @@ import { DEFAULT_TEST_CURRENT_A, KIND_SUBSYSTEM, migrateInspection, newId, nextN
 import { CHECKLIST_VERSION } from './checklist';
 import { SPDA_KEYS } from './storageKeys';
 import { SPDA_MODULE_ID, SPDA_OS_DESCRIPTION } from './osText';
-import type { ContinuityTest, GroundingTest, SpdaBuilding, SpdaInspection } from './types';
+import type { ContinuityTest, GroundingTest, InstrumentInfo, SpdaBuilding, SpdaInspection } from './types';
 import type { CompanyLabInfo, ServiceOrder } from '../../types';
 
 // ----------------------------------------------------------------- leitura base
@@ -266,6 +266,31 @@ export function newBuilding(partial: Partial<SpdaBuilding> = {}): SpdaBuilding {
   return { id: newId('edif'), name: '', type: 'industrial', spdaKind: 'externo', protectionLevel: '', ...partial };
 }
 
+/** Instrumentos genéricos quando ainda não há inspeção anterior para copiar. */
+const GENERIC_INSTRUMENTS: InstrumentInfo[] = [
+  { use: 'continuidade', description: 'Micro-ohmímetro / miliohmímetro 4 fios (1 A a 5 A)', model: '', serialNumber: '', calibrationCert: '' },
+  { use: 'aterramento', description: 'Terrômetro digital (medição informativa)', model: '', serialNumber: '', calibrationCert: '' }
+];
+
+/**
+ * Instrumentos padrão da inspeção nova: repete os equipamentos definidos na última inspeção
+ * da empresa (a mais recente que teve algum instrumento preenchido), para não precisar digitar
+ * de novo. Sem inspeção anterior preenchida, usa os genéricos.
+ */
+function defaultInstruments(): InstrumentInfo[] {
+  try {
+    const filled = (ins?: InstrumentInfo) => !!(ins && `${ins.model || ''}${ins.serialNumber || ''}${ins.calibrationCert || ''}`.trim());
+    const last = listInspections().find(i => (i.instruments || []).some(filled));
+    if (last?.instruments?.length) {
+      return GENERIC_INSTRUMENTS.map(def => {
+        const prev = last.instruments.find(x => x.use === def.use);
+        return prev ? { ...prev } : { ...def };
+      });
+    }
+  } catch { /* sem inspeções anteriores */ }
+  return GENERIC_INSTRUMENTS.map(d => ({ ...d }));
+}
+
 /** Inspeção nova com dados do técnico logado e do responsável técnico da empresa. */
 export function createInspection(): SpdaInspection {
   let technicianName = '';
@@ -294,10 +319,7 @@ export function createInspection(): SpdaInspection {
     criticalStructure: false,
     inspectionDate: todayIso(),
     soilCondition: 'seco',
-    instruments: [
-      { use: 'continuidade', description: 'Micro-ohmímetro / miliohmímetro 4 fios (1 A a 5 A)', model: '', serialNumber: '', calibrationCert: '' },
-      { use: 'aterramento', description: 'Terrômetro digital (medição informativa)', model: '', serialNumber: '', calibrationCert: '' }
-    ],
+    instruments: defaultInstruments(),
     technicianName,
     technicianTitle,
     technicianCrea,

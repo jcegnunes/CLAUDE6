@@ -4,11 +4,12 @@
  * Só dados do aparelho; tocar num item abre a tela correspondente.
  */
 import React from 'react';
-import { AlertTriangle, CalendarClock, ClipboardCheck, ClipboardList, Gauge, LayoutDashboard, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarClock, ClipboardCheck, ClipboardList, Gauge, LayoutDashboard, PieChart as PieIcon, TrendingUp, Zap } from 'lucide-react';
+import { Bar, BarChart, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { listInspections } from '../repository';
 import { readInstruments as listInstruments, readServiceOrders as listOrders } from '../repository';
 import { buildDashboard } from '../dashboard';
-import { RESULT_LABEL, type ShownResult } from '../techReport';
+import { RESULT_LABEL, finalResult, type ShownResult } from '../techReport';
 import { formatDateBR } from '../../../utils/dateUtils';
 import { navigateTo, openInspectionOnNextVisit } from './navigation';
 import { cardCls } from './ui';
@@ -44,10 +45,40 @@ const openInspection = (id: string) => { openInspectionOnNextVisit(id); navigate
 const daysTxt = (d: number) => (d < 0 ? `vencida há ${-d} dia(s)` : d === 0 ? 'hoje' : `em ${d} dia(s)`);
 
 export const DashboardView: React.FC = () => {
-  const d = buildDashboard(listInspections(), listOrders(), listInstruments(), todayIso());
+  const inspections = listInspections();
+  const d = buildDashboard(inspections, listOrders(), listInstruments(), todayIso());
   const totalRes = Math.max(1, d.inspections.total);
   const pctOk = d.tests.measured ? Math.round((d.tests.approved / d.tests.measured) * 100) : 0;
   const calAlert = d.instruments.expired.length + d.instruments.expiring.length;
+
+  // Gráfico: inspeções dos últimos 6 meses por parecer
+  const today = new Date(todayIso());
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const dt = new Date(today.getFullYear(), today.getMonth() - 5 + i, 1);
+    return { key: `${dt.getFullYear()}-${dt.getMonth()}`, mes: dt.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''), aprovadas: 0, reprovadas: 0, parciais: 0 };
+  });
+  const mIdx = new Map(months.map((m, i) => [m.key, i]));
+  inspections.forEach(v => {
+    const iso = v.inspectionDate || v.createdAt;
+    const dt = iso ? new Date(iso) : null;
+    if (!dt || Number.isNaN(dt.getTime())) return;
+    const idx = mIdx.get(`${dt.getFullYear()}-${dt.getMonth()}`);
+    if (idx == null) return;
+    const r = finalResult(v);
+    if (r === 'aprovado') months[idx].aprovadas += 1;
+    else if (r === 'reprovado') months[idx].reprovadas += 1;
+    else if (r === 'parcial') months[idx].parciais += 1;
+  });
+  const monthlyTotal = months.reduce((a, m) => a + m.aprovadas + m.reprovadas + m.parciais, 0);
+
+  // Gráfico de rosca: conformidade (parecer das inspeções)
+  const ratioData = [
+    { name: 'Aprovadas', value: d.inspections.byResult.aprovado, color: '#10B981' },
+    { name: 'Com restrições', value: d.inspections.byResult.parcial, color: '#F59E0B' },
+    { name: 'Reprovadas', value: d.inspections.byResult.reprovado, color: '#EF4444' },
+    { name: 'Em andamento', value: d.inspections.byResult.incompleto, color: '#CBD5E1' }
+  ].filter(x => x.value > 0);
+  const pctAprov = d.inspections.total ? Math.round((d.inspections.byResult.aprovado / d.inspections.total) * 100) : 0;
 
   return (
     <div className="space-y-4">
@@ -64,6 +95,58 @@ export const DashboardView: React.FC = () => {
         <Kpi icon={AlertTriangle} label="Não conformidades" value={d.ncs.total} sub={`${d.ncs.open} em inspeções em andamento`} tone={d.ncs.total ? 'text-red-700' : 'text-slate-900'} />
         <Kpi icon={Zap} label="Ensaios de continuidade" value={d.tests.measured ? `${pctOk} %` : '—'} sub={d.tests.measured ? `${d.tests.approved} de ${d.tests.measured} aprovados` : 'nenhuma medição'} tone={d.tests.rejected ? 'text-amber-700' : 'text-emerald-700'} />
         <Kpi icon={ClipboardList} label="Ordens de serviço" value={d.orders.total} sub={`${d.orders.open} em aberto · ${d.orders.withArt} com ART anexada`} onClick={() => navigateTo('os')} />
+      </div>
+
+      {/* Gráficos (como no painel de Ensaios de EPI) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <section className={`${cardCls} p-4 lg:col-span-2`}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-slate-500" /> Evolução mensal das inspeções</h3>
+            <span className="text-[11px] font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg">Últimos 6 meses: {monthlyTotal}</span>
+          </div>
+          {monthlyTotal === 0 ? (
+            <p className="text-xs text-slate-500 py-10 text-center">Sem inspeções com data nos últimos 6 meses.</p>
+          ) : (
+            <div className="h-60 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={months} barGap={2}>
+                  <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="aprovadas" stackId="a" fill="#10B981" name="Aprovadas" />
+                  <Bar dataKey="parciais" stackId="a" fill="#F59E0B" name="Com restrições" />
+                  <Bar dataKey="reprovadas" stackId="a" fill="#EF4444" name="Reprovadas" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </section>
+
+        <section className={`${cardCls} p-4 flex flex-col`}>
+          <h3 className="font-bold text-sm text-slate-900 flex items-center gap-1.5 mb-1"><PieIcon className="w-4 h-4 text-slate-500" /> Conformidade das inspeções</h3>
+          <p className="text-[11px] text-slate-500 mb-2">Distribuição dos pareceres</p>
+          {ratioData.length === 0 ? (
+            <p className="text-xs text-slate-500 py-10 text-center">Nenhuma inspeção cadastrada.</p>
+          ) : (
+            <>
+              <div className="h-44 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={ratioData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={4} dataKey="value">
+                      {ratioData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend verticalAlign="bottom" height={30} wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="pt-2 mt-auto border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                <span>Aprovadas:</span><span className="font-bold text-emerald-600">{pctAprov}%</span>
+              </div>
+            </>
+          )}
+        </section>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

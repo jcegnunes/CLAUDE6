@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
 import { __resetLocalStoreForTests, initLocalStore, storeGet } from '../../../services/localStore';
 import { SPDA_KEYS, SPDA_MANAGED_KEYS } from '../storageKeys';
-import { buildServiceOrder, createInspection, deleteInspection, generateServiceOrder, listInspections, newGroundingTest, readServiceOrders, saveInspection } from '../repository';
+import { buildServiceOrder, createInspection, deleteInspection, generateServiceOrder, getInspection, listInspections, newGroundingTest, readServiceOrders, saveInspection } from '../repository';
 import { CHECKLIST_TEMPLATE } from '../checklist';
 import { checklistProgress } from '../rules';
 import type { Client, ServiceOrder } from '../../../types';
@@ -52,6 +52,31 @@ describe('Repositório SPDA (só no aparelho)', () => {
     expect(a.technicianCrea).toBe('CREA 123');
     expect(a.number).toMatch(/^SPDA-\d{4}-0001$/);
     expect(b.number).toMatch(/^SPDA-\d{4}-0002$/);
+  });
+
+  it('repete os instrumentos da última inspeção preenchida como padrão da nova', () => {
+    const prev = createInspection();
+    prev.instruments = [
+      { use: 'continuidade', description: 'Miliohmímetro INBRAT', model: 'INMD 1 Pro', serialNumber: 'ML2511013', calibrationCert: 'RBC-123', calibrationDate: '2026-01-10', calibrationExpiry: '2027-01-10' },
+      { use: 'aterramento', description: 'Terrômetro', model: 'MTD-20KWe', serialNumber: 'TR-77', calibrationCert: 'RBC-456' }
+    ];
+    saveInspection(prev);
+
+    const next = createInspection();
+    const cont = next.instruments.find(i => i.use === 'continuidade')!;
+    expect(cont.model).toBe('INMD 1 Pro');
+    expect(cont.serialNumber).toBe('ML2511013');
+    expect(cont.calibrationExpiry).toBe('2027-01-10');
+    expect(next.instruments.find(i => i.use === 'aterramento')!.model).toBe('MTD-20KWe');
+    // cópia independente: editar a nova não altera a inspeção anterior guardada
+    cont.serialNumber = 'OUTRO';
+    expect(getInspection(prev.id)!.instruments.find(i => i.use === 'continuidade')!.serialNumber).toBe('ML2511013');
+  });
+
+  it('usa instrumentos genéricos quando não há inspeção anterior preenchida', () => {
+    const a = createInspection();
+    expect(a.instruments.find(i => i.use === 'continuidade')!.model).toBe('');
+    expect(a.instruments.find(i => i.use === 'aterramento')!.serialNumber).toBe('');
   });
 
   it('grava no IndexedDB (chave própria) e não no localStorage', () => {

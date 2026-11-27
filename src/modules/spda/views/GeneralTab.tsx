@@ -1,13 +1,14 @@
 /** Aba "Dados": cliente, edificação, características do SPDA, instrumentos e responsável. */
 import React, { useState } from 'react';
 import { ClipboardPlus } from 'lucide-react';
-import { generateServiceOrder, readClients, readInstruments, readServiceOrders } from '../repository';
+import { generateServiceOrder, readClients, readServiceOrders } from '../repository';
+import { InstrumentsSection } from './InstrumentsSection';
 import {
   INSPECTION_KIND_LABEL, METHOD_LABEL, protectionLabel, levelParams, buildingsOf, validityText, nextInspectionDate,
   withBuildings
 } from '../rules';
 import { BuildingsSection } from './BuildingsSection';
-import type { InspectionKind, InstrumentInfo, ProtectionLevel, SpdaInspection, SpdaMethod } from '../types';
+import type { InspectionKind, ProtectionLevel, SpdaInspection, SpdaMethod } from '../types';
 import { DecimalField, Field, alertError, btnPrimary, cardCls, inputCls } from './ui';
 import { formatDateBR } from '../../../utils/dateUtils';
 import { confirmAsk, notify } from './dialogs';
@@ -16,7 +17,6 @@ type Props = { value: SpdaInspection; onChange: (patch: Partial<SpdaInspection>)
 
 export const GeneralTab: React.FC<Props> = ({ value: v, onChange, readOnly }) => {
   const clients = readClients();
-  const instruments = readInstruments();
   const [, setVersion] = useState(0);
   const serviceOrders = readServiceOrders(v.clientId);
   const lp = levelParams(v.protectionLevel);
@@ -32,20 +32,6 @@ export const GeneralTab: React.FC<Props> = ({ value: v, onChange, readOnly }) =>
       address: v.address || [c.endereco, c.numero, c.bairro].filter(Boolean).join(', '),
       city: v.city || c.cidade,
       state: v.state || c.estado
-    });
-  };
-
-  const setInstrument = (idx: number, patch: Partial<InstrumentInfo>) => {
-    onChange({ instruments: v.instruments.map((ins, i) => (i === idx ? { ...ins, ...patch } : ins)) });
-  };
-
-  const pickInstrument = (idx: number, id: string) => {
-    const li = instruments.find(x => x.id === id);
-    if (!li) return;
-    setInstrument(idx, {
-      description: [li.type, li.manufacturer].filter(Boolean).join(' — '),
-      model: li.model, serialNumber: li.serialNumber, calibrationCert: li.calibrationCertNumber,
-      calibrationDate: li.calibrationDate, calibrationExpiry: li.calibrationExpiryDate
     });
   };
 
@@ -170,34 +156,19 @@ export const GeneralTab: React.FC<Props> = ({ value: v, onChange, readOnly }) =>
         </div>
       </section>
 
+      <InstrumentsSection value={v} onChange={onChange} readOnly={readOnly} />
+
       <section className={`${cardCls} p-4`}>
-        <h3 className="font-bold text-sm text-slate-900 mb-3">Instrumentos de medição</h3>
-        <div className="space-y-4">
-          {v.instruments.map((ins, idx) => (
-            <div key={ins.use} className="border border-slate-200 rounded-xl p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <p className="text-xs font-bold text-slate-800">{ins.use === 'continuidade' ? 'Ensaio de continuidade' : 'Resistência de aterramento'}</p>
-                {instruments.length > 0 && (
-                  <select className={`${inputCls} sm:max-w-xs`} value="" onChange={e => pickInstrument(idx, e.target.value)} aria-label="Usar instrumento cadastrado">
-                    <option value="">Usar instrumento cadastrado…</option>
-                    {instruments.map(i => <option key={i.id} value={i.id}>{i.type} {i.model} — nº {i.serialNumber}</option>)}
-                  </select>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Field label="Instrumento"><input className={inputCls} value={ins.description} onChange={e => setInstrument(idx, { description: e.target.value })} /></Field>
-                <Field label="Modelo"><input className={inputCls} value={ins.model} onChange={e => setInstrument(idx, { model: e.target.value })} /></Field>
-                <Field label="Nº de série"><input className={inputCls} value={ins.serialNumber} onChange={e => setInstrument(idx, { serialNumber: e.target.value })} /></Field>
-                <Field label="Certificado de calibração"><input className={inputCls} value={ins.calibrationCert} onChange={e => setInstrument(idx, { calibrationCert: e.target.value })} /></Field>
-                <Field label="Data da calibração"><input type="date" className={inputCls} value={ins.calibrationDate || ''} onChange={e => setInstrument(idx, { calibrationDate: e.target.value })} /></Field>
-                <Field label="Validade da calibração"><input type="date" className={inputCls} value={ins.calibrationExpiry || ''} onChange={e => setInstrument(idx, { calibrationExpiry: e.target.value })} /></Field>
-              </div>
-              {ins.calibrationExpiry && v.inspectionDate && ins.calibrationExpiry < v.inspectionDate && (
-                <p className="text-[11px] text-red-700 mt-2">Calibração vencida na data da inspeção.</p>
-              )}
-            </div>
-          ))}
+        <h3 className="font-bold text-sm text-slate-900 mb-3">Título dos documentos</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Título do laudo" hint="Em branco: usa o título padrão">
+            <input className={inputCls} placeholder="Laudo técnico de inspeção e ensaios do SPDA" value={v.laudoTitle || ''} onChange={e => onChange({ laudoTitle: e.target.value })} />
+          </Field>
+          <Field label="Título do relatório técnico" hint="Em branco: usa o título padrão">
+            <input className={inputCls} placeholder="Inspeção e ensaios do Sistema de Proteção contra Descargas Atmosféricas — SPDA" value={v.reportTitle || ''} onChange={e => onChange({ reportTitle: e.target.value })} />
+          </Field>
         </div>
+        <p className="text-[11px] text-slate-500 mt-2">Personalize o cabeçalho do laudo e a capa do relatório. Deixe em branco para manter o título padrão.</p>
       </section>
 
       <section className={`${cardCls} p-4`}>

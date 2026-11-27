@@ -2551,6 +2551,13 @@ fun TestWizardScreen(
                             )
                         }
 
+                        // Medir temperatura e umidade pelo medidor UNI-T UT333BT (Bluetooth)
+                        Spacer(Modifier.height(8.dp))
+                        com.example.ui.components.UnitEnvMeasureButton { t, h ->
+                            temperatureInput = formatNumberInput(t)
+                            humidityInput = formatNumberInput(h)
+                        }
+
                         OutlinedTextField(
                             value = location,
                             onValueChange = { location = it },
@@ -3617,6 +3624,13 @@ fun TestWizardScreen(
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth().testTag("wizard_leakage_input")
                         )
+
+                        // Medir a corrente de fuga pelo alicate Fluke 369 FC (Bluetooth)
+                        Spacer(Modifier.height(8.dp))
+                        com.example.ui.components.FlukeMeasureButton(unitLabel = leakageUnitLabel) { v ->
+                            measuredLeakageInput = if (v % 1.0 == 0.0) v.toInt().toString()
+                                else String.format(Locale.US, if (leakageUnitLabel == "µA") "%.1f" else "%.3f", v)
+                        }
 
                         // Suportabilidade sem perfuração toggle
                         Row(

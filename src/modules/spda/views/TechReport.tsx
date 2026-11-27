@@ -370,11 +370,10 @@ export const TechReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
               {company?.cnpj && <p className="text-[11px] text-slate-500">{docLabel(company.cnpj)} {company.cnpj}</p>}
             </div>
           </div>
-          <span className="text-[10.5px] font-bold tracking-wide border rounded px-3 py-1" style={{ color: ACC, borderColor: ACC }}>VERSÃO DE DEMONSTRAÇÃO</span>
         </div>
         <div className="mt-24">
           <p className="text-[11.5px] font-bold uppercase tracking-[0.3em]" style={{ color: ACC }}>Relatório técnico · {docNo}</p>
-          <h1 className="mt-3 font-black text-[33px] leading-[1.15]" style={{ color: NAVY }}>Inspeção e ensaios do Sistema de<br />Proteção contra Descargas<br />Atmosféricas — SPDA</h1>
+          <h1 className="mt-3 font-black text-[33px] leading-[1.15]" style={{ color: NAVY }}>{v.reportTitle?.trim() || <>Inspeção e ensaios do Sistema de<br />Proteção contra Descargas<br />Atmosféricas — SPDA</>}</h1>
           <p className="mt-3 text-[12px] text-slate-600">ABNT NBR 5419:2026, Partes 1 a 4 · ABNT NBR 15749:2009</p>
           <div className="mt-9">
             <p className="font-bold text-[18px]" style={{ color: NAVY }}>{buildings.map(b => b.name).filter(Boolean).join(' · ') || '—'}</p>
@@ -764,14 +763,14 @@ export const TechReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
             ? <p className="text-[12px] text-slate-800">Nenhuma não conformidade.{d.tests.length ? ` ${okTxt}` : ''}{extra ? ` ${extra}` : ''}</p>
             : (
               <ul className="list-disc pl-5 text-[10.5px] leading-snug space-y-0.5">
-                {d.ncs.map((x, i) => <li key={i} className="text-red-800"><b>{x.description}</b>{x.obs ? ` — ${x.obs}` : ''} <span className="text-slate-500">({x.reference})</span></li>)}
+                {d.ncs.map((x, i) => <li key={i} className="text-red-800"><b>{x.description}</b>{x.obs ? ` — ${x.obs}` : ''} <span className="text-slate-500">({x.reference})</span>{x.correctiveAction?.trim() && <span className="block text-slate-700"><b>Ação de correção:</b> {x.correctiveAction.trim()}</span>}</li>)}
               </ul>
             )}
           {d.improvements.length > 0 && (
             <>
               <p className="text-[11px] font-bold text-slate-900 mt-2">Melhorias apontadas</p>
               <ul className="list-disc pl-5 text-[10.5px] leading-snug space-y-0.5">
-                {d.improvements.map(m => <li key={m.code} className="text-sky-900"><b>{m.code}</b>{m.comment ? ` — ${m.comment}` : ''}{m.photos ? <span className="text-slate-500"> ({m.photos} foto(s))</span> : null}</li>)}
+                {d.improvements.map(m => <li key={m.code} className="text-sky-900"><b>{m.code}</b>{m.comment ? ` — ${m.comment}` : ''}{m.normClause ? <span className="text-slate-500"> ({m.normClause})</span> : null}{m.photos ? <span className="text-slate-500"> ({m.photos} foto(s))</span> : null}{m.correctiveAction && <span className="block text-slate-700"><b>Ação recomendada:</b> {m.correctiveAction}</span>}</li>)}
               </ul>
             </>
           )}
@@ -922,11 +921,15 @@ export const TechReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
   }
 
   function Final() {
-    const actionOf = (x: NonConformity) => (x.source === 'continuidade'
-      ? { a: 'Revisar conexões, emendas e conectores do trecho; corrigir e repetir o ensaio de continuidade.', p: 'Alta', z: '30 dias' }
-      : x.source === 'registro'
-      ? { a: 'Corrigir conforme descrito e mostrado no registro fotográfico; registrar a correção com nova foto.', p: 'Média', z: '90 dias' }
-      : { a: `Adequar ao requisito (${x.reference.replace(/^ABNT /, '')}) e registrar a correção.`, p: 'Média', z: '90 dias' });
+    const actionOf = (x: NonConformity) => {
+      const base = x.source === 'continuidade'
+        ? { a: 'Revisar conexões, emendas e conectores do trecho; corrigir e repetir o ensaio de continuidade.', p: 'Alta', z: '30 dias' }
+        : x.source === 'registro'
+        ? { a: 'Corrigir conforme descrito e mostrado no registro fotográfico; registrar a correção com nova foto.', p: 'Média', z: '90 dias' }
+        : { a: `Adequar ao requisito (${x.reference.replace(/^ABNT /, '')}) e registrar a correção.`, p: 'Média', z: '90 dias' };
+      // ação de correção informada pelo inspetor tem prioridade sobre o texto automático
+      return x.correctiveAction?.trim() ? { ...base, a: x.correctiveAction.trim() } : base;
+    };
     return (
       <>
         <H1 n="8" right={`${ncsAll.length} não conformidade(s)`}>Não conformidades e recomendações</H1>
@@ -958,7 +961,7 @@ export const TechReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
                     <td className={`${td} font-mono text-[9px]`}>{m.code}</td>
                     {multi && <td className={td}>{m.buildingName || '—'}</td>}
                     <td className={td}>{SUBSYSTEM_LABEL[m.subsystem]}</td>
-                    <td className={td}>{m.comment || 'Ver registro fotográfico.'}{m.photos ? <span className="text-slate-500"> ({m.photos} foto(s))</span> : null}</td>
+                    <td className={td}>{m.comment || 'Ver registro fotográfico.'}{m.normClause ? <span className="text-slate-500"> ({m.normClause})</span> : null}{m.photos ? <span className="text-slate-500"> ({m.photos} foto(s))</span> : null}{m.correctiveAction && <span className="block text-slate-700"><b>Ação recomendada:</b> {m.correctiveAction}</span>}</td>
                   </tr>
                 ))}
               </tbody>

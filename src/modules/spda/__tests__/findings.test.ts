@@ -60,4 +60,39 @@ describe('Registros nos laudos e relatórios', () => {
     expect(rec).toContain('CAP-NC-01 — Captor solto');
     expect(rec).toContain('Melhorias recomendadas: Bloco A — DES-M-01 — Instalar proteção mecânica');
   });
+
+  it('ação de correção e item da norma, quando preenchidos, vão para a NC e a melhoria', async () => {
+    const { listImprovements, listNonConformities } = await import('../rules');
+    const v = {
+      checklist: [], continuity: [], buildings: [{ id: 'A', name: 'Bloco A' }],
+      findings: [
+        f({ buildingId: 'A', kind: 'nc', comment: 'Captor solto', correctiveAction: 'Refixar o captor', normClause: 'NBR 5419-3:2026, 5.4.3' }),
+        f({ buildingId: 'A', kind: 'melhoria', comment: 'Identificar descidas', correctiveAction: 'Instalar plaquetas', normClause: 'NBR 5419-3:2026, 5.3.5' })
+      ]
+    } as unknown as Parameters<typeof listNonConformities>[0];
+    const nc = listNonConformities(v).find(n => n.source === 'registro')!;
+    expect(nc.correctiveAction).toBe('Refixar o captor');
+    // o item da norma informado aparece como referência da NC registrada
+    expect(nc.reference).toBe('NBR 5419-3:2026, 5.4.3');
+    const imp = listImprovements(v)[0];
+    expect(imp.correctiveAction).toBe('Instalar plaquetas');
+    expect(imp.normClause).toBe('NBR 5419-3:2026, 5.3.5');
+  });
+
+  it('sem preencher, a NC registrada mantém a referência de registro fotográfico e os campos ficam vazios', async () => {
+    const { listImprovements, listNonConformities } = await import('../rules');
+    const v = {
+      checklist: [], continuity: [], buildings: [{ id: 'A', name: 'Bloco A' }],
+      findings: [
+        f({ buildingId: 'A', kind: 'nc', comment: 'Captor solto', photos: [photo('p1')] }),
+        f({ buildingId: 'A', kind: 'melhoria', comment: 'Identificar descidas' })
+      ]
+    } as unknown as Parameters<typeof listNonConformities>[0];
+    const nc = listNonConformities(v).find(n => n.source === 'registro')!;
+    expect(nc.correctiveAction).toBeUndefined();
+    expect(nc.reference).toBe('registro fotográfico, 1 foto(s)');
+    const imp = listImprovements(v)[0];
+    expect(imp.correctiveAction).toBeUndefined();
+    expect(imp.normClause).toBeUndefined();
+  });
 });

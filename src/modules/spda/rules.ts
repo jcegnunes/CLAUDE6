@@ -366,6 +366,8 @@ export interface NonConformity {
   description: string;
   reference: string;
   obs?: string;
+  /** Ação de correção (opcional, registrada pelo inspetor) */
+  correctiveAction?: string;
   buildingId?: string;
   buildingName?: string;
 }
@@ -399,12 +401,15 @@ const ALL_SUBSYSTEMS: SpdaSubsystem[] = ['documentacao', 'captacao', 'descida', 
 /** Melhoria registrada (foto + comentário) — recomendação, não altera o parecer. */
 export interface Improvement {
   code: string; subsystem: SpdaSubsystem; comment: string; photos: number; buildingId?: string; buildingName?: string;
+  /** Ação recomendada e item da norma (opcionais) */
+  correctiveAction?: string; normClause?: string;
 }
 
 /** Melhorias registradas nas telas dos subsistemas (opcionalmente só de uma edificação / subsistemas). */
 export function listImprovements(insp: WithBuildings, buildingId?: string, subsystems: SpdaSubsystem[] = ALL_SUBSYSTEMS): Improvement[] {
   return findingsOf(insp, buildingId, subsystems).filter(x => x.f.kind === 'melhoria').map(({ f, code }) => ({
     code, subsystem: f.subsystem, comment: f.comment.trim(), photos: f.photos.length,
+    correctiveAction: f.correctiveAction?.trim() || undefined, normClause: f.normClause?.trim() || undefined,
     buildingId: f.buildingId, buildingName: buildingNameOf(insp, f.buildingId)
   }));
 }
@@ -437,10 +442,12 @@ export function listNonConformities(insp: WithBuildings): NonConformity[] {
   });
   // não conformidades registradas com foto e comentário nas telas dos subsistemas
   findingsOf(insp, undefined, ALL_SUBSYSTEMS).filter(x => x.f.kind === 'nc').forEach(({ f, code }) => {
+    const clause = f.normClause?.trim();
     out.push({
       source: 'registro', subsystem: f.subsystem,
       description: `${code} — ${f.comment.trim() || 'Não conformidade registrada (ver fotos)'}`,
-      reference: `registro fotográfico${f.photos.length ? `, ${f.photos.length} foto(s)` : ''}`,
+      reference: clause || `registro fotográfico${f.photos.length ? `, ${f.photos.length} foto(s)` : ''}`,
+      correctiveAction: f.correctiveAction?.trim() || undefined,
       buildingId: f.buildingId, buildingName: buildingNameOf(insp, f.buildingId)
     });
   });

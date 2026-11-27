@@ -762,10 +762,9 @@ export const LabInstrumentsView: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Data de Validade da Calibração *</label>
+                    <label className="block font-bold text-slate-700 mb-1">Data de Validade da Calibração</label>
                     <input
                       type="date"
-                      required
                       value={calibrationExpiryDate}
                       onChange={(e) => setCalibrationExpiryDate(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl font-bold focus:ring-2 focus:ring-blue-500 text-slate-900"

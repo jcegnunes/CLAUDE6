@@ -103,11 +103,13 @@ public class InbratBle {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
                 BluetoothDevice d = result.getDevice();
+                if (d == null || d.getAddress() == null || !seen.add(d.getAddress())) return;
                 String name = result.getScanRecord() != null ? result.getScanRecord().getDeviceName() : null;
                 if (name == null) name = d.getName();
-                if (name == null || name.trim().isEmpty() || !seen.add(d.getAddress())) return;
+                // mostra TODOS os aparelhos (o INMD às vezes não anuncia o nome na busca);
+                // o app marca os que parecem INBRAT e deixa o usuário escolher
                 JSONObject o = ev("found");
-                try { o.put("address", d.getAddress()); o.put("name", name.trim()); o.put("rssi", result.getRssi()); } catch (Exception ignored) {}
+                try { o.put("address", d.getAddress()); o.put("name", name == null ? "" : name.trim()); o.put("rssi", result.getRssi()); } catch (Exception ignored) {}
                 sink.send(requestId, o);
             }
 

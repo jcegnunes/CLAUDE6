@@ -630,7 +630,8 @@ export default function App() {
 
           {activeView === 'clients' && <ClientsView key={`android_clients_${dataVersion}`} />}
 
-          {activeView === 'instruments' && <LabInstrumentsView key={`android_inst_${dataVersion}`} />}
+          {/* sem dataVersion na chave: um evento de dados (sync/gravação) não fecha o cadastro em andamento */}
+          {activeView === 'instruments' && <LabInstrumentsView key="android_inst" />}
 
           {activeView === 'norms' && <NormsView key={`android_norms_${dataVersion}`} />}
 
@@ -810,7 +811,7 @@ export default function App() {
         />}
 
         {/* Dynamic Content Canvas */}
-        <main className={IS_SPDA_APP ? 'flex-1 overflow-y-auto p-3 sm:p-5 pb-24 bg-[#F1F5F9]' : 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8'}>
+        <main className={IS_SPDA_APP ? 'flex-1 overflow-y-auto p-3 sm:p-5 pb-[calc(7rem+env(safe-area-inset-bottom))] bg-[#F1F5F9]' : 'flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8'}>
           <ViewErrorBoundary resetKey={activeView} onGoHome={() => setActiveView(homeView)}>
           <Suspense fallback={viewFallback}>
           {activeView === 'dashboard' && (
@@ -888,7 +889,7 @@ export default function App() {
 
           {activeView === 'clients' && <ClientsView key={`desk_clients_${dataVersion}`} />}
 
-          {activeView === 'instruments' && <LabInstrumentsView key={`desk_inst_${dataVersion}`} />}
+          {activeView === 'instruments' && <LabInstrumentsView key="desk_inst" />}
 
           {activeView === 'norms' && <NormsView key={`desk_norms_${dataVersion}`} />}
 

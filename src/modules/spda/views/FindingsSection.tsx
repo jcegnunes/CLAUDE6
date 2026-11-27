@@ -108,6 +108,35 @@ export const FindingsSection: React.FC<{
                 aria-label={`Comentário ${code}`}
               />
             </label>
+            {(!readOnly || f.correctiveAction?.trim()) && (
+              <label className="block">
+                <span className="block text-[11px] font-bold text-slate-700 mb-1">
+                  {f.kind === 'nc' ? 'Ação de correção' : 'Ação recomendada'} <span className="font-normal text-slate-400">(opcional)</span>
+                </span>
+                <textarea
+                  className={inputCls}
+                  rows={2}
+                  value={f.correctiveAction || ''}
+                  disabled={readOnly}
+                  placeholder={f.kind === 'nc' ? 'Como corrigir esta não conformidade…' : 'Ação sugerida para a melhoria…'}
+                  onChange={e => update(f.id, { correctiveAction: e.target.value })}
+                  aria-label={`Ação de correção ${code}`}
+                />
+              </label>
+            )}
+            {(!readOnly || f.normClause?.trim()) && (
+              <label className="block">
+                <span className="block text-[11px] font-bold text-slate-700 mb-1">Item da norma <span className="font-normal text-slate-400">(opcional)</span></span>
+                <input
+                  className={inputCls}
+                  value={f.normClause || ''}
+                  disabled={readOnly}
+                  placeholder="Ex.: NBR 5419-3:2026, 5.4.3"
+                  onChange={e => update(f.id, { normClause: e.target.value })}
+                  aria-label={`Item da norma ${code}`}
+                />
+              </label>
+            )}
             <TestPhotos
               title="Fotos do registro"
               photos={f.photos}

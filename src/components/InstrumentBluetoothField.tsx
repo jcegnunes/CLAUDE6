@@ -37,7 +37,7 @@ export const InstrumentBluetoothField: React.FC<{
     cancelBle();
     setScanning(false);
     setFound([]);
-    onChange({ protocol: INBRAT_INMD_PROTOCOL, deviceName: d.name, address: d.address, pairedAt: new Date().toISOString() });
+    onChange({ protocol: INBRAT_INMD_PROTOCOL, deviceName: d.name || 'INMD 1 Pro', address: d.address, pairedAt: new Date().toISOString() });
   };
 
   const sorted = [...found].sort((a, b) => Number(looksLikeInbrat(b.name)) - Number(looksLikeInbrat(a.name)) || (b.rssi ?? -999) - (a.rssi ?? -999));
@@ -89,7 +89,7 @@ export const InstrumentBluetoothField: React.FC<{
                   <button type="button" onClick={() => pick(d)} className="w-full text-left px-3 py-2.5 hover:bg-slate-50 flex items-center gap-2">
                     <Bluetooth className={`w-4 h-4 shrink-0 ${looksLikeInbrat(d.name) ? 'text-blue-600' : 'text-slate-400'}`} />
                     <span className="flex-1 min-w-0">
-                      <span className="block font-bold text-slate-800 truncate">{d.name}{looksLikeInbrat(d.name) && <span className="ml-1.5 text-[10px] font-bold text-blue-700">INBRAT</span>}</span>
+                      <span className="block font-bold text-slate-800 truncate">{d.name || '(sem nome)'}{looksLikeInbrat(d.name) && <span className="ml-1.5 text-[10px] font-bold text-blue-700">INBRAT</span>}</span>
                       <span className="block text-[10px] text-slate-500">{d.address}{d.rssi != null ? ` · sinal ${d.rssi} dBm` : ''}</span>
                     </span>
                     <span className="text-[11px] font-bold text-blue-700">Usar</span>
@@ -99,7 +99,7 @@ export const InstrumentBluetoothField: React.FC<{
             </ul>
           )}
           {!scanning && canPair && found.length === 0 && !value && !error && (
-            <p className="text-[10px] text-slate-400">O INMD 1 Pro aparece com um nome como “IN433A”.</p>
+            <p className="text-[10px] text-slate-400">O INMD 1 Pro costuma aparecer como “IN433A”; se não vier o nome, escolha o aparelho de sinal mais forte.</p>
           )}
         </div>
       )}

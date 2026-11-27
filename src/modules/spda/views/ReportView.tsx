@@ -146,9 +146,8 @@ export const SpdaReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
       </div>
 
       <div className="text-center">
-        <h1 className="font-black text-sm sm:text-base text-[#0A2540] uppercase tracking-wide">Laudo técnico de inspeção e ensaios do SPDA</h1>
+        <h1 className="font-black text-sm sm:text-base text-[#0A2540] uppercase tracking-wide">{v.laudoTitle?.trim() || 'Laudo técnico de inspeção e ensaios do SPDA'}</h1>
         <p className="text-[11px] text-slate-500">Sistema de Proteção contra Descargas Atmosféricas — ABNT NBR 5419:2026 (Partes 1 a 4)</p>
-        <p className="text-[10px] font-bold text-amber-700 mt-1">VERSÃO DE DEMONSTRAÇÃO — documento sem validade como laudo oficial</p>
       </div>
 
       <Section n={1} title="Identificação do cliente e da estrutura">
@@ -371,6 +370,7 @@ export const SpdaReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
               <li key={i}>
                 <span className="font-semibold">{n.buildingName ? `${n.buildingName} — ` : ''}{SUBSYSTEM_LABEL[n.subsystem]}:</span> {n.description} <span className="text-slate-500">({n.reference})</span>
                 {n.obs?.trim() && <span className="block text-slate-600">{n.obs.trim()}</span>}
+                {n.correctiveAction?.trim() && <span className="block text-slate-700"><b>Ação de correção:</b> {n.correctiveAction.trim()}</span>}
               </li>
             ))}
           </ol>
@@ -385,7 +385,9 @@ export const SpdaReport: React.FC<{ inspection: SpdaInspection }> = ({ inspectio
               {improvements.map(m => (
                 <li key={m.code + (m.buildingId || '')}>
                   <span className="font-semibold">{m.buildingName ? `${m.buildingName} — ` : ''}{SUBSYSTEM_LABEL[m.subsystem]}:</span> {m.code}{m.comment ? ` — ${m.comment}` : ''}
+                  {m.normClause && <span className="text-slate-500"> ({m.normClause})</span>}
                   {m.photos > 0 && <span className="text-slate-500"> ({m.photos} foto(s) no relatório fotográfico)</span>}
+                  {m.correctiveAction && <span className="block text-slate-700"><b>Ação recomendada:</b> {m.correctiveAction}</span>}
                 </li>
               ))}
             </ol>

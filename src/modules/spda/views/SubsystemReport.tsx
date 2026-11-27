@@ -158,7 +158,7 @@ export const BuildingBlock: React.FC<{
       {s.ncs.length === 0 ? <p className="mb-2">Nenhuma não conformidade neste subsistema.</p> : (
         <ol className="list-decimal pl-5 space-y-0.5 mb-2">
           {s.ncs.map((n, i) => (
-            <li key={i}>{n.description} <span className="text-slate-500">({n.reference})</span>{n.obs?.trim() && <span className="block text-slate-600">{n.obs.trim()}</span>}</li>
+            <li key={i}>{n.description} <span className="text-slate-500">({n.reference})</span>{n.obs?.trim() && <span className="block text-slate-600">{n.obs.trim()}</span>}{n.correctiveAction?.trim() && <span className="block text-slate-700"><b>Ação de correção:</b> {n.correctiveAction.trim()}</span>}</li>
           ))}
         </ol>
       )}
@@ -167,7 +167,7 @@ export const BuildingBlock: React.FC<{
         <>
           <p className="font-bold text-[11px] text-[#0A2540] mb-1">Melhorias apontadas ({s.improvements.length})</p>
           <ol className="list-decimal pl-5 space-y-0.5 mb-2">
-            {s.improvements.map(m => <li key={m.code}>{m.code}{m.comment ? ` — ${m.comment}` : ''}</li>)}
+            {s.improvements.map(m => <li key={m.code}>{m.code}{m.comment ? ` — ${m.comment}` : ''}{m.normClause ? ` (${m.normClause})` : ''}{m.correctiveAction && <span className="block text-slate-700"><b>Ação recomendada:</b> {m.correctiveAction}</span>}</li>)}
           </ol>
         </>
       )}
@@ -224,7 +224,6 @@ export const SubsystemReport: React.FC<{ inspection: SpdaInspection; cfg: Subsys
         <h1 className="font-black text-sm sm:text-base text-[#0A2540] uppercase tracking-wide">Relatório simplificado — {cfg.title}</h1>
         <p className="text-[11px] text-slate-500">{cfg.norm}</p>
         <p className="text-[10px] text-slate-500 mt-1">Relatório parcial do subsistema; não substitui o laudo completo da inspeção ({v.number}).</p>
-        <p className="text-[10px] font-bold text-amber-700">VERSÃO DE DEMONSTRAÇÃO</p>
       </div>
 
       <Section n={1} title="Identificação">

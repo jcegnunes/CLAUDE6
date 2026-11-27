@@ -58,6 +58,10 @@ export interface SpdaFinding {
   kind: FindingKind;
   /** Comentário / descrição digitada pelo inspetor */
   comment: string;
+  /** Ação de correção (não conformidade) / ação recomendada (melhoria) — opcional */
+  correctiveAction?: string;
+  /** Item da norma que se aplica (ex.: "NBR 5419-3:2026, 5.4.3") — opcional */
+  normClause?: string;
   photos: SpdaPhoto[];
   createdAt: string;
 }
@@ -288,6 +292,11 @@ export interface SpdaInspection {
   /** Número do laudo (ex.: SPDA-2026-0001) */
   number: string;
   status: 'rascunho' | 'concluido';
+
+  /** Título do laudo técnico (sobrepõe o padrão no cabeçalho do laudo) — opcional */
+  laudoTitle?: string;
+  /** Título do relatório técnico (sobrepõe o padrão na capa do relatório) — opcional */
+  reportTitle?: string;
 
   // ordem de serviço (cadastro de OS da plataforma)
   serviceOrderId?: string;

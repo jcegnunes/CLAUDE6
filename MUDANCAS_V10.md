@@ -441,3 +441,114 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 ## 10.0.37 (plataforma web) — remover a faixa "App Android JVM" do menu lateral
 - Saiu do menu lateral a faixa antiga "App Android JVM — Modo Campo & PWA" (botões "Abrir Modo Android" e
   "Gerar APK / Instalar App"). O download do aplicativo fica no botão **Baixar o aplicativo** (que mostra a versão).
+
+## 10.0.38 (APK versionCode 30 + plataforma web) — painel do SPDA com gráficos
+- O Painel do SPDA (APP e plataforma) ganhou gráficos no padrão do painel de Ensaios de EPI:
+  - **Evolução mensal das inspeções** (barras empilhadas dos últimos 6 meses: aprovadas, com restrições, reprovadas);
+  - **Conformidade das inspeções** (rosca com a distribuição dos pareceres e o % de aprovadas).
+  Os cards de KPI e os painéis (parecer, não conformidades, próximas inspeções, calibração, OS, recentes) continuam.
+
+## 10.0.39 (APP Ensaios de EPI) — medir a corrente de fuga pelo alicate Fluke 369 FC (Bluetooth)
+- Protocolo decodificado do Fluke Connect (app-ensaios-epi/PROTOCOLO_FLUKE_369FC.md): o 369 FC transmite a leitura
+  ao vivo; valor na característica b698290f (bytes 0-1), corrente (mA) = inteiro × 10^(byte5 − 14). Cobre as faixas
+  A (0x0e) e mA (0x0d) automaticamente. Conferido com 1,130 A, 0,440 A, 0,889 A AC e 160,8 mA.
+- No app, no campo **Corrente de Fuga**, botão **Medir pelo Bluetooth (Fluke 369 FC)**: conecta no alicate, mostra a
+  leitura ao vivo e, ao tocar em **Usar valor**, preenche o campo na unidade dele (mA ou µA). Leitura instável é
+  sinalizada e o "Usar valor" só habilita com a leitura estável.
+- Arquivos: `FlukeLeakageManager.kt` (BLE: busca "369FC", conecta, lê e decodifica) e `FlukeMeasureButton.kt` (botão +
+  quadro, com permissão de Bluetooth). Usa as permissões BLE já declaradas no app.
+
+## 10.0.40 (APP Ensaios de EPI) — Fluke 369 FC: reconexão automática
+- O "Medir pelo Bluetooth" às vezes mostrava "A conexão com o alicate caiu": agora o app tenta reconectar sozinho
+  (até 2 vezes, comum no erro 133 do Android) e dá um aviso mais claro quando não consegue, pedindo para fechar o app
+  Fluke Connect (que fica conectado ao alicate — só uma conexão por vez) e reiniciar o Bluetooth.
+
+## 10.0.41 (APP Ensaios de EPI) — Fluke 369 FC: handshake igual ao Fluke Connect
+- A conexão caía logo após conectar. Agora, após conectar, o app faz o mesmo "aperto de mão" do app Fluke Connect:
+  pede um pacote maior (MTU), acerta a hora do aparelho (b698290e) e só então liga a leitura (notificação de b698290f),
+  em sequência. Isso evita o aparelho derrubar a conexão.
+- Dica de uso: o 369 FC aceita só UMA conexão por vez — feche o app Fluke Connect e "esqueça" o 369 FC no Bluetooth do
+  Android antes de usar o Medir pelo Bluetooth.
+
+## 10.0.42 (APP Ensaios de EPI) — Fluke 369 FC: escolher o alicate na lista
+- Causa de "não conecta": o 369 FC quase não anuncia o nome na busca, então filtrar só pelo nome falhava.
+- Agora o "Medir pelo Bluetooth" mostra a **lista de aparelhos Bluetooth encontrados**: quando o nome "369FC" aparece
+  (ou o UUID de serviço da Fluke), conecta sozinho; senão, é só **tocar no alicate na lista** (mostra nome, endereço e
+  sinal) para conectar. Mantém o handshake (MTU, hora, notificação) e a reconexão automática.
+
+## 10.0.43 (APP Ensaios de EPI) — Fluke: a janela de escolher o alicate não fecha sozinha
+- A janela de seleção abria e fechava antes de dar para escolher: a permissão de Bluetooth aparecia por cima e fechava
+  a janela. Agora a permissão é pedida ANTES de abrir a janela, e a janela não fecha ao tocar fora (só no Fechar).
+
+## 10.0.44 (APP Ensaios de EPI) — medir temperatura e umidade pelo UNI-T UT333BT (Bluetooth)
+- Protocolo decodificado (app-ensaios-epi/PROTOCOLO_UNIT_UT333BT.md): o UT333BT manda a leitura em texto na
+  característica 0xFF02 quando o app o "cutuca" (escreve 0x5E em 0xFF01); "%RH" = umidade, senão temperatura em °C.
+- Nos campos **Temperatura/Umidade** do ensaio, botão **Medir temperatura/umidade pelo Bluetooth (UT333BT)**:
+  conecta, mostra os dois valores ao vivo e preenche os campos ao tocar em **Usar**. Tem lista para escolher o aparelho
+  (se o nome não vier) e a mesma correção da janela (permissão antes, não fecha ao tocar fora).
+
+## 10.0.45 (APP Ensaios de EPI) — UT333BT: corrige o valor lido
+- O app mostrava 0,0 °C e 4,0 % porque pegava o dígito de "código" do pacote (um "0"/"4" no início) em vez do número.
+  Agora lê o número com casa decimal (ex.: 28,0 °C e 69,4 %), que é o valor real.
+
+## 10.0.46 (APK SPDA versionCode 31 + plataforma) — instrumentos sempre disponíveis no SPDA
+- Os **instrumentos de medição** (ensaio de continuidade e resistência de aterramento) só apareciam no editor livre
+  (editar inspeção), não no **passo a passo** da nova inspeção — por isso a tela "não ficava sempre disponível".
+- Agora a seção **Instrumentos de medição** aparece também na etapa **Dados** do passo a passo, abaixo das edificações.
+  Ali dá para escolher o instrumento cadastrado (continuidade e aterramento) em qualquer inspeção.
+
+## 10.0.47 (APK SPDA versionCode 32) — parear o INMD 1 Pro mesmo sem o nome na busca
+- O botão "Medir pelo Bluetooth" na continuidade não aparecia porque o instrumento não ficava pareado: a busca do
+  INMD 1 Pro descartava aparelhos sem nome (o INMD quase não anuncia o nome), então ele não entrava na lista de
+  pareamento (mesmo problema do Fluke).
+- Agora a busca (Instrumentos → editar → Comunicação Bluetooth → Parear) mostra TODOS os aparelhos, marcando os que
+  parecem INBRAT; sem nome, é só escolher o de sinal mais forte. Pareado o instrumento, o botão de medir aparece no
+  ensaio de continuidade (ao editar a medição).
+
+## 10.0.48 (APK SPDA versionCode 33 + plataforma) — cadastro de instrumentos não fecha sozinho
+- A tela de cadastro de instrumentos fechava sozinha no meio do preenchimento: a tela de Instrumentos era remontada a
+  cada evento de dados (sincronização/gravação), apagando o que estava sendo digitado. Corrigido (a chave da tela não
+  depende mais do contador de dados), como já era feito em outras telas.
+- Certificado de calibração em PDF: confirmado **opcional** (o anexo não é exigido). Continuam obrigatórios os campos
+  marcados com * (modelo, nº de série, nº do certificado, datas de calibração).
+
+## 10.0.49 (APK SPDA versionCode 34 + plataforma) — validade da calibração aceita qualquer período
+- A "Data de Validade da Calibração" deixou de ser obrigatória e não tem limite de data: aceita qualquer período
+  (inclusive em branco). Os demais campos marcados com * continuam obrigatórios.
+
+## 10.0.54 (APK SPDA versionCode 39) — título editável e sem aviso de demonstração
+- Na aba **Dados** da inspeção foi criada a seção **"Título dos documentos"**, com dois campos **opcionais**:
+  **"Título do laudo"** (cabeçalho do laudo) e **"Título do relatório técnico"** (capa do relatório).
+  Em branco, cada documento mantém o título padrão de antes.
+- O aviso **"VERSÃO DE DEMONSTRAÇÃO"** foi **removido** do laudo, do relatório técnico e do relatório
+  simplificado por subsistema.
+- Vale para o app e para a plataforma web (código compartilhado).
+
+## 10.0.53 (APK SPDA versionCode 38) — ação de correção e item da norma nas não conformidades/melhorias
+- No registro de **não conformidades e melhorias** (telas dos subsistemas / registro fotográfico) foram
+  acrescentados dois campos **opcionais**: **"Ação de correção"** (nas melhorias, "Ação recomendada") e
+  **"Item da norma"** (ex.: NBR 5419-3:2026, 5.4.3).
+- Esses campos **só aparecem no relatório técnico e no laudo quando preenchidos** (não ocupam espaço quando vazios):
+  - Laudo (Não conformidades e Recomendações) e relatório técnico (por subsistema e nos quadros finais) mostram a
+    ação de correção abaixo da descrição e o item da norma como referência.
+  - No quadro "Não conformidades e recomendações" do relatório técnico, a ação de correção informada **substitui**
+    o texto automático de ação recomendada daquela NC.
+- Sem preencher, tudo continua como antes.
+
+## 10.0.52 (APK SPDA versionCode 37) — repetir os instrumentos da última inspeção como padrão
+- A inspeção nova já vem com os **mesmos instrumentos definidos na última inspeção** da empresa
+  (continuidade e aterramento: descrição, modelo, nº de série, certificado e datas de calibração),
+  para não precisar digitar de novo a cada ensaio. Dá para trocar normalmente na seção
+  "Instrumentos de medição". Sem inspeção anterior preenchida, continua com os instrumentos genéricos.
+
+## 10.0.51 (APK SPDA versionCode 36) — parear o Bluetooth durante o ensaio, sem voltar ao cadastro
+- No botão "Medir pelo Bluetooth" (ao lado do valor medido da continuidade), agora dá para **buscar e escolher
+  o aparelho ali mesmo**, durante o ensaio, sem precisar voltar ao cadastro de instrumentos para parear.
+- O botão aparece sempre (no APP JVM SPDA), mesmo quando nenhum instrumento foi pareado no cadastro: ao abrir,
+  ele já inicia a busca. O aparelho pareado na hora fica lembrado enquanto o app estiver aberto, e o seletor
+  também lista os instrumentos já pareados no cadastro e a opção "Parear outro aparelho…".
+
+## 10.0.50 (APK SPDA versionCode 35) — botão "Próxima etapa" cortado pelo menu inferior (tablet)
+- No passo a passo, o botão de avançar ficava coberto pelo menu inferior em tablets (e aparelhos com faixa de gestos):
+  o espaçamento inferior do conteúdo não considerava a faixa de gestos. Agora soma a safe-area, deixando o botão
+  sempre acima do menu.

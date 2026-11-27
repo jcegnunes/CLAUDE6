@@ -20,6 +20,7 @@ import { GuidedBar, GuidedFooter, startGuided, takePendingTab, useGuidedId } fro
 import { GeneralTab } from './GeneralTab';
 import { ChecklistTab } from './ChecklistTab';
 import { BuildingsSection } from './BuildingsSection';
+import { InstrumentsSection } from './InstrumentsSection';
 import { NewInspectionDialog } from './NewInspectionDialog';
 import { ReportOverlay } from './ReportView';
 import { ReportOutput } from './ReportTypes';
@@ -158,14 +159,17 @@ const Editor: React.FC<{ initial: SpdaInspection; onBack: () => void }> = ({ ini
 
       {showDados && (guided
         ? (
-          // passo a passo (nova inspeção): na etapa Dados, só o cadastro das edificações
-          <BuildingsSection
-            buildings={buildings}
-            onChange={next => patch(withBuildings(draft, next))}
-            readOnly={readOnly}
-            startEditing={freshInspection}
-            onEditingChange={setBuildingEditing}
-          />
+          // passo a passo (nova inspeção): cadastro das edificações + instrumentos de medição
+          <>
+            <BuildingsSection
+              buildings={buildings}
+              onChange={next => patch(withBuildings(draft, next))}
+              readOnly={readOnly}
+              startEditing={freshInspection}
+              onEditingChange={setBuildingEditing}
+            />
+            <InstrumentsSection value={draft} onChange={patch} readOnly={readOnly} />
+          </>
         )
         : <GeneralTab value={draft} onChange={patch} readOnly={readOnly} />)}
       {showDados && (
