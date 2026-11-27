@@ -516,6 +516,33 @@ Banco — `supabase/modules/acessos.sql` (executar uma vez no SQL Editor, depois
 - A "Data de Validade da Calibração" deixou de ser obrigatória e não tem limite de data: aceita qualquer período
   (inclusive em branco). Os demais campos marcados com * continuam obrigatórios.
 
+## 10.0.57 (APK SPDA versionCode 42) — menu "Dados relatório" antes de "Relatório"
+- A **tela de Dados** (a mesma que aparece fora do passo a passo: cliente, edificações, características do SPDA,
+  instrumentos, responsável e documentação geral da OS) agora é um item de menu próprio, **"Dados relatório"**,
+  posicionado **logo antes de "Relatório"**.
+- Funciona como as telas de subsistema: escolhe-se a OS/inspeção no seletor e editam-se os dados que saem no
+  laudo e no relatório técnico (gravação automática no aparelho). Reaproveita a aba Dados (GeneralTab) — nada muda
+  dentro do passo a passo da inspeção.
+- Vale para o app e para a plataforma web.
+
+## 10.0.56 (APK SPDA versionCode 41) — nomenclatura das etapas da câmera em tempo real no SPDA
+- Na **câmera em tempo real** dos ensaios de SPDA/aterramento, as etapas/categorias de registro agora têm
+  nomenclatura própria do SPDA (antes mostravam as do ensaio dielétrico de EPI — "Cuba / Tensão", "Furo" etc.):
+  - 📟 Leitura do instrumento (mΩ / Ω) · ⚡ Durante a medição (ponto de ensaio) · 🏷️ Identificação / localização do ponto ·
+    🛡️ Inspeção visual (antes do ensaio) · ✅ Conclusão (após o ensaio) · 🧰 Instrumento / equipamento de ensaio ·
+    ⚠️ Não conformidade / defeito.
+  - Título do cabeçalho: "Câmera do ensaio de SPDA / aterramento"; alvo do visor: "Enquadre o ponto de medição / instrumento".
+- As chaves internas das categorias foram mantidas (compatível com backup/exportação); só mudou o rótulo exibido.
+- A câmera do ensaio de EPI continua com as etapas e o título originais (prop opcional; padrão = EPI).
+
+## 10.0.55 (APK SPDA versionCode 40) — editar (girar/marcar/texto) todas as fotos da inspeção
+- O editor de fotos (girar 90°, seta, círculo, retângulo, texto, desfazer/refazer), igual ao dos ensaios de EPI,
+  agora também está nas fotos que ainda não tinham edição:
+  - **Inspeção visual (checklist)**: cada foto de item ganhou o botão **girar/marcar** (lápis) ao lado do remover.
+  - **Imagem aérea da edificação** (aba Dados): botão **"Girar / marcar"** sobre a imagem (em modo de edição).
+- As fotos dos ensaios de continuidade/aterramento e dos registros de NC/melhoria já tinham o editor (sem mudança).
+- Reutiliza o mesmo componente da plataforma (`PhotoEditorModal`); vale para o app e para a web.
+
 ## 10.0.54 (APK SPDA versionCode 39) — título editável e sem aviso de demonstração
 - Na aba **Dados** da inspeção foi criada a seção **"Título dos documentos"**, com dois campos **opcionais**:
   **"Título do laudo"** (cabeçalho do laudo) e **"Título do relatório técnico"** (capa do relatório).

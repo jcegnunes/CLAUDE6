@@ -1,6 +1,7 @@
 /** Aba "Inspeção visual": checklist C / NC / NA por subsistema, com observação e fotos. */
 import React, { useRef, useState } from 'react';
-import { Camera, CopyPlus, X } from 'lucide-react';
+import { Camera, CopyPlus, PenLine, X } from 'lucide-react';
+import { PhotoEditorModal } from '../../../components/PhotoEditorModal';
 import { CHECKLIST_TEMPLATE, SUBSYSTEM_LABEL, SUBSYSTEM_ORDER } from '../checklist';
 import { answerOf, copyChecklistAnswers, isPerBuilding } from '../rules';
 import type { ChecklistAnswer, ChecklistStatus, SpdaSubsystem } from '../types';
@@ -38,6 +39,7 @@ export const ChecklistTab: React.FC<Props> = ({ checklist, onChange, readOnly, o
   };
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoTarget, setPhotoTarget] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ itemId: string; idx: number } | null>(null);
   const folder = usePhotoFolder();
   const [openObs, setOpenObs] = useState<Set<string>>(new Set());
 
@@ -197,12 +199,21 @@ export const ChecklistTab: React.FC<Props> = ({ checklist, onChange, readOnly, o
                         <div key={idx} className="relative">
                           <img src={p} alt={`Foto ${idx + 1} de ${item.id}`} className="w-20 h-16 object-cover rounded-lg border border-slate-200" />
                           {!readOnly && (
-                            <button
-                              type="button"
-                              aria-label="Remover foto"
-                              className="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full p-0.5 text-slate-600 hover:text-red-600"
-                              onClick={() => update(item.id, { photos: a.photos!.filter((_, i) => i !== idx) })}
-                            ><X className="w-3 h-3" /></button>
+                            <>
+                              <button
+                                type="button"
+                                aria-label="Editar foto (girar/marcar)"
+                                title="Girar / marcar / texto"
+                                className="absolute -bottom-1.5 -right-1.5 bg-white border border-slate-300 rounded-full p-0.5 text-slate-600 hover:text-blue-600"
+                                onClick={() => setEditing({ itemId: item.id, idx })}
+                              ><PenLine className="w-3 h-3" /></button>
+                              <button
+                                type="button"
+                                aria-label="Remover foto"
+                                className="absolute -top-1.5 -right-1.5 bg-white border border-slate-300 rounded-full p-0.5 text-slate-600 hover:text-red-600"
+                                onClick={() => update(item.id, { photos: a.photos!.filter((_, i) => i !== idx) })}
+                              ><X className="w-3 h-3" /></button>
+                            </>
                           )}
                         </div>
                       ))}
@@ -214,6 +225,23 @@ export const ChecklistTab: React.FC<Props> = ({ checklist, onChange, readOnly, o
           </div>
         </section>
       ))}
+
+      {editing && (() => {
+        const src = get(editing.itemId).photos?.[editing.idx];
+        if (!src) return null;
+        return (
+          <PhotoEditorModal
+            src={src}
+            title="Editar foto — inspeção visual"
+            onClose={() => setEditing(null)}
+            onSave={dataUrl => {
+              const cur = get(editing.itemId).photos || [];
+              update(editing.itemId, { photos: cur.map((x, i) => (i === editing.idx ? dataUrl : x)) });
+              setEditing(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };

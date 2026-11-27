@@ -22,6 +22,20 @@ import { TestPhoto } from '../types';
 import { MobileCameraBridgeModal } from './MobileCameraBridgeModal';
 import { compressImage, fileToDataUrl } from '../utils/imageCompressor';
 
+/** Rótulo de cada etapa/categoria mostrada no seletor da câmera. */
+export type CameraCategoryOption = { value: TestPhoto['category']; label: string };
+
+/** Etapas/categorias padrão (ensaio dielétrico de EPI). */
+export const DIELECTRIC_CAMERA_CATEGORIES: CameraCategoryOption[] = [
+  { value: 'antes', label: '🛡️ Antes do Ensaio (Inspeção Visual)' },
+  { value: 'durante', label: '⚡ Durante o Ensaio (Cuba / Tensão)' },
+  { value: 'apos', label: '✅ Após o Ensaio (Secagem / Aprovado)' },
+  { value: 'identificacao', label: '🏷️ Identificação / CA / Tag' },
+  { value: 'defeito', label: '⚠️ Defeito / Não Conformidade / Furo' },
+  { value: 'medicao', label: '📊 Painel de Medição / Miliamperímetro' },
+  { value: 'equipamento_teste', label: '🔬 Equipamento de Teste / Cuba' }
+];
+
 interface LiveCameraModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,6 +43,14 @@ interface LiveCameraModalProps {
   defaultCategory?: TestPhoto['category'];
   defaultCaption?: string;
   userName: string;
+  /** Título do cabeçalho (padrão: ensaio dielétrico de EPI) */
+  title?: string;
+  /** Subtítulo do cabeçalho */
+  subtitle?: string;
+  /** Texto do alvo no visor da câmera */
+  viewfinderHint?: string;
+  /** Etapas/categorias mostradas no seletor (padrão: ensaio dielétrico) */
+  categories?: CameraCategoryOption[];
 }
 
 export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
@@ -37,7 +59,11 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
   onCapturePhoto,
   defaultCategory = 'durante',
   defaultCaption = '',
-  userName
+  userName,
+  title = 'Câmera do Ensaio Dielétrico',
+  subtitle = 'Captura de evidências fotográficas para o laudo e certificado',
+  viewfinderHint = 'Enquadre o EPI / Instrumento / Cuba de Ensaio',
+  categories = DIELECTRIC_CAMERA_CATEGORIES
 }) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -447,12 +473,12 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>Câmera do Ensaio Dielétrico</span>
+                <span>{title}</span>
                 <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
                   {facingMode === 'environment' ? 'Traseira / Principal' : 'Frontal'}
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">Captura de evidências fotográficas para o laudo e certificado</p>
+              <p className="text-[11px] text-slate-400">{subtitle}</p>
             </div>
           </div>
 
@@ -591,7 +617,7 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                 </div>
                 <div className="text-center">
                   <span className="text-[10px] bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-slate-300 font-medium">
-                    Enquadre o EPI / Instrumento / Cuba de Ensaio
+                    {viewfinderHint}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -666,13 +692,9 @@ export const LiveCameraModal: React.FC<LiveCameraModalProps> = ({
                 onChange={(e) => setCategory(e.target.value as TestPhoto['category'])}
                 className="w-full p-2.5 text-xs bg-slate-900 border border-slate-700 text-white rounded-xl font-medium focus:ring-2 focus:ring-orange-500 focus:outline-none"
               >
-                <option value="antes">🛡️ Antes do Ensaio (Inspeção Visual)</option>
-                <option value="durante">⚡ Durante o Ensaio (Cuba / Tensão)</option>
-                <option value="apos">✅ Após o Ensaio (Secagem / Aprovado)</option>
-                <option value="identificacao">🏷️ Identificação / CA / Tag</option>
-                <option value="defeito">⚠️ Defeito / Não Conformidade / Furo</option>
-                <option value="medicao">📊 Painel de Medição / Miliamperímetro</option>
-                <option value="equipamento_teste">🔬 Equipamento de Teste / Cuba</option>
+                {categories.map(c => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
               </select>
             </div>
 

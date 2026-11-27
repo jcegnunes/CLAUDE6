@@ -5,7 +5,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Building2, Camera, ClipboardPaste, Copy, Crosshair, ExternalLink, Map as MapIcon, Factory, Home, Hospital, Image as ImageIcon, Landmark, Layers, MapPin, Pencil, Plus, Save, Store, Trash2, X, Zap
+  Building2, Camera, ClipboardPaste, Copy, Crosshair, ExternalLink, Map as MapIcon, Factory, Home, Hospital, Image as ImageIcon, Landmark, Layers, MapPin, Pencil, PenLine, Plus, Save, Store, Trash2, X, Zap
 } from 'lucide-react';
 import { newBuilding } from '../repository';
 import {
@@ -15,6 +15,7 @@ import {
 import type { BuildingType, ProtectionLevel, SpdaBuilding, SpdaKind } from '../types';
 import { DecimalField, Field, alertError, btnDanger, btnPrimary, btnSecondary, cardCls, inputCls } from './ui';
 import { compressImage } from '../../../utils/imageCompressor';
+import { PhotoEditorModal } from '../../../components/PhotoEditorModal';
 import { confirmAsk, notify } from './dialogs';
 
 const TYPE_ICON: Record<BuildingType, React.ElementType> = {
@@ -37,6 +38,7 @@ const BuildingCard: React.FC<{
 }> = ({ b, index, readOnly, set, actions, editing }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [locating, setLocating] = useState(false);
+  const [editImg, setEditImg] = useState(false);
   const area = buildingArea(b);
   const minDowns = minDownConductors(b);
   const lp = levelParams(b.protectionLevel);
@@ -223,6 +225,7 @@ const BuildingCard: React.FC<{
             <img src={b.aerialImage} alt={`Imagem aérea — ${b.name || `edificação ${index + 1}`}`} className="w-full max-h-72 object-contain rounded-lg border border-slate-200 bg-white" />
             {!readOnly && (
               <div className="absolute top-2 right-2 flex gap-1">
+                <button type="button" className={btnSecondary} onClick={() => setEditImg(true)}><PenLine className="w-3.5 h-3.5" /> Girar / marcar</button>
                 <button type="button" className={btnSecondary} onClick={() => fileRef.current?.click()}><ImageIcon className="w-3.5 h-3.5" /> Trocar</button>
                 <button type="button" className={btnDanger} onClick={() => set({ aerialImage: undefined })} aria-label="Remover imagem aérea"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
@@ -264,6 +267,14 @@ const BuildingCard: React.FC<{
       </div>
     </fieldset>
     {actions && <div className="flex flex-wrap justify-end gap-2 pt-3 mt-4 border-t border-slate-200">{actions}</div>}
+    {editImg && b.aerialImage && (
+      <PhotoEditorModal
+        src={b.aerialImage}
+        title={`Editar imagem aérea — ${b.name || `edificação ${index + 1}`}`}
+        onClose={() => setEditImg(false)}
+        onSave={dataUrl => { set({ aerialImage: dataUrl }); setEditImg(false); }}
+      />
+    )}
     </div>
   );
 };

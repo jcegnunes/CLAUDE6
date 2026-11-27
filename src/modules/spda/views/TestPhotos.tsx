@@ -7,7 +7,7 @@
  */
 import React, { useRef, useState } from 'react';
 import { Camera, FolderOpen, PenLine, RefreshCw, Smartphone, Trash2, X } from 'lucide-react';
-import { LiveCameraModal } from '../../../components/LiveCameraModal';
+import { LiveCameraModal, type CameraCategoryOption } from '../../../components/LiveCameraModal';
 import { PhotoEditorModal } from '../../../components/PhotoEditorModal';
 import { compressImage } from '../../../utils/imageCompressor';
 import { currentUserName } from '../repository';
@@ -18,6 +18,21 @@ import { confirmAsk } from './dialogs';
 import { autoSavePhotos, usePhotoFolder } from '../photoFolder';
 
 export const MAX_TEST_PHOTOS = 6;
+
+/**
+ * Etapas/categorias de registro para o ensaio de SPDA / aterramento.
+ * Reaproveitam as chaves válidas de TestPhoto['category'] (compatível com
+ * backup e exportação), só com a nomenclatura adequada ao SPDA.
+ */
+const SPDA_CAMERA_CATEGORIES: CameraCategoryOption[] = [
+  { value: 'medicao', label: '📟 Leitura do instrumento (mΩ / Ω)' },
+  { value: 'durante', label: '⚡ Durante a medição (ponto de ensaio)' },
+  { value: 'identificacao', label: '🏷️ Identificação / localização do ponto' },
+  { value: 'antes', label: '🛡️ Inspeção visual (antes do ensaio)' },
+  { value: 'apos', label: '✅ Conclusão (após o ensaio)' },
+  { value: 'equipamento_teste', label: '🧰 Instrumento / equipamento de ensaio' },
+  { value: 'defeito', label: '⚠️ Não conformidade / defeito' }
+];
 
 const btn = 'inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white transition-colors disabled:opacity-50';
 
@@ -127,6 +142,10 @@ export const TestPhotos: React.FC<{
         defaultCategory="medicao"
         defaultCaption={defaultCaption}
         userName={currentUserName()}
+        title="Câmera do ensaio de SPDA / aterramento"
+        subtitle="Captura de evidências fotográficas para o laudo"
+        viewfinderHint="Enquadre o ponto de medição / instrumento"
+        categories={SPDA_CAMERA_CATEGORIES}
         onCapturePhoto={photo => {
           add([{ id: newId('foto'), url: photo.url, caption: photo.caption?.trim() || defaultCaption, timestamp: new Date().toISOString(), userName: photo.userName || currentUserName(), gpsCoords: photo.gpsCoords }]);
         }}
